@@ -17,3 +17,6 @@
 
 /* 5. 动画效果 */
 @import './animations.css';
+
+/* 6. 塔罗牌样式 */
+@import './tarot.css';
