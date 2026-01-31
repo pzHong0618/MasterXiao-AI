@@ -3,175 +3,127 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#8B7FD8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
   <!-- SEO -->
   <title>MasterXiao AI - 智能命理匹配分析平台</title>
-  <meta name="description" content="MasterXiao AI 提供感情匹配、职场关系、城市发展等多维度命理分析服务，让星辰为你指引前路。">
-  <meta name="keywords" content="感情匹配,职场关系,塔罗牌,命理分析,八字匹配,城市匹配">
+  <meta name="description" content="MasterXiao AI 提供感情匹配、职场关系、城市发展等多维度命理分析服务，通过八字三柱和六爻塔罗为你指引前路。">
+  <meta name="keywords" content="感情匹配,职场关系,塔罗牌,命理分析,八字匹配,城市匹配,六爻占卜">
 
   <!-- Open Graph -->
   <meta property="og:title" content="MasterXiao AI - 智能命理匹配分析">
   <meta property="og:description" content="发现你的命运连接，让星辰为你指引前路。">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="/og-image.jpg">
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/vite.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-  <!-- 样式 -->
-  <link rel="stylesheet" href="/src/styles/main.css">
+  <!-- 预加载字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 
 <body>
+  <!-- 应用容器 -->
   <div id="app">
-    <!-- 导航栏 -->
-    <nav class="navbar">
-      <div class="navbar__logo">MasterXiao</div>
-      <div class="navbar__actions">
-        <button class="navbar__icon-btn" title="历史记录">🕐</button>
-        <button class="navbar__icon-btn" title="个人中心">👤</button>
+    <!-- 加载状态 -->
+    <div class="loading-screen">
+      <div class="loading-content">
+        <div class="loading-icon">🔮</div>
+        <div class="loading-text">MasterXiao AI</div>
+        <div class="loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
-    </nav>
-
-    <!-- 主内容区 -->
-    <main class="page">
-      <div class="app-container">
-
-        <!-- 欢迎横幅 -->
-        <section class="mt-6 mb-6">
-          <div class="glass-card text-center animate-fade-in-up">
-            <div style="font-size: 48px; margin-bottom: 12px;" class="animate-float">🔮</div>
-            <h1 class="heading-1 mb-2">发现你的命运连接</h1>
-            <p class="body-text-secondary mb-4">让星辰为你指引前路</p>
-            <button class="btn btn--primary btn--lg">
-              <span>✨</span>
-              <span>开始占卜</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- 场景占卜标题 -->
-        <section class="mb-4">
-          <h2 class="heading-2 text-center" style="color: var(--color-text-secondary);">场景占卜</h2>
-        </section>
-
-        <!-- 功能卡片列表 -->
-        <section class="flex flex-col gap-3">
-
-          <!-- 感情匹配 -->
-          <div
-            class="glass-card glass-card--interactive feature-card animate-fade-in-up animate-delay-100 animate-hidden">
-            <div class="feature-card__icon">💑</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">感情匹配</h3>
-              <p class="feature-card__description">预知你的正缘何时降临</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 职场关系 -->
-          <div
-            class="glass-card glass-card--interactive feature-card animate-fade-in-up animate-delay-200 animate-hidden">
-            <div class="feature-card__icon">💼</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">职场关系</h3>
-              <p class="feature-card__description">解析职场人际关系</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 合作关系 -->
-          <div
-            class="glass-card glass-card--interactive feature-card animate-fade-in-up animate-delay-300 animate-hidden">
-            <div class="feature-card__icon">🤝</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">合作关系</h3>
-              <p class="feature-card__description">看清合作对象，早做决定</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- TA的想法 -->
-          <div
-            class="glass-card glass-card--interactive feature-card animate-fade-in-up animate-delay-400 animate-hidden">
-            <div class="feature-card__icon">💭</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">TA的想法和态度</h3>
-              <p class="feature-card__description">揭开TA的真实想法</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 职业发展 -->
-          <div
-            class="glass-card glass-card--interactive feature-card animate-fade-in-up animate-delay-500 animate-hidden">
-            <div class="feature-card__icon">📈</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">职业发展</h3>
-              <p class="feature-card__description">找到最适合你的职业方向</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 城市方向 -->
-          <div class="glass-card glass-card--interactive feature-card">
-            <div class="feature-card__icon">🗺️</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">城市方向</h3>
-              <p class="feature-card__description">哪座城市是你的命运之地</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 桃花运势 -->
-          <div class="glass-card glass-card--interactive feature-card">
-            <div class="feature-card__icon">🌸</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">桃花运势</h3>
-              <p class="feature-card__description">桃花何时盛开</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 贵人匹配 -->
-          <div class="glass-card glass-card--interactive feature-card">
-            <div class="feature-card__icon">⭐</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">贵人匹配</h3>
-              <p class="feature-card__description">谁是你生命中的贵人</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- Yes or No -->
-          <div class="glass-card glass-card--interactive feature-card">
-            <div class="feature-card__icon">❓</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">Yes or No</h3>
-              <p class="feature-card__description">犹豫时，快速帮你判断</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-          <!-- 二选一 -->
-          <div class="glass-card glass-card--interactive feature-card">
-            <div class="feature-card__icon">⚖️</div>
-            <div class="feature-card__content">
-              <h3 class="feature-card__title">二选一</h3>
-              <p class="feature-card__description">左右为难？帮你稳妥选对</p>
-            </div>
-            <span class="feature-card__arrow">→</span>
-          </div>
-
-        </section>
-
-        <!-- 底部间距 -->
-        <div class="mt-8"></div>
-
-      </div>
-    </main>
+    </div>
   </div>
+
+  <!-- 加载屏样式 -->
+  <style>
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #E8D5FF 0%, #FFE5F0 50%, #E5F0FF 100%);
+    }
+
+    .loading-content {
+      text-align: center;
+    }
+
+    .loading-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    .loading-text {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: #8B7FD8;
+      margin-bottom: 16px;
+    }
+
+    .loading-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      background: #8B7FD8;
+      border-radius: 50%;
+      animation: loadingDot 1.4s ease-in-out infinite;
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes loadingDot {
+
+      0%,
+      60%,
+      100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+      }
+
+      30% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  </style>
 
   <!-- 主脚本 -->
   <script type="module" src="/src/main.js"></script>

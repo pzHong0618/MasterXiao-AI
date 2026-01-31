@@ -20,3 +20,6 @@
 
 /* 6. 塔罗牌样式 */
 @import './tarot.css';
+
+/* 7. 页面样式 */
+@import './pages.css';

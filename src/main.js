@@ -1,139 +1,107 @@
 /**
  * MasterXiao-AI 主入口文件
- * 初始化应用和交互
+ * 初始化应用、路由和全局功能
  */
 
-// 导入样式（确保 Vite 能正确处理）
+// 导入样式
 import './styles/main.css';
+
+// 导入核心模块
+import router from './scripts/router.js';
+import state from './scripts/state.js';
+
+// 导入页面
+import {
+  HomePage,
+  TestSelectPage,
+  BirthdayInputPage,
+  TarotPage,
+  ResultPage
+} from './pages/index.js';
 
 /**
  * 初始化应用
  */
 function initApp() {
   console.log('🔮 MasterXiao-AI 启动中...');
-  
-  // 初始化动画
-  initAnimations();
-  
-  // 初始化事件监听
-  initEventListeners();
-  
+
+  // 注册路由
+  registerRoutes();
+
+  // 初始化全局功能
+  initGlobalFeatures();
+
+  // 启动路由
+  router.start();
+
   console.log('✨ MasterXiao-AI 启动完成！');
 }
 
 /**
- * 初始化动画效果
- * 使用 Intersection Observer 实现滚动时触发动画
+ * 注册路由
  */
-function initAnimations() {
-  const animatedElements = document.querySelectorAll('.animate-hidden');
-  
-  if (animatedElements.length === 0) return;
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.remove('animate-hidden');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-  });
-  
-  animatedElements.forEach(el => observer.observe(el));
+function registerRoutes() {
+  router
+    .register('/', HomePage)
+    .register('/test/:type', TestSelectPage)
+    .register('/test/:type/birthday', BirthdayInputPage)
+    .register('/test/:type/tarot', TarotPage)
+    .register('/result/:id', ResultPage);
 }
 
 /**
- * 初始化事件监听器
+ * 初始化全局功能
  */
-function initEventListeners() {
-  // 功能卡片点击
-  document.querySelectorAll('.feature-card').forEach(card => {
-    card.addEventListener('click', handleFeatureCardClick);
-  });
-  
-  // 开始占卜按钮
-  const startBtn = document.querySelector('.btn--primary');
-  if (startBtn) {
-    startBtn.addEventListener('click', handleStartClick);
-  }
-  
-  // 导航按钮
-  document.querySelectorAll('.navbar__icon-btn').forEach(btn => {
-    btn.addEventListener('click', handleNavClick);
-  });
-}
+function initGlobalFeatures() {
+  // Toast 提示功能
+  window.showToast = showToast;
 
-/**
- * 处理功能卡片点击
- */
-function handleFeatureCardClick(event) {
-  const card = event.currentTarget;
-  const title = card.querySelector('.feature-card__title')?.textContent;
-  
-  // 添加点击效果
-  card.style.transform = 'scale(0.98)';
-  setTimeout(() => {
-    card.style.transform = '';
-  }, 150);
-  
-  // TODO: 导航到对应的测试选择页面
-  console.log(`📍 点击了: ${title}`);
-  showToast(`正在进入 ${title}...`);
-}
+  // 全局状态
+  window.appState = state;
 
-/**
- * 处理开始占卜按钮点击
- */
-function handleStartClick() {
-  console.log('🔮 开始占卜');
-  showToast('欢迎来到 MasterXiao AI！');
-}
+  // 全局路由
+  window.router = router;
 
-/**
- * 处理导航按钮点击
- */
-function handleNavClick(event) {
-  const btn = event.currentTarget;
-  const title = btn.getAttribute('title');
-  
-  console.log(`🧭 导航: ${title}`);
-  showToast(`${title} 功能开发中...`);
+  // 阻止 iOS 橡皮筋效果
+  document.body.addEventListener('touchmove', function (e) {
+    if (e.target.closest('.page-content')) {
+      return;
+    }
+    e.preventDefault();
+  }, { passive: false });
 }
 
 /**
  * 显示 Toast 提示
+ * @param {string} message - 提示信息
+ * @param {string} type - 类型: 'default' | 'success' | 'error'
+ * @param {number} duration - 持续时间（毫秒）
  */
-function showToast(message, type = 'default') {
+function showToast(message, type = 'default', duration = 2500) {
   // 移除已存在的 toast
   const existingToast = document.querySelector('.toast');
   if (existingToast) {
     existingToast.remove();
   }
-  
+
   // 创建新的 toast
   const toast = document.createElement('div');
   toast.className = `toast ${type !== 'default' ? `toast--${type}` : ''}`;
   toast.textContent = message;
-  
+
   document.body.appendChild(toast);
-  
+
   // 触发动画
   requestAnimationFrame(() => {
     toast.classList.add('toast--visible');
   });
-  
+
   // 自动隐藏
   setTimeout(() => {
     toast.classList.remove('toast--visible');
     setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  }, duration);
 }
-
-// 将 showToast 暴露到全局，方便调试
-window.showToast = showToast;
 
 // DOM 加载完成后初始化应用
 if (document.readyState === 'loading') {
@@ -142,5 +110,5 @@ if (document.readyState === 'loading') {
   initApp();
 }
 
-// 导出供其他模块使用
-export { showToast };
+// 导出供调试使用
+export { showToast, router, state };
