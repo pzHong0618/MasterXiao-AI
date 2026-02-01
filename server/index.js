@@ -83,8 +83,8 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(join(__dirname, '../dist')));
 
     // SPA 回退
-    app.get('*', (req, res) => {
-        res.sendFile(join(__dirname, '../dist/index.html'));
+    app.get(/.*/, (req, res) => {
+      res.sendFile(join(__dirname, "../dist/index.html"));
     });
 }
 
