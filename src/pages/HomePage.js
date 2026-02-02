@@ -30,7 +30,7 @@ export class HomePage {
             icon: '✨',
             title: '发现你的性格契合度',
             subtitle: '探索人际关系的奥秘',
-            buttonText: '开始测试匹配度'
+            buttonText: '开始匹配...'
         })}
 
             <!-- 场景测试标题 -->
