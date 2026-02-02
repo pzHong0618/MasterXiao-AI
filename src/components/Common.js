@@ -24,7 +24,7 @@ export function Navbar(options = {}) {
         : '';
 
     const profileBtn = showProfile
-        ? '<button class="navbar__icon-btn navbar__profile-btn" data-action="profile" title="个人中心">✦</button>'
+        ? '<button class="navbar__icon-btn navbar__profile-btn" data-action="profile" title="个人中心">👤</button>'
         : '';
 
     return `
