@@ -1,6 +1,6 @@
 /**
- * MasterXiao-AI 六十四卦数据
- * 用于六爻占卜和塔罗牌展示
+ * MasterXiao-AI 64种符号数据
+ * 用于直觉卡牌测试结果展示
  */
 
 export const hexagrams = [
@@ -71,7 +71,7 @@ export const hexagrams = [
 ];
 
 /**
- * 获取随机卦象
+ * 获取随机符号
  * @param {number} count - 数量
  */
 export function getRandomHexagrams(count = 6) {
@@ -80,28 +80,28 @@ export function getRandomHexagrams(count = 6) {
 }
 
 /**
- * 根据 ID 获取卦象
+ * 根据 ID 获取符号
  */
 export function getHexagramById(id) {
     return hexagrams.find(h => h.id === id);
 }
 
 /**
- * 根据名称获取卦象
+ * 根据名称获取符号
  */
 export function getHexagramByName(name) {
     return hexagrams.find(h => h.name === name);
 }
 
 /**
- * 获取五行对应的卦象
+ * 获取五行对应的符号
  */
 export function getHexagramsByElement(element) {
     return hexagrams.filter(h => h.element === element);
 }
 
 /**
- * 塔罗牌背面样式（用于展示）
+ * 卡牌背面样式（用于展示）
  */
 export const cardBackStyles = [
     { id: 'classic', name: '经典', pattern: 'stars', color: '#1A1A2E' },

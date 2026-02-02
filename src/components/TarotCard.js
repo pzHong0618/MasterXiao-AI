@@ -1,6 +1,6 @@
 /**
- * MasterXiao-AI 塔罗牌组件
- * 3D 翻转效果的塔罗牌
+ * MasterXiao-AI 卡牌组件
+ * 3D 翻转效果的卡牌
  */
 
 export class TarotCard {
@@ -118,8 +118,8 @@ export class TarotCard {
 }
 
 /**
- * 塔罗牌组组件
- * 管理一组塔罗牌
+ * 卡牌组组件
+ * 管理一组卡牌
  */
 export class TarotCardGroup {
     constructor(hexagrams, options = {}) {
@@ -207,7 +207,7 @@ export class TarotCardGroup {
     }
 
     /**
-     * 获取已选择的卦象
+     * 获取已选择的符号
      */
     getSelectedHexagrams() {
         return this.selectedCards.map(card => card.hexagram);

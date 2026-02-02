@@ -16,9 +16,9 @@ export class HomePage {
         return `
       <div class="page home-page">
         ${Navbar({
-            title: 'MasterXiao',
+            title: '趣测小站',
             showBack: false,
-            showHistory: true,
+            showHistory: false,
             showProfile: true
         })}
         
@@ -27,16 +27,16 @@ export class HomePage {
             
             <!-- 欢迎横幅 -->
             ${HeroBanner({
-            icon: '🔮',
-            title: '发现你的命运连接',
-            subtitle: '让星辰为你指引前路',
-            buttonText: '开始占卜'
+            icon: '✨',
+            title: '发现你的性格契合度',
+            subtitle: '探索人际关系的奥秘',
+            buttonText: '开始测试'
         })}
 
-            <!-- 场景占卜标题 -->
+            <!-- 场景测试标题 -->
             <section class="section-header mt-6 mb-4">
               <h2 class="heading-2 text-center" style="color: var(--color-text-secondary);">
-                场景占卜
+                趣味测试
               </h2>
             </section>
 
@@ -69,7 +69,7 @@ export class HomePage {
             });
         });
 
-        // 开始占卜按钮
+        // 开始测试按钮
         const heroBtn = document.querySelector('[data-action="hero-start"]');
         if (heroBtn) {
             heroBtn.addEventListener('click', () => {

@@ -8,9 +8,9 @@
  */
 export function Navbar(options = {}) {
     const {
-        title = 'MasterXiao',
+        title = '趣测小站',
         showBack = false,
-        showHistory = true,
+        showHistory = false,
         showProfile = true,
         onBack = null
     } = options;
@@ -24,7 +24,7 @@ export function Navbar(options = {}) {
         : '';
 
     const profileBtn = showProfile
-        ? '<button class="navbar__icon-btn" data-action="profile" title="个人中心">👤</button>'
+        ? '<button class="navbar__icon-btn navbar__profile-btn" data-action="profile" title="个人中心">✦</button>'
         : '';
 
     return `
@@ -47,10 +47,10 @@ export function Navbar(options = {}) {
  */
 export function HeroBanner(options = {}) {
     const {
-        icon = '🔮',
-        title = '发现你的命运连接',
-        subtitle = '让星辰为你指引前路',
-        buttonText = '开始占卜',
+        icon = '✨',
+        title = '发现你的性格契合度',
+        subtitle = '探索人际关系的奥秘',
+        buttonText = '开始测试',
         onButtonClick = null
     } = options;
 
@@ -151,7 +151,7 @@ export function MessageBubble(message) {
         isTyping = false
     } = message;
 
-    const defaultAvatar = role === 'ai' ? '🔮' : '👤';
+    const defaultAvatar = role === 'ai' ? '✨' : '👤';
     const avatarIcon = avatar || defaultAvatar;
 
     const timeHtml = timestamp
@@ -214,17 +214,17 @@ export function TestMethodSelector() {
           <div class="method-card__icon">🎂</div>
           <div class="method-card__content">
             <h4 class="method-card__title">生日匹配</h4>
-            <p class="method-card__description">通过生辰八字分析，精准解读命理关系</p>
+            <p class="method-card__description">通过生日特质分析，解读性格关系</p>
           </div>
           <span class="method-card__arrow">→</span>
         </div>
         
-        <!-- 塔罗牌测试 -->
+        <!-- 直觉卡牌测试 -->
         <div class="glass-card glass-card--interactive method-card" data-method="tarot">
-          <div class="method-card__icon">🔮</div>
+          <div class="method-card__icon">🃏</div>
           <div class="method-card__content">
-            <h4 class="method-card__title">塔罗牌测试</h4>
-            <p class="method-card__description">凭直觉选择塔罗牌，揭示内心的答案</p>
+            <h4 class="method-card__title">直觉卡牌</h4>
+            <p class="method-card__description">凭直觉选择卡牌，探索内心的答案</p>
           </div>
           <span class="method-card__arrow">→</span>
         </div>

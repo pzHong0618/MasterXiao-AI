@@ -1,20 +1,20 @@
 /**
- * MasterXiao-AI 六爻算法
- * 基于翻牌方式起卦
+ * MasterXiao-AI 直觉卡牌算法
+ * 基于翻牌方式生成符号
  */
 
 /**
- * 爻的类型
- * 老阳(0): 三张全正，阳爻且变
- * 少阳(1): 两正一反，阳爻不变
- * 少阴(2): 一正两反，阴爻不变
- * 老阴(3): 三张全反，阴爻且变
+ * 牌面类型
+ * 全正位(0): 三张全正位，阳性且变化
+ * 多正位(1): 两正一逆，阳性稳定
+ * 多逆位(2): 一正两逆，阴性稳定
+ * 全逆位(3): 三张全逆位，阴性且变化
  */
 export const YAO_TYPES = {
-    OLD_YANG: { value: 0, name: '老阳', symbol: '—○', isYang: true, isChanging: true },
-    YOUNG_YANG: { value: 1, name: '少阳', symbol: '———', isYang: true, isChanging: false },
-    YOUNG_YIN: { value: 2, name: '少阴', symbol: '— —', isYang: false, isChanging: false },
-    OLD_YIN: { value: 3, name: '老阴', symbol: '—×', isYang: false, isChanging: true }
+    OLD_YANG: { value: 0, name: '老阳', tarotName: '太阳能量', symbol: '☀️', isYang: true, isChanging: true },
+    YOUNG_YANG: { value: 1, name: '少阳', tarotName: '星辰能量', symbol: '⭐', isYang: true, isChanging: false },
+    YOUNG_YIN: { value: 2, name: '少阴', tarotName: '月亮能量', symbol: '🌙', isYang: false, isChanging: false },
+    OLD_YIN: { value: 3, name: '老阴', tarotName: '暗夜能量', symbol: '🌑', isYang: false, isChanging: true }
 };
 
 /**
@@ -32,7 +32,7 @@ export function getYaoType(faceUpCount) {
 }
 
 /**
- * 八卦基本数据
+ * 八种基本符号
  */
 export const BAGUA = {
     QIAN: { name: '乾', symbol: '☰', lines: [1, 1, 1], element: '金', nature: '天' },
@@ -46,8 +46,8 @@ export const BAGUA = {
 };
 
 /**
- * 根据三爻获取八卦
- * @param {Array} lines - 三个爻的阴阳值 [下, 中, 上]，1为阳，0为阴
+ * 根据三轮结果获取符号
+ * @param {Array} lines - 三轮的正逆值 [下, 中, 上]，1为正位，0为逆位
  */
 export function getBaguaByLines(lines) {
     const key = lines.join('');
@@ -65,31 +65,31 @@ export function getBaguaByLines(lines) {
 }
 
 /**
- * 六爻卦象类
+ * 卡牌符号类
  */
 export class Hexagram {
     constructor(yaos) {
-        // yaos: 6个爻，从下到上 [初爻, 二爻, 三爻, 四爻, 五爻, 上爻]
+        // yaos: 6轮结果，从下到上 [第1轮, 第2轮, 第3轮, 第4轮, 第5轮, 第6轮]
         this.yaos = yaos;
         this.calculate();
     }
 
     calculate() {
-        // 获取基本阴阳值（阳=1，阴=0）
+        // 获取基本正逆值（正位=1，逆位=0）
         this.lines = this.yaos.map(yao => yao.isYang ? 1 : 0);
 
-        // 下卦（初、二、三爻）
+        // 下符号（第1、2、3轮）
         this.lowerLines = this.lines.slice(0, 3);
         this.lower = getBaguaByLines(this.lowerLines);
 
-        // 上卦（四、五、上爻）
+        // 上符号（第4、5、6轮）
         this.upperLines = this.lines.slice(3, 6);
         this.upper = getBaguaByLines(this.upperLines);
 
-        // 查找对应的六十四卦
+        // 查找对应的64种符号
         this.hexagram = this.findHexagram();
 
-        // 计算变卦（如果有变爻）
+        // 计算变化符号（如果有变化轮）
         this.changingYaos = this.yaos.filter(yao => yao.isChanging);
         this.hasChanging = this.changingYaos.length > 0;
 
@@ -99,10 +99,10 @@ export class Hexagram {
     }
 
     /**
-     * 根据上下卦查找六十四卦
+     * 根据上下符号查找64种符号
      */
     findHexagram() {
-        // 六十四卦映射表 [下卦, 上卦] -> 卦名
+        // 64种符号映射表 [下符号, 上符号] -> 符号名
         const hexagramMap = {
             '乾乾': { id: 1, name: '乾', meaning: '刚健中正' },
             '坤坤': { id: 2, name: '坤', meaning: '柔顺伸展' },
@@ -175,10 +175,10 @@ export class Hexagram {
     }
 
     /**
-     * 计算变卦
+     * 计算变化符号
      */
     calculateChangedHexagram() {
-        // 变爻后的阴阳值取反
+        // 变化轮后的正逆值取反
         const changedLines = this.yaos.map(yao => {
             if (yao.isChanging) {
                 return yao.isYang ? 0 : 1; // 老阳变阴，老阴变阳
@@ -198,7 +198,7 @@ export class Hexagram {
     }
 
     /**
-     * 获取卦象描述
+     * 获取符号描述
      */
     getDescription() {
         return {
@@ -234,7 +234,7 @@ export function flipCards() {
 }
 
 /**
- * 自动起卦（模拟6次翻牌）
+ * 自动生成符号（模拟6次翻牌）
  */
 export function autoGenerateHexagram() {
     const yaos = [];
@@ -246,8 +246,8 @@ export function autoGenerateHexagram() {
 }
 
 /**
- * 根据用户选择的结果起卦
- * @param {Array} results - 6次翻牌结果，每个元素是正面朝上的数量 [0-3]
+ * 根据用户选择的结果生成符号
+ * @param {Array} results - 6次翻牌结果，每个元素是正位朝上的数量 [0-3]
  */
 export function generateHexagramFromResults(results) {
     if (results.length !== 6) {

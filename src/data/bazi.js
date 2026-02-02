@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI 八字三柱算法
+ * MasterXiao-AI 生日特质算法
  * 年柱、月柱、日柱计算（不含时柱）
  */
 
@@ -220,7 +220,7 @@ function analyzeElements(yearPillar, monthPillar, dayPillar) {
 }
 
 /**
- * 分析两人八字相合度
+ * 分析两人生日特质相合度
  * @param {object} personA - A的三柱信息
  * @param {object} personB - B的三柱信息
  */
@@ -241,7 +241,7 @@ export function analyzeCompatibility(personA, personB) {
         result.details.push({
             type: 'positive',
             title: '日干相合',
-            description: `${personA.day.tiangan.name}${personB.day.tiangan.name}相合，有天作之合的缘分`
+            description: `${personA.day.tiangan.name}${personB.day.tiangan.name}相合，性格特质高度契合`
         });
     }
 
@@ -391,7 +391,7 @@ function generateConclusion(score, details) {
     const negatives = details.filter(d => d.type === 'negative').length;
 
     if (score >= 80) {
-        return 'A和B互利：双方八字高度相合，是天作之合的良缘。';
+        return 'A和B互利：双方性格特质高度契合，非常适合建立良好关系。';
     } else if (score >= 60) {
         if (positives > negatives) {
             return 'A利B，B不利A：你在这段关系中付出较多，但整体是积极的。';
@@ -399,9 +399,9 @@ function generateConclusion(score, details) {
             return 'A不利B，B利A：对方在这段关系中获益更多。';
         }
     } else if (score >= 40) {
-        return 'A和B相互不利：双方八字有一定冲突，需要更多包容和理解。';
+        return 'A和B相互不利：双方性格有一定差异，需要更多包容和理解。';
     } else {
-        return 'A和B相互不利：八字显示双方不太适合，建议谨慎考虑。';
+        return 'A和B相互不利：分析显示双方差异较大，建议谨慎考虑。';
     }
 }
 

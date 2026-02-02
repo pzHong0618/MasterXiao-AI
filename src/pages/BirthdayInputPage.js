@@ -1,10 +1,11 @@
 /**
  * MasterXiao-AI 生日输入页
- * 输入双方生日进行八字匹配
+ * 输入双方生日进行生日特质匹配
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar, BottomActionBar } from '../components/Common.js';
+import { formatLunarDate } from '../scripts/lunar.js';
 
 export class BirthdayInputPage {
     constructor(params) {
@@ -83,14 +84,20 @@ export class BirthdayInputPage {
                   <!-- 出生日期 -->
                   <div class="input-group mb-4">
                     <label class="input-label" for="birthDate">出生日期</label>
-                    <input 
-                      type="date" 
-                      id="birthDate" 
-                      class="input"
-                      max="${new Date().toISOString().split('T')[0]}"
-                      min="1920-01-01"
-                    >
+                    <div class="date-input-wrapper" id="date-input-wrapper">
+                      <input 
+                        type="date" 
+                        id="birthDate" 
+                        class="input"
+                        max="${new Date().toISOString().split('T')[0]}"
+                        min="1920-01-01"
+                      >
+                    </div>
                     <p class="input-helper">请选择阳历（公历）生日</p>
+                    <div id="lunar-date" class="lunar-date-display" style="display: none;">
+                      <span class="lunar-icon">🌙</span>
+                      <span class="lunar-text"></span>
+                    </div>
                   </div>
                 </form>
               </div>
@@ -160,12 +167,24 @@ export class BirthdayInputPage {
         // 表单输入
         const nameInput = document.getElementById('name');
         const birthDateInput = document.getElementById('birthDate');
+        const dateInputWrapper = document.getElementById('date-input-wrapper');
 
         if (nameInput) {
             nameInput.addEventListener('input', () => this.validateForm());
         }
         if (birthDateInput) {
-            birthDateInput.addEventListener('change', () => this.validateForm());
+            birthDateInput.addEventListener('change', () => {
+                this.updateLunarDate(birthDateInput.value);
+                this.validateForm();
+            });
+        }
+        
+        // 点击整个日期输入区域触发日期选择器
+        if (dateInputWrapper) {
+            dateInputWrapper.addEventListener('click', () => {
+                birthDateInput?.showPicker?.();
+                birthDateInput?.focus();
+            });
         }
 
         // 下一步按钮
@@ -214,6 +233,21 @@ export class BirthdayInputPage {
         return isValid;
     }
 
+    updateLunarDate(dateStr) {
+        const lunarContainer = document.getElementById('lunar-date');
+        const lunarText = lunarContainer?.querySelector('.lunar-text');
+        
+        if (!lunarContainer || !lunarText) return;
+
+        if (dateStr) {
+            const lunarStr = formatLunarDate(dateStr);
+            lunarText.textContent = `农历：${lunarStr}`;
+            lunarContainer.style.display = 'flex';
+        } else {
+            lunarContainer.style.display = 'none';
+        }
+    }
+
     handleNext() {
         if (!this.validateForm()) return;
 
@@ -255,6 +289,9 @@ export class BirthdayInputPage {
             document.getElementById('birthDate').value = this.formData.personA.birthDate;
             if (this.formData.personA.gender) {
                 this.selectGender(this.formData.personA.gender);
+            }
+            if (this.formData.personA.birthDate) {
+                this.updateLunarDate(this.formData.personA.birthDate);
             }
         }
     }

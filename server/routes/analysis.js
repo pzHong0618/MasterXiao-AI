@@ -47,13 +47,13 @@ router.post('/birthday', optionalAuth, asyncHandler(async (req, res) => {
 
 /**
  * POST /api/analysis/hexagram
- * 六爻卦象分析
+ * 卡牌符号分析
  */
 router.post('/hexagram', optionalAuth, asyncHandler(async (req, res) => {
     const { testId, hexagram, matchType, question } = req.body;
 
     if (!hexagram) {
-        throw new AppError('请提供卦象信息', 400, 'MISSING_HEXAGRAM');
+        throw new AppError('请提供符号信息', 400, 'MISSING_HEXAGRAM');
     }
 
     // 执行分析

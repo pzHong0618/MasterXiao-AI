@@ -3,7 +3,7 @@
  * 统一导出所有组件
  */
 
-// 塔罗牌组件
+// 卡牌组件
 export { TarotCard, TarotCardGroup } from './TarotCard.js';
 
 // 功能卡片组件

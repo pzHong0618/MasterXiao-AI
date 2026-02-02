@@ -247,7 +247,7 @@
     font-size: 32px;
 }
 
-/* ==================== 六爻翻牌页样式 ==================== */
+/* ==================== 卡牌翻牌页样式 ==================== */
 
 .instruction-icon {
     font-size: 40px;
@@ -264,6 +264,15 @@
 .flip-cards-row {
     display: flex;
     gap: var(--spacing-4);
+}
+
+/* 6张牌网格布局 */
+.flip-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-3);
+    max-width: 320px;
+    margin: 0 auto;
 }
 
 /* 翻牌卡片 */
@@ -344,12 +353,171 @@
     color: var(--color-text-secondary);
 }
 
+.flip-card__label.upright {
+    color: var(--color-primary);
+}
+
+.flip-card__label.reversed {
+    color: var(--color-text-tertiary);
+}
+
+.flip-card__name {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-1);
+}
+
+/* 已选择的牌标记 */
+.flip-card-wrapper.selected .flip-card__back {
+    border-color: var(--color-primary);
+}
+
 /* 已完成爻展示 */
 .yaos-display {
     display: flex;
     flex-wrap: wrap;
     gap: var(--spacing-2);
     justify-content: center;
+}
+
+/* 已选择的卡牌展示 */
+.selected-cards-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    justify-content: center;
+}
+
+.selected-card-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--color-glass-bg-light);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-glass-border);
+}
+
+.selected-card-item .card-symbol {
+    font-size: 20px;
+}
+
+.selected-card-item .card-name {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+}
+
+.selected-card-item .card-position {
+    font-size: var(--font-size-xs);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.selected-card-item .card-position.upright {
+    background: rgba(139, 127, 216, 0.2);
+    color: var(--color-primary);
+}
+
+.selected-card-item .card-position.reversed {
+    background: rgba(150, 150, 150, 0.2);
+    color: var(--color-text-tertiary);
+}
+
+/* 卡牌结果详情 */
+.tarot-display .energy-type {
+    padding: var(--spacing-4);
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.1), rgba(255, 181, 216, 0.1));
+    border-radius: var(--radius-lg);
+}
+
+.tarot-display .energy-symbol {
+    font-size: 48px;
+    display: block;
+    margin-bottom: var(--spacing-2);
+}
+
+.tarot-display .energy-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-2);
+}
+
+.tarot-display .energy-desc {
+    color: var(--color-text-secondary);
+}
+
+.tarot-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-3);
+}
+
+.tarot-card-item {
+    background: var(--color-glass-bg-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-3);
+    border: 1px solid var(--color-glass-border);
+    text-align: center;
+}
+
+.tarot-card-item .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
+}
+
+.tarot-card-item .card-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tarot-card-item .card-symbol {
+    font-size: 24px;
+}
+
+.tarot-card-item .card-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-1);
+}
+
+.tarot-card-item .card-position {
+    font-size: var(--font-size-xs);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    margin-bottom: var(--spacing-2);
+}
+
+.tarot-card-item .card-position.upright {
+    background: rgba(139, 127, 216, 0.2);
+    color: var(--color-primary);
+}
+
+.tarot-card-item .card-position.reversed {
+    background: rgba(150, 150, 150, 0.2);
+    color: var(--color-text-tertiary);
+}
+
+.tarot-card-item .card-meaning {
+    color: var(--color-text-tertiary);
+    line-height: 1.4;
+}
+
+/* 免责声明 */
+.disclaimer-section {
+    opacity: 0.7;
 }
 
 .yao-item {
@@ -397,6 +565,26 @@
     margin: 0 auto var(--spacing-md);
 }
 
+/* 渐变色分数（圆圈中间） */
+.score-number-gradient {
+    font-family: var(--font-family-heading);
+    font-size: 36px;
+    font-weight: var(--font-weight-bold);
+    background: linear-gradient(135deg, #8B7FD8, #FFB5D8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.score-unit-gradient {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    background: linear-gradient(135deg, #8B7FD8, #FFB5D8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .score-circle {
     width: 100%;
     height: 100%;
@@ -407,7 +595,6 @@
 }
 
 .score-circle__fill {
-    stroke: url(#scoreGradient);
     stroke-linecap: round;
     transition: stroke-dasharray 1s ease-out;
 }
@@ -437,7 +624,20 @@
     color: var(--color-text-tertiary);
 }
 
-/* 结论卡片 */
+/* 简化的结论卡片（隐藏标题行） */
+.conclusion-card-simple {
+    text-align: center;
+    padding: var(--spacing-4);
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.08), rgba(255, 181, 216, 0.08));
+    border-radius: var(--radius-lg);
+}
+
+.conclusion-card-simple .body-text {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+/* 结论卡片（保留用于其他场景） */
 .conclusion-card {
     text-align: center;
     border-left: 4px solid var(--color-primary);
@@ -500,7 +700,7 @@
     line-height: var(--line-height-relaxed);
 }
 
-/* 八字对比 */
+/* 生日特质对比 */
 .bazi-comparison {
     display: flex;
     gap: var(--spacing-3);
@@ -594,7 +794,7 @@
     color: var(--color-primary);
 }
 
-/* 卦象展示 */
+/* 符号展示 */
 .hexagram-display {
     text-align: center;
 }

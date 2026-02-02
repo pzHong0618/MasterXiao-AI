@@ -1,9 +1,9 @@
 /**
- * MasterXiao-AI 塔罗牌样式
+ * MasterXiao-AI 卡牌样式
  * 3D 翻转效果和卡牌布局
  */
 
-/* ==================== 塔罗牌容器 ==================== */
+/* ==================== 卡牌容器 ==================== */
 
 .tarot-group {
     display: flex;
@@ -25,7 +25,7 @@
     perspective: 1000px;
 }
 
-/* ==================== 塔罗牌包装器 ==================== */
+/* ==================== 卡牌包装器 ==================== */
 
 .tarot-card-wrapper {
     perspective: 1000px;
@@ -33,7 +33,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ==================== 塔罗牌主体 ==================== */
+/* ==================== 卡牌主体 ==================== */
 
 .tarot-card {
     position: relative;
@@ -169,14 +169,14 @@
     padding: var(--spacing-3);
 }
 
-/* 卦象符号 */
+/* 符号图标 */
 .hexagram-symbol {
     font-size: 28px;
     color: var(--color-primary);
     text-shadow: 0 2px 4px rgba(139, 127, 216, 0.2);
 }
 
-/* 卦名 */
+/* 符号名称 */
 .hexagram-name {
     font-family: var(--font-family-heading);
     font-size: var(--font-size-lg);

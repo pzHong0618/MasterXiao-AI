@@ -160,7 +160,7 @@ export const analysisApi = {
     },
 
     /**
-     * 六爻卦象分析
+     * 卡牌符号分析
      */
     async hexagram(data) {
         return request('/analysis/hexagram', {

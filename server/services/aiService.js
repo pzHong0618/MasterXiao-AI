@@ -1,6 +1,6 @@
 /**
  * AI 分析服务
- * 八字和六爻分析逻辑
+ * 生日特质和直觉卡牌分析逻辑
  */
 
 // ==================== 天干地支数据 ====================
@@ -22,7 +22,7 @@ const WUXING_EMOJI = {
     '金': '🔶', '木': '🌳', '水': '💧', '火': '🔥', '土': '🏔️'
 };
 
-// ==================== 八字计算 ====================
+// ==================== 生日特质计算 ====================
 
 /**
  * 计算年柱
@@ -151,7 +151,7 @@ const DIZHI_LIUHE = {
 const DIZHI_CHONG = ['子午', '午子', '丑未', '未丑', '寅申', '申寅', '卯酉', '酉卯', '辰戌', '戌辰', '巳亥', '亥巳'];
 
 /**
- * 分析两人八字相合度
+ * 分析两人生日特质相合度
  */
 function analyzeCompatibilityInternal(pillarsA, pillarsB, matchType) {
     let score = 50; // 基础分
@@ -164,7 +164,7 @@ function analyzeCompatibilityInternal(pillarsA, pillarsB, matchType) {
         details.push({
             type: 'positive',
             title: '日干相合',
-            description: `${dayGanKey}天干相合，两人有天作之合的缘分`
+            description: `${dayGanKey}天干相合，两人性格特质高度契合`
         });
     }
 
@@ -286,7 +286,7 @@ export async function analyzeBirthday(personA, personB, matchType) {
 }
 
 /**
- * 六爻卦象分析
+ * 直觉卡牌分析
  */
 export async function analyzeHexagram(hexagram, matchType, question) {
     // 计算分数
@@ -313,7 +313,7 @@ export async function analyzeHexagram(hexagram, matchType, question) {
 }
 
 /**
- * 计算卦象分数
+ * 计算符号分数
  */
 function calculateHexagramScore(hexagram) {
     const positiveHexagrams = ['乾', '坤', '泰', '同人', '大有', '谦', '咸', '恒', '益', '萃', '既济'];
@@ -327,7 +327,7 @@ function calculateHexagramScore(hexagram) {
         score -= 15;
     }
 
-    // 变爻影响
+    // 变化轮影响
     if (hexagram.hasChanging && hexagram.changingPositions) {
         score += hexagram.changingPositions.length <= 2 ? 5 : -5;
     }
@@ -336,30 +336,30 @@ function calculateHexagramScore(hexagram) {
 }
 
 /**
- * 生成卦象详情
+ * 生成符号详情
  */
 function generateHexagramDetails(hexagram) {
     const details = [];
 
     details.push({
         type: 'positive',
-        title: `${hexagram.name}卦象`,
+        title: `${hexagram.name}符号`,
         description: hexagram.meaning || '待解析'
     });
 
     if (hexagram.upper && hexagram.lower) {
         details.push({
             type: 'positive',
-            title: '上下卦分析',
-            description: `上卦${hexagram.upper.name}（${hexagram.upper.nature || ''}），下卦${hexagram.lower.name}（${hexagram.lower.nature || ''}）`
+            title: '上下符号分析',
+            description: `上符号${hexagram.upper.name}（${hexagram.upper.nature || ''}），下符号${hexagram.lower.name}（${hexagram.lower.nature || ''}）`
         });
     }
 
     if (hexagram.hasChanging && hexagram.changingPositions) {
         details.push({
             type: hexagram.changingPositions.length <= 2 ? 'positive' : 'negative',
-            title: '变爻分析',
-            description: `第${hexagram.changingPositions.join('、')}爻为变爻，表示事情会有变化`
+            title: '变化分析',
+            description: `第${hexagram.changingPositions.join('、')}轮为变化轮，表示事情会有变化`
         });
     }
 
@@ -374,7 +374,7 @@ function generateConclusion(score, details) {
     const negatives = details.filter(d => d.type === 'negative').length;
 
     if (score >= 80) {
-        return 'A和B互利：双方八字高度相合，是天作之合的良缘。';
+        return 'A和B互利：双方性格特质高度契合，非常适合建立良好关系。';
     } else if (score >= 60) {
         if (positives > negatives) {
             return 'A利B，B不利A：你在这段关系中付出较多，但整体是积极的。';
@@ -382,22 +382,22 @@ function generateConclusion(score, details) {
             return 'A不利B，B利A：对方在这段关系中获益更多。';
         }
     } else if (score >= 40) {
-        return 'A和B相互不利：双方八字有一定冲突，需要更多包容和理解。';
+        return 'A和B相互不利：双方性格有一定差异，需要更多包容和理解。';
     } else {
-        return 'A和B相互不利：八字显示双方不太适合，建议谨慎考虑。';
+        return 'A和B相互不利：分析显示双方差异较大，建议谨慎考虑。';
     }
 }
 
 /**
- * 生成卦象结论
+ * 生成符号结论
  */
 function generateHexagramConclusion(hexagram, score) {
     if (score >= 75) {
-        return `${hexagram.name}卦显示双方关系积极向好，有互利共赢的趋势。`;
+        return `${hexagram.name}符号显示双方关系积极向好，有互利共赢的趋势。`;
     } else if (score >= 55) {
-        return `${hexagram.name}卦提示需要双方共同努力，关系可以改善。`;
+        return `${hexagram.name}符号提示需要双方共同努力，关系可以改善。`;
     } else {
-        return `${hexagram.name}卦暗示当前时机不太适合，建议谨慎行事。`;
+        return `${hexagram.name}符号暗示当前时机不太适合，建议谨慎行事。`;
     }
 }
 
@@ -411,7 +411,7 @@ function generateSuggestion(score, details, matchType) {
     let suggestion = '';
 
     if (score >= 80) {
-        suggestion = '这是一段非常好的缘分！双方在性格和命理上高度契合，建议珍惜这份关系，共同维护。注意保持沟通，互相理解和包容。';
+        suggestion = '这是非常好的契合度！双方在性格特质上高度互补，建议珍惜这份关系，共同维护。注意保持沟通，互相理解和包容。';
     } else if (score >= 60) {
         suggestion = '整体关系是积极的，但也存在一些需要注意的地方。';
         if (negatives.length > 0) {
@@ -419,19 +419,19 @@ function generateSuggestion(score, details, matchType) {
         }
         suggestion += '只要用心经营，这段关系会越来越好。';
     } else if (score >= 40) {
-        suggestion = '双方存在一定的冲突，但并非不可调和。建议：1) 增加沟通频率；2) 尊重对方的差异；3) 寻找共同兴趣。如果双方都愿意付出努力，关系是可以改善的。';
+        suggestion = '双方存在一定的差异，但并非不可调和。建议：1) 增加沟通频率；2) 尊重对方的差异；3) 寻找共同兴趣。如果双方都愿意付出努力，关系是可以改善的。';
     } else {
-        suggestion = '从命理角度看，双方确实存在较大的冲突。建议在做重要决定前，多观察、多了解对方。如果是合作关系，建议寻找其他机会；如果是感情关系，请谨慎考虑。';
+        suggestion = '从性格分析角度看，双方确实存在较大的差异。建议在做重要决定前，多观察、多了解对方。如果是合作关系，建议寻找其他机会；如果是感情关系，请谨慎考虑。';
     }
 
     return suggestion;
 }
 
 /**
- * 生成卦象建议
+ * 生成符号建议
  */
 function generateHexagramSuggestion(hexagram, matchType) {
-    return `${hexagram.name}卦的核心含义是"${hexagram.meaning || '待解析'}"。根据卦象提示，当前最重要的是保持平和的心态，不要急于求成。遇事多思考，听从内心的指引。如果有变爻，说明事情会有转机，保持耐心等待合适的时机。`;
+    return `${hexagram.name}符号的核心含义是"${hexagram.meaning || '待解析'}"。根据分析结果提示，当前最重要的是保持平和的心态，不要急于求成。遇事多思考，听从内心的指引。如果有变化，说明事情会有转机，保持耐心等待合适的时机。`;
 }
 
 export default { analyzeBirthday, analyzeHexagram };

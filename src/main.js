@@ -24,7 +24,7 @@ import {
  * 初始化应用
  */
 function initApp() {
-  console.log('🔮 MasterXiao-AI 启动中...');
+  console.log('✨ 趣测小站启动中...');
 
   // 注册路由
   registerRoutes();
@@ -35,7 +35,7 @@ function initApp() {
   // 启动路由
   router.start();
 
-  console.log('✨ MasterXiao-AI 启动完成！');
+  console.log('✨ 趣测小站启动完成！');
 }
 
 /**

@@ -99,10 +99,6 @@ export function FeatureCardDetail(matchType) {
         </ul>
       </div>
       
-      <div class="feature-card-detail__price mt-4">
-        <span class="price-label">测试价格</span>
-        <span class="price-value">¥ ${matchType.price}</span>
-      </div>
     </div>
   `;
 }

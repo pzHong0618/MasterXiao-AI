@@ -198,6 +198,17 @@
     color: var(--color-error);
 }
 
+/* 日期输入框包装器 - 让点击区域覆盖整个输入框 */
+.date-input-wrapper {
+    position: relative;
+    cursor: pointer;
+}
+
+.date-input-wrapper .input {
+    cursor: pointer;
+    width: 100%;
+}
+
 /* ==================== 导航栏 ==================== */
 
 .navbar {
@@ -244,6 +255,18 @@
 
 .navbar__icon-btn:hover {
     background: var(--color-glass-bg);
+}
+
+/* 个人中心头像按钮 */
+.navbar__profile-btn {
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.2), rgba(255, 181, 216, 0.2));
+    color: var(--color-primary);
+    font-size: 16px;
+    border: 1px solid rgba(139, 127, 216, 0.3);
+}
+
+.navbar__profile-btn:hover {
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.3), rgba(255, 181, 216, 0.3));
 }
 
 /* ==================== 功能卡片 ==================== */
@@ -593,4 +616,27 @@
     font-size: var(--font-size-sm);
     color: var(--color-text-tertiary);
     max-width: 280px;
+}
+
+/* ==================== 农历日期显示 ==================== */
+
+.lunar-date-display {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-4);
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.1), rgba(255, 181, 216, 0.1));
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(139, 127, 216, 0.2);
+}
+
+.lunar-date-display .lunar-icon {
+    font-size: 18px;
+}
+
+.lunar-date-display .lunar-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+    font-weight: var(--font-weight-medium);
 }
