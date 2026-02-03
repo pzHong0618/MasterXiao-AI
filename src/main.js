@@ -1,7 +1,19 @@
 /**
- * MasterXiao-AI 主入口文件
+ * 匹配游戏 主入口文件
  * 初始化应用、路由和全局功能
  */
+
+// ==================== 时间格式化工具 ====================
+function getTimestamp() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const MM = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+}
 
 // 导入样式
 import './styles/main.css';
@@ -24,7 +36,7 @@ import {
  * 初始化应用
  */
 function initApp() {
-  console.log('✨ 趣测小站启动中...');
+  console.log(`[${getTimestamp()}] ✨ 匹配游戏启动中...`);
 
   // 注册路由
   registerRoutes();
@@ -35,7 +47,7 @@ function initApp() {
   // 启动路由
   router.start();
 
-  console.log('✨ 趣测小站启动完成！');
+  console.log(`[${getTimestamp()}] ✨ 匹配游戏启动完成！`);
 }
 
 /**

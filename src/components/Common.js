@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI 通用组件集合
+ * 匹配游戏 通用组件集合
  */
 
 /**
@@ -8,7 +8,7 @@
  */
 export function Navbar(options = {}) {
     const {
-        title = '趣测小站',
+        title = '匹配游戏',
         showBack = false,
         showHistory = false,
         showProfile = true,

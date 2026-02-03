@@ -10,9 +10,9 @@ export function requestLogger(req, res, next) {
         const log = `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`;
 
         if (res.statusCode >= 400) {
-            console.log(`⚠️ ${log}`);
+            console.log(`[${global.getTimestamp()}] ⚠️ ${log}`);
         } else {
-            console.log(`✅ ${log}`);
+            console.log(`[${global.getTimestamp()}] ✅ ${log}`);
         }
     });
 

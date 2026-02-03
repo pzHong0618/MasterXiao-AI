@@ -3,7 +3,7 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-}"
 BRANCH="${BRANCH:-main}"
-PM2_APP_NAME="${PM2_APP_NAME:-master-xiao-ai}"
+PM2_APP_NAME="${PM2_APP_NAME:-matching-game}"
 
 if [[ -z "$DEPLOY_PATH" ]]; then
   echo "DEPLOY_PATH is required"

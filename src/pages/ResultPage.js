@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI 结果页面
+ * 匹配游戏 结果页面
  * 展示AI分析结果
  */
 
@@ -626,11 +626,11 @@ export class ResultPage {
   }
 
   handleShare() {
-    const shareText = `我刚刚在趣测小站进行了${this.matchType?.title}测试，匹配度${this.result?.score}%！快来试试吧~`;
+    const shareText = `我刚刚在匹配游戏进行了${this.matchType?.title}测试，匹配度${this.result?.score}%！快来试试吧~`;
 
     if (navigator.share) {
       navigator.share({
-        title: '趣测小站 - 趣味性格测试',
+        title: '匹配游戏 - 趣味性格测试',
         text: shareText,
         url: window.location.origin
       });

@@ -116,7 +116,7 @@ router.get('/order/:orderId', optionalAuth, asyncHandler(async (req, res) => {
 router.post('/notify', asyncHandler(async (req, res) => {
     const { orderId, paymentId, status } = req.body;
 
-    console.log('📥 收到支付回调:', { orderId, paymentId, status });
+    console.log(`[${global.getTimestamp()}] 📥 收到支付回调:`, { orderId, paymentId, status });
 
     const order = orders.get(orderId);
 
@@ -144,11 +144,11 @@ router.post('/notify', asyncHandler(async (req, res) => {
             const user = Array.from(users.values()).find(u => u.id === order.userId);
             if (user) {
                 user.credits = (user.credits || 0) + order.credits;
-                console.log(`✅ 用户 ${user.phone} 增加 ${order.credits} 次测试机会`);
+                console.log(`[${global.getTimestamp()}] ✅ 用户 ${user.phone} 增加 ${order.credits} 次测试机会`);
             }
         }
 
-        console.log(`✅ 订单 ${orderId} 支付成功，核销码: ${order.redeemCode}`);
+        console.log(`[${global.getTimestamp()}] ✅ 订单 ${orderId} 支付成功，核销码: ${order.redeemCode}`);
     }
 
     res.send('SUCCESS');
@@ -193,7 +193,7 @@ router.post('/simulate-pay', asyncHandler(async (req, res) => {
         }
     }
 
-    console.log(`✅ 模拟支付成功，订单: ${orderId}，核销码: ${order.redeemCode}`);
+    console.log(`[${global.getTimestamp()}] ✅ 模拟支付成功，订单: ${orderId}，核销码: ${order.redeemCode}`);
 
     res.json({
         success: true,

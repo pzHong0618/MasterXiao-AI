@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI 状态管理
+ * 匹配游戏 状态管理
  * 简单的全局状态管理器，支持持久化
  */
 
@@ -7,7 +7,7 @@ class State {
     constructor() {
         this.state = {};
         this.listeners = new Map();
-        this.storageKey = 'masterxiao_state';
+        this.storageKey = 'matching_game_state';
 
         // 从 localStorage 恢复状态
         this.loadFromStorage();

@@ -33,7 +33,7 @@ router.post('/send-code', asyncHandler(async (req, res) => {
     });
 
     // TODO: 实际发送短信
-    console.log(`📱 验证码发送到 ${phone}: ${code}`);
+    console.log(`[${global.getTimestamp()}] 📱 验证码发送到 ${phone}: ${code}`);
 
     res.json({
         success: true,
@@ -86,7 +86,7 @@ router.post('/login', asyncHandler(async (req, res) => {
             credits: 1 // 新用户赠送1次免费测试
         };
         users.set(phone, user);
-        console.log(`🎉 新用户注册: ${phone}`);
+        console.log(`[${global.getTimestamp()}] 🎉 新用户注册: ${phone}`);
     }
 
     // 生成 JWT

@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI 页面导出入口
+ * 匹配游戏 页面导出入口
  */
 
 export { HomePage } from './HomePage.js';

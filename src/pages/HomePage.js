@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI 首页
+ * 匹配游戏 首页
  * 展示匹配类型列表
  */
 
@@ -16,7 +16,7 @@ export class HomePage {
         return `
       <div class="page home-page">
         ${Navbar({
-            title: '趣测小站',
+            title: '匹配游戏',
             showBack: false,
             showHistory: false,
             showProfile: true
@@ -108,7 +108,9 @@ export class HomePage {
     }
 
     handleFeatureClick(type) {
-        console.log(`选择了匹配类型: ${type}`);
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        console.log(`[${timestamp}] 选择了匹配类型: ${type}`);
         // 导航到测试选择页
         window.router.navigate(`/test/${type}`);
     }

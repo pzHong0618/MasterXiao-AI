@@ -1,7 +1,22 @@
 /**
- * MasterXiao-AI 后端服务器
+ * 匹配游戏 后端服务器
  * Express.js 入口文件
  */
+
+// ==================== 时间格式化工具 ====================
+function getTimestamp() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const MM = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+}
+
+// 将时间戳工具添加到global以便其他模块使用
+global.getTimestamp = getTimestamp;
 
 import express from 'express';
 import cors from 'cors';
@@ -95,9 +110,9 @@ app.use(errorHandler);
 // ==================== 启动服务器 ====================
 
 app.listen(PORT, () => {
-    console.log(`🚀 MasterXiao-AI 服务器启动成功`);
-    console.log(`📍 地址: http://localhost:${PORT}`);
-    console.log(`🔧 环境: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`[${getTimestamp()}] 🚀 匹配游戏 服务器启动成功`);
+    console.log(`[${getTimestamp()}] 📍 地址: http://localhost:${PORT}`);
+    console.log(`[${getTimestamp()}] 🔧 环境: ${process.env.NODE_ENV || 'development'}`);
 });
 
 export default app;

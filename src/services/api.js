@@ -1,5 +1,5 @@
 /**
- * MasterXiao-AI API 服务层
+ * 匹配游戏 API 服务层
  * 封装所有后端 API 调用
  */
 
