@@ -22,6 +22,11 @@ export class ResultPage {
     this.matchType = getMatchTypeById(this.testData.type);
     this.result = null;
     this.isAnalyzing = true;
+    this.streamContent = ''; // 流式内容
+    this.useAiAnalysis = true; // 是否使用 AI 分析
+    this.isStreamComplete = false; // 流式响应是否完成
+    this.isInitialized = false; // 防止重复初始化
+    this.abortController = null; // 用于取消请求
   }
 
   render() {
@@ -103,7 +108,12 @@ export class ResultPage {
   }
 
   renderResult() {
-    if (!this.result) return '';
+    if (!this.result && !this.streamContent) return '';
+
+    // AI 流式分析结果
+    if (this.useAiAnalysis && this.method === 'birthday') {
+      return this.renderAiResult();
+    }
 
     const { score, conclusion, details, personA, personB } = this.result;
 
@@ -189,6 +199,9 @@ export class ResultPage {
 
   renderBaziDetails() {
     const { personA, personB, pillarsA, pillarsB } = this.result;
+
+    // 如果没有八字数据，返回空
+    if (!pillarsA || !pillarsB) return '';
 
     return `
       <div class="bazi-comparison">
@@ -393,6 +406,19 @@ export class ResultPage {
 
   async init() {
     if (!this.testData) return;
+    
+    // 防止重复初始化
+    if (this.isInitialized) {
+      console.log('页面已初始化，跳过重复初始化');
+      return;
+    }
+    this.isInitialized = true;
+
+    // 生日匹配使用 AI 流式分析
+    if (this.method === 'birthday' && this.useAiAnalysis) {
+      await this.analyzeWithAi();
+      return;
+    }
 
     // 模拟分析过程
     await this.simulateAnalysis();
@@ -617,6 +643,389 @@ export class ResultPage {
 
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * 使用 AI 进行流式分析
+   */
+  async analyzeWithAi() {
+    const { personA, personB } = this.testData;
+
+    // 创建 AbortController 用于取消请求
+    this.abortController = new AbortController();
+
+    // 模拟前几步
+    const steps = ['1', '2', '3'];
+    const texts = [
+      '正在收集信息...',
+      '正在进行特质计算...',
+      '正在请求 AI 分析...'
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      await this.delay(600);
+      const textEl = document.getElementById('analyzing-text');
+      if (textEl) textEl.textContent = texts[i];
+      const stepEl = document.querySelector(`[data-step="${steps[i]}"]`);
+      if (stepEl) stepEl.classList.add('active');
+    }
+
+    try {
+      await analysisApi.birthMatchStream(
+        { partyA: personA, partyB: personB },
+        {
+          onChunk: (chunk, fullContent) => {
+            this.streamContent = fullContent;
+            // 更新显示
+            if (this.isAnalyzing) {
+              // 第一次收到数据，切换到结果展示
+              this.isAnalyzing = false;
+              const stepEl = document.querySelector('[data-step="4"]');
+              if (stepEl) stepEl.classList.add('active');
+              // 不要完全重新渲染，只更新必要的部分
+              this.updateToResultView();
+            } else {
+              // 更新流式内容
+              const contentEl = document.getElementById('ai-stream-content');
+              if (contentEl) {
+                contentEl.innerHTML = this.formatMarkdown(this.streamContent) + this.renderLoadingIndicator();
+                // 自动滚动到底部
+                this.scrollToBottom();
+              }
+            }
+          },
+          onDone: (fullContent) => {
+            this.streamContent = fullContent;
+            this.isAnalyzing = false;
+            this.isStreamComplete = true;
+            // 更新内容，显示完成提示
+            const contentEl = document.getElementById('ai-stream-content');
+            if (contentEl) {
+              contentEl.innerHTML = this.formatMarkdown(this.streamContent) + this.renderCompleteIndicator();
+              this.scrollToBottom();
+              // 1秒后隐藏完成提示
+              setTimeout(() => {
+                const completeEl = document.getElementById('stream-complete-indicator');
+                if (completeEl) {
+                  completeEl.style.opacity = '0';
+                  setTimeout(() => completeEl.remove(), 300);
+                }
+              }, 1000);
+            }
+            // 流式完成后重新渲染以更新底部按钮状态
+            this.rerender();
+          },
+          onError: (error) => {
+            // 如果是用户取消的请求，不显示错误
+            if (error.name === 'AbortError') {
+              console.log('请求已取消');
+              return;
+            }
+            console.error('AI 分析失败:', error);
+            this.streamContent = '分析失败，请稍后重试！';
+            this.isAnalyzing = false;
+            this.rerender();
+          },
+          signal: this.abortController.signal
+        }
+      );
+    } catch (error) {
+      // 如果是用户取消的请求，不显示错误
+      if (error.name === 'AbortError') {
+        console.log('请求已取消');
+        return;
+      }
+      console.error('AI 分析失败:', error);
+      this.streamContent = '分析失败，请稍后重试。';
+      this.isAnalyzing = false;
+      this.rerender();
+    }
+  }
+
+  /**
+   * 更新到结果视图（不完全重新渲染）
+   */
+  updateToResultView() {
+    const container = document.getElementById('analysis-container');
+    if (container) {
+      container.innerHTML = this.renderResult();
+    }
+  }
+
+  /**
+   * 渲染 AI 分析结果
+   */
+  renderAiResult() {
+    const { personA, personB } = this.testData;
+    const introText = '我将根据您提供的信息，对匹配情况进行详细分析，请稍等...';
+
+    return `
+      <div class="result-content animate-fade-in-up">
+        <!-- 双方信息 -->
+        <div class="glass-card persons-card mb-4">
+          <div class="persons-row">
+            <div class="person-info">
+              <span class="person-avatar">${personA.gender === '男' ? '👨' : '👩'}</span>
+              <span class="person-name">${personA.name || '你'}</span>
+              <span class="person-birth small-text">${personA.birthDate}</span>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="person-info">
+              <span class="person-avatar">${personB.gender === '男' ? '👨' : '👩'}</span>
+              <span class="person-name">${personB.name || '对方'}</span>
+              <span class="person-birth small-text">${personB.birthDate}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI 分析结果 -->
+        <div class="glass-card ai-result-card mb-4">
+          <h4 class="heading-3 mb-4">🤖 分析报告</h4>
+          <p class="ai-intro-text">${introText}</p>
+          <div class="ai-content" id="ai-stream-content">
+            ${this.formatMarkdown(this.streamContent)}${!this.isStreamComplete ? this.renderLoadingIndicator() : ''}
+          </div>
+        </div>
+
+        <!-- 温馨提示 -->
+        <div class="glass-card glass-card--light disclaimer-card mb-4">
+          <p class="small-text text-center" style="color: var(--color-text-tertiary);">
+            ⚠️ 以上分析仅供娱乐参考，不构成任何决策建议
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 渲染加载中指示器
+   */
+  renderLoadingIndicator() {
+    return `
+      <div class="stream-loading-indicator" id="stream-loading-indicator">
+        <span class="loading-dot"></span>
+        <span class="loading-text">分析中...</span>
+      </div>
+    `;
+  }
+
+  /**
+   * 渲染完成指示器
+   */
+  renderCompleteIndicator() {
+    return `
+      <div class="stream-complete-indicator" id="stream-complete-indicator">
+        <span class="complete-icon">✅</span>
+        <span class="complete-text">已完成</span>
+      </div>
+    `;
+  }
+
+  /**
+   * 自动滚动到底部
+   */
+  scrollToBottom() {
+    const contentEl = document.getElementById('ai-stream-content');
+    if (contentEl) {
+      contentEl.scrollTop = contentEl.scrollHeight;
+    }
+    // 同时滚动页面
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+
+  /**
+   * 简单的 Markdown 格式化，支持分块卡片布局
+   */
+  formatMarkdown(text) {
+    if (!text) return '';
+    
+    // 按主要段落分割内容（使用标题或双换行分隔）
+    const sections = this.splitIntoSections(text);
+    
+    // 将每个段落转换为卡片
+    return sections.map((section, index) => {
+      const formatted = this.formatSectionContent(section);
+      if (!formatted.trim()) return '';
+      
+      return `
+        <div class="analysis-block animate-fade-in-up" style="animation-delay: ${index * 0.1}s;">
+          ${formatted}
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * 将文本按段落/章节分割
+   */
+  splitIntoSections(text) {
+    const sections = [];
+    let currentSection = '';
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      // 识别各种标题格式：## 标题、【标题】、第X步、一、二、三等
+      const isHeading = /^##?#?\s/.test(line) || 
+                        /^【[^】]+】/.test(line) || 
+                        /^第[一二三四五六七八九十]+步/.test(line) ||
+                        /^[\*\-]\s*第[一二三四五六七八九十]+步/.test(line) ||
+                        /^[\*\-]\s*\*\*第[一二三四五六七八九十]+步/.test(line) ||
+                        /^[\d]+\.\s*第[一二三四五六七八九十]+步/.test(line) ||
+                        /^[\*\-]\s*\*\*[甲乙]方/.test(line);
+      
+      if (isHeading) {
+        // 遇到标题，保存当前段落并开始新段落
+        if (currentSection.trim()) {
+          sections.push(currentSection.trim());
+        }
+        currentSection = line;
+      } else if (line.trim() === '' && currentSection.trim()) {
+        // 空行继续累积
+        currentSection += '\n' + line;
+      } else {
+        currentSection += '\n' + line;
+      }
+    }
+    
+    // 添加最后一个段落
+    if (currentSection.trim()) {
+      sections.push(currentSection.trim());
+    }
+    
+    // 如果没有明确分段，按双换行分割
+    if (sections.length <= 1 && text.includes('\n\n')) {
+      return text.split(/\n\n+/).filter(s => s.trim());
+    }
+    
+    return sections.length > 0 ? sections : [text];
+  }
+
+  /**
+   * 格式化单个段落内容
+   */
+  formatSectionContent(section) {
+    // 获取标题图标
+    const getIcon = (title) => {
+      if (title.includes('第一步') || title.includes('坐标') || title.includes('确立')) return '📍';
+      if (title.includes('第二步') || title.includes('输出') || title.includes('判定')) return '🔍';
+      if (title.includes('第三步') || title.includes('打分') || title.includes('量化')) return '⭐';
+      if (title.includes('第四步') || title.includes('判词') || title.includes('结论') || title.includes('综合')) return '🎯';
+      if (title.includes('需求') || title.includes('用神') || title.includes('清单')) return '📋';
+      if (title.includes('资产') || title.includes('核定')) return '💎';
+      if (title.includes('评分') || title.includes('细则')) return '⭐';
+      if (title.includes('建议') || title.includes('提示')) return '💡';
+      if (title.includes('甲方') || title.includes('乙方')) return '';
+      return '📌';
+    };
+
+    let formatted = section
+      // 第X步格式标题（如：第一步：确立坐标）
+      .replace(/^[\*\-]?\s*\*?\*?第([一二三四五六七八九十]+)步[：:]\s*(.+)$/gm, (match, num, title) => {
+        const icon = getIcon(`第${num}步`);
+        return `<div class="block-header"><span class="block-icon">${icon}</span><span class="block-title">第${num}步：${title}</span></div>`;
+      })
+      // 甲方/乙方子标题（带emoji显示）
+      .replace(/^[\*\-]?\s*\*?\*?([甲乙])方\*?\*?$/gm, (match, party) => {
+        const emoji = party === '甲' ? '👨' : '👩';
+        return `<div class="person-header"><span class="person-emoji">${emoji}</span><span class="person-label">${party}方</span></div>`;
+      })
+      // 【xxx】格式标题
+      .replace(/^\[([^\]]+)\](?![\(\[])/gm, (match, title) => {
+        const icon = getIcon(title);
+        return `<div class="block-subheader"><span class="block-icon">${icon}</span><span class="block-subtitle">${title}</span></div>`;
+      })
+      .replace(/^【([^】]+)】/gm, (match, title) => {
+        const icon = getIcon(title);
+        return `<div class="block-header"><span class="block-icon">${icon}</span><span class="block-title">${title}</span></div>`;
+      })
+      // Markdown 标题
+      .replace(/^###\s+(.+)$/gm, '<div class="block-header"><span class="block-icon">📌</span><span class="block-title">$1</span></div>')
+      .replace(/^##\s+(.+)$/gm, '<div class="block-header"><span class="block-icon">📋</span><span class="block-title">$1</span></div>')
+      .replace(/^#\s+(.+)$/gm, '<div class="block-header main-header"><span class="block-icon">📊</span><span class="block-title">$1</span></div>')
+      // 中文数字标题（一、二、三）
+      .replace(/^([一二三四五六七八九十]+)[、.]\s*(.+)$/gm, '<div class="block-subheader"><span class="block-num">$1</span><span class="block-subtitle">$2</span></div>')
+      // 粗体
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // 列表项 - 支持更多格式
+      .replace(/^\*\s{3}(.+)$/gm, '<li class="sub-item">$1</li>')
+      .replace(/^[-*•]\s*(.+)$/gm, '<li>$1</li>')
+      .replace(/^(\d+)[.)、]\s*(.+)$/gm, '<li class="numbered"><span class="list-num">$1.</span> $2</li>')
+      // 冒号后内容高亮
+      .replace(/([^<>\n]+?)：([^<>\n]+)/g, '<span class="label-text">$1：</span><span class="value-text">$2</span>')
+      // 换行处理
+      .replace(/\n/g, '<br>');
+
+    // 处理列表包装
+    formatted = formatted.replace(/(<li[^>]*>.*?<\/li>)(<br>)?/g, '$1');
+    formatted = formatted.replace(/(<li[^>]*>.*?<\/li>)+/g, (match) => {
+      return '<ul class="block-list">' + match + '</ul>';
+    });
+    
+    // 清理多余的 <br>
+    formatted = formatted.replace(/(<br>){3,}/g, '<br><br>');
+    formatted = formatted.replace(/^(<br>)+/, '');
+    formatted = formatted.replace(/(<br>)+$/, '');
+    
+    // 识别甲方/乙方对比内容并转换为左右布局
+    formatted = this.convertToComparisonLayout(formatted);
+    
+    return `<div class="block-content">${formatted}</div>`;
+  }
+
+  /**
+   * 将甲方/乙方内容转换为左右对比布局
+   */
+  convertToComparisonLayout(html) {
+    // 匹配甲方和乙方的内容块
+    const partyAPattern = /<strong>\d*\.?\s*(甲方|A方|A：|甲：)[^<]*<\/strong>([\s\S]*?)(?=<strong>\d*\.?\s*(乙方|B方|B：|乙：)|<h[345]|$)/gi;
+    const partyBPattern = /<strong>\d*\.?\s*(乙方|B方|B：|乙：)[^<]*<\/strong>([\s\S]*?)(?=<strong>\d*\.?\s*(甲方|A方)|<h[345]|【|$)/gi;
+    
+    // 提取甲方和乙方内容
+    const partyAMatches = [...html.matchAll(partyAPattern)];
+    const partyBMatches = [...html.matchAll(partyBPattern)];
+    
+    // 如果同时存在甲方和乙方内容，进行对比布局转换
+    if (partyAMatches.length > 0 && partyBMatches.length > 0) {
+      for (let i = 0; i < Math.min(partyAMatches.length, partyBMatches.length); i++) {
+        const partyAContent = partyAMatches[i][0];
+        const partyBContent = partyBMatches[i][0];
+        
+        // 创建对比布局
+        const comparisonHtml = `
+          <div class="comparison-container">
+            <div class="comparison-item comparison-left">
+              <div class="comparison-label">👨 甲方</div>
+              <div class="comparison-content">${this.cleanComparisonContent(partyAContent)}</div>
+            </div>
+            <div class="comparison-item comparison-right">
+              <div class="comparison-label">👩 乙方</div>
+              <div class="comparison-content">${this.cleanComparisonContent(partyBContent)}</div>
+            </div>
+          </div>
+        `;
+        
+        // 替换原内容
+        html = html.replace(partyAContent, comparisonHtml);
+        html = html.replace(partyBContent, '');
+      }
+    }
+    
+    return html;
+  }
+
+  /**
+   * 清理对比内容中的标题
+   */
+  cleanComparisonContent(content) {
+    return content
+      // 移除开头的甲方/乙方标题
+      .replace(/<strong>\d*\.?\s*(甲方|乙方|A方|B方|A：|B：|甲：|乙：)[^<]*<\/strong>/gi, '')
+      // 清理多余的换行
+      .replace(/^(<br>|\s)+/g, '')
+      .replace(/(<br>|\s)+$/g, '');
   }
 
   rerender() {

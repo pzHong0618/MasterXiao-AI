@@ -30,3 +30,7 @@ dist-ssr
 
 # Lockfiles
 package-lock.json
+
+# Test results
+testResult/
+test-api.js

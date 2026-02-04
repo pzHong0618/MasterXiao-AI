@@ -301,8 +301,16 @@ export class BirthdayInputPage {
         window.appState.set('currentTest', {
             type: this.matchType.id,
             method: 'birthday',
-            personA: this.formData.personA,
-            personB: this.formData.personB,
+            personA: {
+                name: this.formData.personA.name,
+                gender: this.formData.personA.gender === 'male' ? '男' : '女',
+                birthDate: this.formData.personA.birthDate
+            },
+            personB: {
+                name: this.formData.personB.name,
+                gender: this.formData.personB.gender === 'male' ? '男' : '女',
+                birthDate: this.formData.personB.birthDate
+            },
             timestamp: Date.now()
         });
 

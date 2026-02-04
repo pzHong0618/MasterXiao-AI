@@ -160,6 +160,73 @@ export const analysisApi = {
     },
 
     /**
+     * 生日匹配分析 - 流式响应 (Deepseek AI)
+     * @param {Object} data - { partyA, partyB }
+     * @param {Object} options - 回调选项
+     * @param {Function} options.onChunk - 每次收到数据时的回调
+     * @param {Function} options.onDone - 完成时的回调
+     * @param {Function} options.onError - 错误时的回调
+     * @param {AbortSignal} options.signal - 用于取消请求的信号
+     */
+    async birthMatchStream(data, { onChunk, onDone, onError, signal }) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/analysis/birthMatch`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data),
+                signal // 支持取消请求
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new ApiError(errorData.error?.message || '请求失败', errorData.error?.code, response.status);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullContent = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value, { stream: true });
+                const lines = text.split('\n\n').filter(line => line.trim());
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') {
+                            onDone?.(fullContent);
+                            return;
+                        }
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.content) {
+                                fullContent += parsed.content;
+                                onChunk?.(parsed.content, fullContent);
+                            }
+                            if (parsed.error) {
+                                throw new ApiError(parsed.error, 'STREAM_ERROR', 500);
+                            }
+                        } catch (e) {
+                            if (e instanceof ApiError) throw e;
+                            // 忽略 JSON 解析错误
+                        }
+                    }
+                }
+            }
+            
+            onDone?.(fullContent);
+        } catch (error) {
+            onError?.(error);
+            throw error;
+        }
+    },
+
+    /**
      * 卡牌符号分析
      */
     async hexagram(data) {

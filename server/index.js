@@ -24,13 +24,8 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
-// 路由导入
-import authRoutes from './routes/auth.js';
-import testRoutes from './routes/test.js';
-import analysisRoutes from './routes/analysis.js';
-import verificationRoutes from './routes/verification.js';
-import userRoutes from './routes/user.js';
-import paymentRoutes from './routes/payment.js';
+// 路由统一入口
+import apiRoutes from './routes/index.js';
 
 // 中间件导入
 import { errorHandler } from './middleware/errorHandler.js';
@@ -48,8 +43,21 @@ const PORT = process.env.PORT || 3000;
 // ==================== 中间件配置 ====================
 
 // CORS 跨域配置
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function (origin, callback) {
+        // 允许无 origin 的请求（如 curl）
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS not allowed'), false);
+    },
     credentials: true
 }));
 
@@ -64,32 +72,8 @@ app.use(requestLogger);
 
 // ==================== API 路由 ====================
 
-// 健康检查
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-    });
-});
-
-// 认证路由
-app.use('/api/auth', authRoutes);
-
-// 测试记录路由
-app.use('/api/test', testRoutes);
-
-// AI 分析路由
-app.use('/api/analysis', analysisRoutes);
-
-// 验证码路由
-app.use('/api/verification', verificationRoutes);
-
-// 用户路由
-app.use('/api/user', userRoutes);
-
-// 支付路由
-app.use('/api/payment', paymentRoutes);
+// 统一 API 路由
+app.use('/api', apiRoutes);
 
 // ==================== 静态文件服务 ====================
 
