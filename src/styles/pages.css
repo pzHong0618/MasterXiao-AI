@@ -890,7 +890,16 @@
     backdrop-filter: var(--glass-blur);
     border-top: 1px solid var(--color-glass-border);
     padding: var(--spacing-md);
-    z-index: var(--z-fixed);
+    z-index: 9999;
+    /* 确保移动端可点击 */
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+}
+
+.bottom-action-bar .btn {
+    /* 移动端点击区域优化 */
+    min-height: 48px;
+    touch-action: manipulation;
 }
 
 .action-bar__buttons {

@@ -190,13 +190,26 @@ export class BirthdayInputPage {
         // 下一步按钮
         const nextBtn = document.querySelector('[data-action="next"]');
         if (nextBtn) {
-            nextBtn.addEventListener('click', () => this.handleNext());
+            // 同时监听 click 和 touchend 以确保移动端兼容
+            const handleNextClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleNext();
+            };
+            nextBtn.addEventListener('click', handleNextClick);
+            nextBtn.addEventListener('touchend', handleNextClick);
         }
 
         // 返回上一步按钮
         const backStepBtn = document.querySelector('[data-action="back-step"]');
         if (backStepBtn) {
-            backStepBtn.addEventListener('click', () => this.goBackStep());
+            const handleBackClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.goBackStep();
+            };
+            backStepBtn.addEventListener('click', handleBackClick);
+            backStepBtn.addEventListener('touchend', handleBackClick);
         }
     }
 
