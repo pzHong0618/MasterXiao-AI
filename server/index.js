@@ -24,18 +24,23 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// 根据 NODE_ENV 加载对应的环境变量文件
+// 优先级: .env.production > .env (生产环境)
+//         .env > .env.development (开发环境)
+const envFile = process.env.NODE_ENV === 'production' 
+  ? '.env.production' 
+  : '.env';
+dotenv.config({ path: join(__dirname, '..', envFile) });
+
 // 路由统一入口
 import apiRoutes from './routes/index.js';
 
 // 中间件导入
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logger.js';
-
-// 加载环境变量
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
