@@ -77,12 +77,15 @@ app.use('/api', apiRoutes);
 
 // ==================== 静态文件服务 ====================
 
+// 管理后台静态文件（开发和生产环境都可访问）
+app.use('/admin', express.static(join(__dirname, '../admin')));
+
 // 生产环境下提供前端静态文件
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(join(__dirname, '../dist')));
 
-    // SPA 回退
-    app.get(/.*/, (req, res) => {
+    // SPA 回退（排除 /admin 路径）
+    app.get(/^(?!\/admin).*/, (req, res) => {
       res.sendFile(join(__dirname, "../dist/index.html"));
     });
 }

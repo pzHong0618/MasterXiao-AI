@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 匹配游戏</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 移动端遮罩层 -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span class="logo">✨</span>
+                <h2>匹配游戏</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#dashboard" class="nav-link active" data-page="dashboard">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">仪表盘</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#users" class="nav-link" data-page="users">
+                            <span class="nav-icon">👥</span>
+                            <span class="nav-text">人员管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#orders" class="nav-link" data-page="orders">
+                            <span class="nav-icon">📋</span>
+                            <span class="nav-text">订单管理</span>
+                        </a>
+                    </li>
+                    <li class="nav-item has-submenu">
+                        <a href="#info" class="nav-link" data-page="info">
+                            <span class="nav-icon">📁</span>
+                            <span class="nav-text">信息管理</span>
+                            <span class="submenu-arrow">▼</span>
+                        </a>
+                        <ul class="submenu">
+                            <li>
+                                <a href="#birthday-match" class="nav-link" data-page="birthday-match">
+                                    <span class="nav-icon">🎂</span>
+                                    <span class="nav-text">生日匹配</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#card-match" class="nav-link" data-page="card-match">
+                                    <span class="nav-icon">🃏</span>
+                                    <span class="nav-text">卡牌匹配</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item has-submenu">
+                        <a href="#statistics" class="nav-link" data-page="statistics">
+                            <span class="nav-icon">📊</span>
+                            <span class="nav-text">数据统计</span>
+                            <span class="submenu-arrow">▼</span>
+                        </a>
+                        <ul class="submenu">
+                            <li>
+                                <a href="#user-stats" class="nav-link" data-page="user-stats">
+                                    <span class="nav-icon">👥</span>
+                                    <span class="nav-text">用户统计</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#match-stats" class="nav-link" data-page="match-stats">
+                                    <span class="nav-icon">📈</span>
+                                    <span class="nav-text">信息统计</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部工具栏 -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="menu-toggle" id="menuToggle">☰</button>
+                    <h1 class="page-title" id="pageTitle">仪表盘</h1>
+                </div>
+                <div class="header-right">
+                    <div class="current-time" id="currentTime"></div>
+                    <div class="admin-profile">
+                        <span class="admin-name" id="adminName">管理员</span>
+                        <div class="admin-avatar" id="adminAvatar">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='35' r='25' fill='%23a78bfa'/%3E%3Ccircle cx='50' cy='110' r='50' fill='%23a78bfa'/%3E%3C/svg%3E" alt="头像">
+                        </div>
+                        <div class="profile-dropdown">
+                            <a href="#" class="dropdown-item" id="profileBtn">👤 个人信息</a>
+                            <a href="#" class="dropdown-item" id="settingsBtn">⚙️ 设置</a>
+                            <hr>
+                            <a href="#" class="dropdown-item" id="logoutBtn">🚪 退出登录</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 内容区域 -->
+            <div class="content" id="content">
+                <!-- 动态内容由 JS 渲染 -->
+            </div>
+        </main>
+    </div>
+    <script src="js/mockData.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
