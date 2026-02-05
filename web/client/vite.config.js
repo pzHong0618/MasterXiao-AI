@@ -8,12 +8,12 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: '127.0.0.1',
+    host: true,  // 监听所有网络接口，支持局域网访问
     port: 5173,
     strictPort: false,
   },
   preview: {
-    host: '127.0.0.1',
+    host: true,
     port: 4173,
   },
 });

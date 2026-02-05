@@ -45,6 +45,8 @@ router.post('/birthMatch', async (req, res) => {
     res.flushHeaders();
 
     try {
+        logger.info('正在连接 Deepseek API...');
+        
         const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
             model: 'deepseek-chat',
             messages: [
@@ -59,9 +61,11 @@ router.post('/birthMatch', async (req, res) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${config.ds_key}`
             },
-            timeout: 120000,
+            timeout: 180000,  // 增加超时到3分钟
             responseType: 'stream'  // axios 流式接收
         });
+        
+        logger.info('Deepseek API 连接成功，开始接收流式数据...');
 
         let fullContent = '';
         let paragraphBuffer = '';  // 段落缓冲区
@@ -127,9 +131,18 @@ router.post('/birthMatch', async (req, res) => {
 
     } catch (error) {
         const endTime = Date.now();
-        logger.error(`API 请求失败，用时 ${endTime - startTime} 毫秒:`, error.message);
-        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
-        res.end();
+        logger.error(`API 请求失败，用时 ${endTime - startTime} 毫秒`);
+        logger.error('错误详情:', error.message);
+        if (error.response) {
+            logger.error('API 响应状态:', error.response.status);
+            logger.error('API 响应数据:', JSON.stringify(error.response.data));
+        }
+        if (!res.headersSent) {
+            res.status(500).json({ success: false, error: { message: error.message } });
+        } else {
+            res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+            res.end();
+        }
     }
 });
 

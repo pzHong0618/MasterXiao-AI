@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 匹配游戏 生日输入页
  * 输入双方生日进行生日特质匹配
  */
@@ -16,8 +16,8 @@ export class BirthdayInputPage {
         }
 
         this.formData = {
-            personA: { name: '', gender: '', birthDate: '' },
-            personB: { name: '', gender: '', birthDate: '' }
+            personA: { name: '', gender: '', birthDate: '', lunarDate: '' },
+            personB: { name: '', gender: '', birthDate: '', lunarDate: '' }
         };
 
         this.currentStep = 1; // 1: 输入A的信息, 2: 输入B的信息
@@ -40,10 +40,11 @@ export class BirthdayInputPage {
             
             <!-- 进度指示 -->
             <section class="progress-section mt-4 mb-6">
-              ${ProgressBar(this.currentStep, 2, { showText: false, showSteps: true })}
-              <p class="text-center small-text mt-2">
-                步骤 ${this.currentStep}/2：输入${this.currentStep === 1 ? '你的' : '对方的'}信息
-              </p>
+              ${ProgressBar(this.currentStep, 2, { 
+                showText: false, 
+                showSteps: false,
+                stepLabel: `步骤 ${this.currentStep}/2：输入${this.currentStep === 1 ? '你的' : '对方的'}信息`
+              })}
             </section>
 
             <!-- 表单区域 -->
@@ -54,21 +55,8 @@ export class BirthdayInputPage {
                 </h3>
                 
                 <form id="birthday-form" class="form">
-                  <!-- 称呼 -->
-                  <div class="input-group mb-4">
-                    <label class="input-label" for="name">称呼</label>
-                    <input 
-                      type="text" 
-                      id="name" 
-                      class="input" 
-                      placeholder="${this.currentStep === 1 ? '你的称呼' : '对方的称呼'}"
-                      maxlength="10"
-                    >
-                  </div>
-
                   <!-- 性别 -->
                   <div class="input-group mb-4">
-                    <label class="input-label">性别</label>
                     <div class="gender-selector">
                       <button type="button" class="gender-btn" data-gender="male">
                         <span class="gender-icon">👨</span>
@@ -81,19 +69,30 @@ export class BirthdayInputPage {
                     </div>
                   </div>
 
+                  <!-- 称呼 -->
+                  <div class="input-group mb-4">
+                    <input 
+                      type="text" 
+                      id="name" 
+                      class="input" 
+                      placeholder="称呼"
+                      maxlength="10"
+                    >
+                  </div>
+
                   <!-- 出生日期 -->
                   <div class="input-group mb-4">
-                    <label class="input-label" for="birthDate">出生日期</label>
                     <div class="date-input-wrapper" id="date-input-wrapper">
                       <input 
-                        type="date" 
+                        type="text" 
                         id="birthDate" 
-                        class="input"
+                        class="input date-input-placeholder"
+                        placeholder="请选择阳历（公历）生日"
+                        readonly
                         max="${new Date().toISOString().split('T')[0]}"
                         min="1920-01-01"
                       >
                     </div>
-                    <p class="input-helper">请选择阳历（公历）生日</p>
                     <div id="lunar-date" class="lunar-date-display" style="display: none;">
                       <span class="lunar-icon">🌙</span>
                       <span class="lunar-text"></span>
@@ -104,7 +103,7 @@ export class BirthdayInputPage {
             </section>
 
             <!-- 已输入的A信息展示（步骤2时显示）-->
-            ${this.currentStep === 2 ? this.renderPersonAInfo() : ''}
+            ${this.renderPersonAInfo()}
 
           </div>
         </main>
@@ -125,19 +124,46 @@ export class BirthdayInputPage {
     }
 
     renderPersonAInfo() {
-        const { name, gender, birthDate } = this.formData.personA;
-        const genderEmoji = gender === 'male' ? '👨' : '👩';
+        const personA = this.formData.personA;
+        const personB = this.formData.personB;
+        const genderEmojiA = personA.gender === 'male' ? '👨' : (personA.gender === 'female' ? '👩' : '👤');
+        const genderEmojiB = personB.gender === 'male' ? '👨' : (personB.gender === 'female' ? '👩' : '👤');
 
         return `
-      <section class="person-a-info mt-4 animate-fade-in">
-        <div class="glass-card glass-card--light glass-card--compact">
-          <div class="flex items-center gap-3">
-            <span class="person-avatar">${genderEmoji}</span>
-            <div>
-              <p class="body-text">${name || '你'}</p>
-              <p class="small-text">${birthDate}</p>
+      <section class="persons-info mt-4 animate-fade-in">
+        <div class="persons-info__cards">
+          <!-- 甲方信息卡片 -->
+          <div class="person-card ${this.currentStep === 1 ? 'person-card--active' : ''}" data-person="A">
+            <div class="person-card__top">
+              <span class="person-avatar">${genderEmojiA}</span>
+              <div class="person-card__info">
+                <p class="person-card__name">${personA.name || '甲方'}</p>
+                <div class="person-card__date-row">
+                  <span class="person-card__date">${personA.birthDate || '未填写'}</span>
+                  <span class="badge ${personA.name ? 'badge--success' : 'badge--secondary'}">
+                    ${personA.name ? '已填写' : '待填写'}
+                  </span>
+                </div>
+              </div>
             </div>
-            <span class="badge badge--success ml-auto">已填写</span>
+            ${personA.lunarDate ? `<p class="person-card__lunar">${personA.lunarDate}</p>` : ''}
+          </div>
+          
+          <!-- 乙方信息卡片 -->
+          <div class="person-card ${this.currentStep === 2 ? 'person-card--active' : ''}" data-person="B">
+            <div class="person-card__top">
+              <span class="person-avatar">${genderEmojiB}</span>
+              <div class="person-card__info">
+                <p class="person-card__name">${personB.name || '乙方'}</p>
+                <div class="person-card__date-row">
+                  <span class="person-card__date">${personB.birthDate || '未填写'}</span>
+                  <span class="badge ${personB.name ? 'badge--success' : 'badge--secondary'}">
+                    ${personB.name ? '已填写' : '待填写'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            ${personB.lunarDate ? `<p class="person-card__lunar">${personB.lunarDate}</p>` : ''}
           </div>
         </div>
       </section>
@@ -156,6 +182,14 @@ export class BirthdayInputPage {
                 }
             });
         }
+
+        // 人员卡片点击切换
+        document.querySelectorAll('.person-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const person = card.dataset.person;
+                this.switchToPerson(person);
+            });
+        });
 
         // 性别选择
         document.querySelectorAll('.gender-btn').forEach(btn => {
@@ -180,10 +214,18 @@ export class BirthdayInputPage {
         }
         
         // 点击整个日期输入区域触发日期选择器
-        if (dateInputWrapper) {
+        if (dateInputWrapper && birthDateInput) {
             dateInputWrapper.addEventListener('click', () => {
-                birthDateInput?.showPicker?.();
-                birthDateInput?.focus();
+                // 如果还是text类型，先切换成date类型
+                if (birthDateInput.type === 'text') {
+                    birthDateInput.type = 'date';
+                    birthDateInput.removeAttribute('readonly');
+                }
+                // 延迟一帧后打开选择器，确保类型切换完成
+                setTimeout(() => {
+                    birthDateInput.showPicker?.();
+                    birthDateInput.focus();
+                }, 0);
             });
         }
 
@@ -221,7 +263,30 @@ export class BirthdayInputPage {
             this.formData.personB.gender = gender;
         }
 
+        // 实时更新底部卡片的头像
+        this.updatePersonCards();
+        
         this.validateForm();
+    }
+    
+    // 更新底部人员卡片显示
+    updatePersonCards() {
+        const personCards = document.querySelectorAll('.person-card');
+        if (personCards.length === 0) return;
+        
+        // 更新甲方卡片头像
+        const cardA = document.querySelector('[data-person="A"] .person-avatar');
+        if (cardA) {
+            const genderA = this.formData.personA.gender;
+            cardA.textContent = genderA === 'male' ? '👨' : (genderA === 'female' ? '👩' : '👤');
+        }
+        
+        // 更新乙方卡片头像
+        const cardB = document.querySelector('[data-person="B"] .person-avatar');
+        if (cardB) {
+            const genderB = this.formData.personB.gender;
+            cardB.textContent = genderB === 'male' ? '👨' : (genderB === 'female' ? '👩' : '👤');
+        }
     }
 
     validateForm() {
@@ -239,8 +304,105 @@ export class BirthdayInputPage {
         if (nextBtn) {
             nextBtn.disabled = !isValid;
         }
+        
+        // 实时更新当前人员的卡片信息
+        this.updateCurrentPersonCard(name, birthDate, gender);
+        
+        // 如果三个字段都填写完成，自动跳转
+        if (isValid) {
+            this.autoNavigateNext();
+        }
 
         return isValid;
+    }
+    
+    // 自动跳转到下一步
+    autoNavigateNext() {
+        // 使用防抖，避免重复触发
+        if (this.autoNavTimer) {
+            clearTimeout(this.autoNavTimer);
+        }
+        
+        this.autoNavTimer = setTimeout(() => {
+            // 再次检查表单是否完整
+            const name = document.getElementById('name')?.value.trim();
+            const birthDate = document.getElementById('birthDate')?.value;
+            const gender = this.currentStep === 1
+                ? this.formData.personA.gender
+                : this.formData.personB.gender;
+            
+            if (name && birthDate && gender) {
+                // 保存当前数据
+                const lunarDate = birthDate ? formatLunarDate(birthDate) : '';
+                const person = this.currentStep === 1 ? 'personA' : 'personB';
+                this.formData[person].name = name;
+                this.formData[person].birthDate = birthDate;
+                this.formData[person].lunarDate = lunarDate;
+                
+                // 只有当另一方未填写时才自动跳转
+                const otherPerson = this.currentStep === 1 ? 'personB' : 'personA';
+                const otherData = this.formData[otherPerson];
+                const isOtherComplete = otherData.name && otherData.birthDate && otherData.gender;
+
+                if (this.currentStep === 1 && !isOtherComplete) {
+                    // 跳转到步骤2
+                    this.currentStep = 2;
+                    this.rerender();
+                }
+                // 如果两方都已填写，不自动跳转，让用户可以自由编辑
+            }
+        }, 500); // 500ms 延迟，给用户时间确认
+    }
+    
+    // 实时更新当前人员的卡片信息
+    updateCurrentPersonCard(name, birthDate, gender) {
+        const person = this.currentStep === 1 ? 'A' : 'B';
+        const card = document.querySelector(`[data-person="${person}"]`);
+        if (!card) return;
+        
+        // 更新头像
+        const avatar = card.querySelector('.person-avatar');
+        if (avatar) {
+            avatar.textContent = gender === 'male' ? '👨' : (gender === 'female' ? '👩' : '👤');
+        }
+        
+        // 更新名字
+        const nameEl = card.querySelector('.person-card__name');
+        if (nameEl) {
+            nameEl.textContent = name || (person === 'A' ? '甲方' : '乙方');
+        }
+        
+        // 更新日期
+        const dateEl = card.querySelector('.person-card__date');
+        if (dateEl) {
+            dateEl.textContent = birthDate || '未填写';
+        }
+        
+        // 更新农历
+        const lunarEl = card.querySelector('.person-card__lunar');
+        if (birthDate) {
+            const lunarDate = formatLunarDate(birthDate);
+            if (lunarEl) {
+                lunarEl.textContent = lunarDate;
+            } else {
+                // 创建农历元素（添加到卡片底部）
+                const newLunarEl = document.createElement('p');
+                newLunarEl.className = 'person-card__lunar';
+                newLunarEl.textContent = lunarDate;
+                card.appendChild(newLunarEl);
+            }
+        } else if (lunarEl) {
+            // 如果没有日期，移除农历元素
+            lunarEl.remove();
+        }
+        
+        // 更新状态标签
+        const badge = card.querySelector('.badge');
+        if (badge) {
+            const isComplete = name && birthDate && gender;
+            badge.className = `badge ${isComplete ? 'badge--success' : 'badge--secondary'}`;
+            badge.textContent = isComplete ? '已填写' : '待填写';
+        }
     }
 
     updateLunarDate(dateStr) {
@@ -269,12 +431,14 @@ export class BirthdayInputPage {
         // 保存当前步骤数据
         const name = document.getElementById('name').value.trim();
         const birthDate = document.getElementById('birthDate').value;
+        const lunarDate = birthDate ? formatLunarDate(birthDate) : '';
         
-        console.log('表单数据:', { name, birthDate });
+        console.log('表单数据:', { name, birthDate, lunarDate });
 
         if (this.currentStep === 1) {
             this.formData.personA.name = name;
             this.formData.personA.birthDate = birthDate;
+            this.formData.personA.lunarDate = lunarDate;
 
             // 切换到步骤2
             this.currentStep = 2;
@@ -282,6 +446,7 @@ export class BirthdayInputPage {
         } else {
             this.formData.personB.name = name;
             this.formData.personB.birthDate = birthDate;
+            this.formData.personB.lunarDate = lunarDate;
             
             console.log('准备提交测试，跳转到结果页');
 
@@ -292,27 +457,80 @@ export class BirthdayInputPage {
 
     goBackStep() {
         if (this.currentStep === 2) {
+            // 保存当前乙方数据
+            this.saveCurrentFormData();
             this.currentStep = 1;
             this.rerender();
         }
     }
+    
+    // 保存当前表单数据到对应人员
+    saveCurrentFormData() {
+        const name = document.getElementById('name')?.value.trim() || '';
+        const birthDate = document.getElementById('birthDate')?.value || '';
+        const lunarDate = birthDate ? formatLunarDate(birthDate) : '';
+        const person = this.currentStep === 1 ? 'personA' : 'personB';
+        
+        this.formData[person].name = name;
+        this.formData[person].birthDate = birthDate;
+        this.formData[person].lunarDate = lunarDate;
+    }
+    
+    // 点击卡片切换人员
+    switchToPerson(person) {
+        const targetStep = person === 'A' ? 1 : 2;
+        
+        if (targetStep === this.currentStep) return;
+        
+        // 先保存当前表单数据
+        this.saveCurrentFormData();
+        
+        // 切换步骤
+        this.currentStep = targetStep;
+        this.rerender();
+    }
 
     rerender() {
         const container = document.getElementById('app');
-        container.innerHTML = this.render();
-        this.attachEvents();
-
-        // 如果是步骤1，还原已输入的数据
-        if (this.currentStep === 1 && this.formData.personA.name) {
-            document.getElementById('name').value = this.formData.personA.name;
-            document.getElementById('birthDate').value = this.formData.personA.birthDate;
-            if (this.formData.personA.gender) {
-                this.selectGender(this.formData.personA.gender);
-            }
-            if (this.formData.personA.birthDate) {
-                this.updateLunarDate(this.formData.personA.birthDate);
-            }
+        const formSection = document.querySelector('.form-section');
+        
+        // 添加淡出动画
+        if (formSection) {
+            formSection.classList.add('fade-out');
         }
+        
+        // 延迟更新内容，等待淡出动画完成
+        setTimeout(() => {
+            container.innerHTML = this.render();
+            this.attachEvents();
+
+            const currentPerson = this.currentStep === 1 ? this.formData.personA : this.formData.personB;
+            
+            // 恢复当前步骤对应人员的数据
+            if (currentPerson.name) {
+                document.getElementById('name').value = currentPerson.name;
+            }
+            if (currentPerson.birthDate) {
+                document.getElementById('birthDate').value = currentPerson.birthDate;
+                this.updateLunarDate(currentPerson.birthDate);
+            }
+            if (currentPerson.gender) {
+                this.selectGender(currentPerson.gender);
+            } else if (this.currentStep === 2 && !this.formData.personB.gender) {
+                // 步骤2且乙方未选性别：自动选择相反性别
+                const oppositeGender = this.formData.personA.gender === 'male' ? 'female' : 'male';
+                this.selectGender(oppositeGender);
+            }
+            
+            // 验证表单状态
+            this.validateForm();
+            
+            // 添加淡入动画
+            const newFormSection = document.querySelector('.form-section');
+            if (newFormSection) {
+                newFormSection.classList.add('fade-in');
+            }
+        }, 150); // 150ms 过渡时间
     }
 
     submitTest() {
@@ -346,3 +564,4 @@ export class BirthdayInputPage {
 }
 
 export default BirthdayInputPage;
+

@@ -78,20 +78,14 @@ export function HeroBanner(options = {}) {
 export function ProgressBar(current, total, options = {}) {
     const {
         showText = true,
-        showSteps = false
+        showSteps = false,
+        stepLabel = ''
     } = options;
 
     const percentage = Math.min((current / total) * 100, 100);
 
-    const stepsHtml = showSteps ? `
-    <div class="progress-bar__steps">
-      ${Array.from({ length: total }, (_, i) => `
-        <div class="progress-bar__step ${i < current ? 'completed' : ''} ${i === current ? 'active' : ''}">
-          ${i + 1}
-        </div>
-      `).join('')}
-    </div>
-  ` : '';
+    // 步骤描述在横线中间显示
+    const labelHtml = stepLabel ? `<span class="progress-bar__label">${stepLabel}</span>` : '';
 
     const textHtml = showText
         ? `<div class="progress-bar__text">${current} / ${total}</div>`
@@ -99,11 +93,16 @@ export function ProgressBar(current, total, options = {}) {
 
     return `
     <div class="progress-bar">
-      <div class="progress-bar__track">
-        <div class="progress-bar__fill" style="width: ${percentage}%"></div>
+      <div class="progress-bar__track-wrapper">
+        <div class="progress-bar__track">
+          <div class="progress-bar__fill" style="width: ${percentage}%"></div>
+        </div>
+        ${labelHtml}
+        <div class="progress-bar__track">
+          <div class="progress-bar__fill" style="width: ${percentage}%"></div>
+        </div>
       </div>
       ${textHtml}
-      ${stepsHtml}
     </div>
   `;
 }

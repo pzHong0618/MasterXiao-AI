@@ -176,6 +176,31 @@
 
 /* ==================== 生日输入页样式 ==================== */
 
+/* 表单区域过渡动画 */
+.form-section {
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.form-section.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.form-section.fade-in {
+    animation: formFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes formFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* 进度步骤 */
 .progress-bar__steps {
     display: flex;
@@ -245,6 +270,105 @@
 /* 人物信息卡片 */
 .person-avatar {
     font-size: 32px;
+}
+
+/* 甲乙双方信息卡片区域 */
+.persons-info {
+    margin-top: var(--spacing-4);
+}
+
+.persons-info__cards {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-3);
+}
+
+/* 响应式：窄屏时上下排列 */
+@media (max-width: 500px) {
+    .persons-info__cards {
+        flex-direction: column;
+    }
+}
+
+.person-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    background: var(--color-glass-bg);
+    border: 2px solid var(--color-glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-3);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    min-width: 0;
+}
+
+.person-card:hover {
+    border-color: var(--color-primary-light);
+    transform: translateY(-2px);
+}
+
+.person-card--active {
+    background: rgba(139, 127, 216, 0.1);
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(139, 127, 216, 0.2);
+}
+
+/* 卡片上部：头像+信息 */
+.person-card__top {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+}
+
+.person-card .person-avatar {
+    font-size: 32px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.person-card__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.person-card__name {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-base);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.person-card__date-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    flex-wrap: wrap;
+}
+
+.person-card__date {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+.person-card__lunar {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    text-align: center;
+    padding-top: var(--spacing-2);
+    border-top: 1px solid var(--color-glass-border);
+    margin-top: var(--spacing-1);
+}
+
+.person-card .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    flex-shrink: 0;
 }
 
 /* ==================== 卡牌翻牌页样式 ==================== */
@@ -904,9 +1028,24 @@
 
 .action-bar__buttons {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: var(--spacing-3);
     max-width: var(--container-max-width);
     margin: 0 auto;
+    padding: 0 var(--spacing-md);
+}
+
+/* 左侧按钮组 */
+.btn-group-left {
+    display: flex;
+    gap: var(--spacing-3);
+}
+
+/* 右侧按钮组 */
+.btn-group-right {
+    display: flex;
+    gap: var(--spacing-3);
 }
 
 .action-bar__info {
@@ -1226,6 +1365,10 @@
     border: 1px solid rgba(139, 127, 216, 0.1);
     transition: all var(--transition-base);
     overflow: hidden;
+    /* 长文本换行处理 */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .analysis-block:hover {
@@ -1237,8 +1380,8 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
-    padding-bottom: var(--spacing-3);
-    margin-bottom: var(--spacing-3);
+    padding-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-1);
     border-bottom: 1px solid rgba(139, 127, 216, 0.1);
 }
 
@@ -1291,8 +1434,8 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
-    margin: var(--spacing-3) 0 var(--spacing-2);
-    padding: var(--spacing-2) var(--spacing-3);
+    margin: var(--spacing-2) 0 var(--spacing-1);
+    padding: var(--spacing-1) var(--spacing-3);
     background: #ffffff;
     border-radius: var(--radius-md);
     border: 1px dashed rgba(139, 127, 216, 0.2);
@@ -1312,6 +1455,10 @@
     font-size: var(--font-size-sm);
     line-height: 1.8;
     color: var(--color-text-secondary);
+    /* 长文本换行处理 */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .block-content strong {
@@ -1550,6 +1697,27 @@
     animation: blink 1.2s ease-in-out infinite;
 }
 
+/* 流式内容淡入动画 */
+.stream-fade-in {
+    animation: streamFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes streamFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* AI内容区域平滑过渡 */
+.ai-content > * {
+    transition: all 0.2s ease;
+}
+
 @keyframes pulse {
     0%, 100% { opacity: 0.4; transform: scale(0.8); }
     50% { opacity: 1; transform: scale(1.2); }
@@ -1613,4 +1781,126 @@
         font-size: 24px;
         letter-spacing: 2px;
     }
+}
+
+/* ==================== PC端生日输入页间距调整 ==================== */
+@media (min-width: 768px) {
+    /* 进度条区域 */
+    .progress-section.mt-4 {
+        margin-top: var(--spacing-6) !important;
+    }
+    
+    .progress-section.mb-6 {
+        margin-bottom: var(--spacing-8) !important;
+    }
+
+    /* 表单区域内部间距 */
+    .form-section .glass-card {
+        padding: var(--spacing-6);
+    }
+    
+    .form-section .input-group.mb-4 {
+        margin-bottom: var(--spacing-5) !important;
+    }
+
+    /* 性别选择器间距 */
+    .gender-selector {
+        gap: var(--spacing-4);
+        margin-bottom: var(--spacing-2);
+    }
+    
+    .gender-btn {
+        padding: var(--spacing-4) var(--spacing-md);
+    }
+
+    /* 甲乙方卡片区域 */
+    .persons-info {
+        margin-top: var(--spacing-6);
+    }
+    
+    .persons-info__cards {
+        gap: var(--spacing-4);
+    }
+    
+    .person-card {
+        padding: var(--spacing-4);
+    }
+}
+
+/* ==================== 打印/导出PDF样式 ==================== */
+@media print {
+    /* 隐藏不需要打印的元素 */
+    .navbar,
+    .bottom-action-bar,
+    .safe-area-bottom {
+        display: none !important;
+    }
+
+    /* 重置页面背景 */
+    body,
+    .page,
+    .page-content {
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 内容区域样式 */
+    .app-container {
+        max-width: 100% !important;
+        padding: 20px !important;
+    }
+
+    /* 卡片样式 */
+    .glass-card,
+    .analysis-block {
+        box-shadow: none !important;
+        border: 1px solid #e0e0e0 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* 确保文字颜色可打印 */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+}
+
+/* ==================== 导出模式样式 ==================== */
+/* 导出图片时使用的样式，模拟毛玻璃效果（因为html2canvas不支持backdrop-filter） */
+.export-mode {
+    background: linear-gradient(180deg, #E8D5FF 0%, #FFE5F0 50%, #E5F0FF 100%) !important;
+}
+
+/* 禁用所有毛玻璃效果，因为html2canvas不支持 */
+.export-mode * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 用不透明背景模拟毛玻璃效果 */
+.export-mode .glass-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.export-mode .ai-result-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.export-mode .analysis-block {
+    background: #ffffff !important;
+}
+
+.export-mode .persons-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.export-mode .result-header .glass-card {
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.export-mode .disclaimer-card {
+    background: rgba(255, 255, 255, 0.85) !important;
 }

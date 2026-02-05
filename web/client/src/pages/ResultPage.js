@@ -367,9 +367,14 @@ export class ResultPage {
     return `
       <div class="bottom-action-bar safe-area-bottom">
         <div class="action-bar__buttons">
-          <button class="btn btn--secondary" data-action="share">
-            <span>📤</span> 分享
-          </button>
+          <div class="btn-group-left">
+            <button class="btn btn--secondary" data-action="share">
+              <span>📤</span> 分享
+            </button>
+            <button class="btn btn--secondary" data-action="export-png">
+              <span>🖼️</span> 导出匹配结果
+            </button>
+          </div>
           <button class="btn btn--primary" data-action="new-test">
             再测一次
           </button>
@@ -392,6 +397,14 @@ export class ResultPage {
     if (shareBtn) {
       shareBtn.addEventListener('click', () => {
         this.handleShare();
+      });
+    }
+
+    // 导出PNG按钮
+    const exportPngBtn = document.querySelector('[data-action="export-png"]');
+    if (exportPngBtn) {
+      exportPngBtn.addEventListener('click', () => {
+        this.handleExportPng();
       });
     }
 
@@ -685,13 +698,8 @@ export class ResultPage {
               // 不要完全重新渲染，只更新必要的部分
               this.updateToResultView();
             } else {
-              // 更新流式内容
-              const contentEl = document.getElementById('ai-stream-content');
-              if (contentEl) {
-                contentEl.innerHTML = this.formatMarkdown(this.streamContent) + this.renderLoadingIndicator();
-                // 自动滚动到底部
-                this.scrollToBottom();
-              }
+              // 更新流式内容 - 平滑过渡
+              this.updateStreamContent();
             }
           },
           onDone: (fullContent) => {
@@ -724,6 +732,10 @@ export class ResultPage {
             console.error('AI 分析失败:', error);
             this.streamContent = '分析失败，请稍后重试！';
             this.isAnalyzing = false;
+            this.isStreamComplete = true; // 标记为完成，隐藏加载动画
+            // 移除加载指示器
+            const loadingEl = document.getElementById('stream-loading-indicator');
+            if (loadingEl) loadingEl.remove();
             this.rerender();
           },
           signal: this.abortController.signal
@@ -738,6 +750,7 @@ export class ResultPage {
       console.error('AI 分析失败:', error);
       this.streamContent = '分析失败，请稍后重试。';
       this.isAnalyzing = false;
+      this.isStreamComplete = true; // 标记为完成，隐藏加载动画
       this.rerender();
     }
   }
@@ -808,6 +821,63 @@ export class ResultPage {
       </div>
     `;
   }
+  
+  /**
+   * 平滑更新流式内容
+   */
+  updateStreamContent() {
+    const contentEl = document.getElementById('ai-stream-content');
+    if (!contentEl) return;
+    
+    const newHtml = this.formatMarkdown(this.streamContent);
+    const loadingHtml = this.renderLoadingIndicator();
+    
+    // 获取当前内容和新内容
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = newHtml;
+    const newElements = Array.from(tempDiv.children);
+    
+    // 获取当前已有的内容元素（排除loading指示器）
+    const currentElements = Array.from(contentEl.children).filter(
+      el => !el.classList.contains('stream-loading-indicator')
+    );
+    
+    // 检查是否有新元素添加
+    if (newElements.length > currentElements.length) {
+      // 有新元素，添加并应用动画
+      for (let i = currentElements.length; i < newElements.length; i++) {
+        const newEl = newElements[i].cloneNode(true);
+        newEl.classList.add('stream-fade-in');
+        
+        // 在loading指示器前插入
+        const loadingEl = contentEl.querySelector('.stream-loading-indicator');
+        if (loadingEl) {
+          contentEl.insertBefore(newEl, loadingEl);
+        } else {
+          contentEl.appendChild(newEl);
+        }
+      }
+      
+      // 确保loading指示器在最后
+      let loadingEl = contentEl.querySelector('.stream-loading-indicator');
+      if (!loadingEl) {
+        contentEl.insertAdjacentHTML('beforeend', loadingHtml);
+      }
+    } else if (currentElements.length > 0) {
+      // 更新最后一个元素的内容（可能还在继续输出）
+      const lastCurrentEl = currentElements[currentElements.length - 1];
+      const lastNewEl = newElements[newElements.length - 1];
+      if (lastNewEl && lastCurrentEl.innerHTML !== lastNewEl.innerHTML) {
+        lastCurrentEl.innerHTML = lastNewEl.innerHTML;
+      }
+    } else {
+      // 初始化
+      contentEl.innerHTML = newHtml + loadingHtml;
+    }
+    
+    // 自动滚动到底部
+    this.scrollToBottom();
+  }
 
   /**
    * 渲染完成指示器
@@ -848,14 +918,16 @@ export class ResultPage {
     // 将每个段落转换为卡片
     return sections.map((section, index) => {
       const formatted = this.formatSectionContent(section);
-      if (!formatted.trim()) return '';
+      // 检查是否有实际内容（过滤掉只有空白、br标签或空div的内容）
+      const textContent = formatted.replace(/<[^>]*>/g, '').replace(/\s+/g, '').trim();
+      if (!textContent) return '';
       
       return `
         <div class="analysis-block animate-fade-in-up" style="animation-delay: ${index * 0.1}s;">
           ${formatted}
         </div>
       `;
-    }).join('');
+    }).filter(Boolean).join('');
   }
 
   /**
@@ -867,24 +939,21 @@ export class ResultPage {
     const lines = text.split('\n');
     
     for (const line of lines) {
-      // 识别各种标题格式：## 标题、【标题】、第X步、一、二、三等
-      const isHeading = /^##?#?\s/.test(line) || 
-                        /^【[^】]+】/.test(line) || 
-                        /^第[一二三四五六七八九十]+步/.test(line) ||
-                        /^[\*\-]\s*第[一二三四五六七八九十]+步/.test(line) ||
-                        /^[\*\-]\s*\*\*第[一二三四五六七八九十]+步/.test(line) ||
-                        /^[\d]+\.\s*第[一二三四五六七八九十]+步/.test(line) ||
-                        /^[\*\-]\s*\*\*[甲乙]方/.test(line);
+      // 跳过"总结"这一行
+      if (/^总结[：:.]?\s*$/.test(line.trim()) || /^\*?\*?总结\*?\*?[：:.]?\s*$/.test(line.trim())) {
+        continue;
+      }
       
-      if (isHeading) {
-        // 遇到标题，保存当前段落并开始新段落
+      // 只在主要章节标题处分割：【标题】格式
+      // 不再在甲方/乙方处分割，让它们保持在同一个卡片内
+      const isMainHeading = /^【[^】]+】/.test(line);
+      
+      if (isMainHeading) {
+        // 遇到主要标题，保存当前段落并开始新段落
         if (currentSection.trim()) {
           sections.push(currentSection.trim());
         }
         currentSection = line;
-      } else if (line.trim() === '' && currentSection.trim()) {
-        // 空行继续累积
-        currentSection += '\n' + line;
       } else {
         currentSection += '\n' + line;
       }
@@ -951,7 +1020,8 @@ export class ResultPage {
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       // 列表项 - 支持更多格式
       .replace(/^\*\s{3}(.+)$/gm, '<li class="sub-item">$1</li>')
-      .replace(/^[-*•]\s*(.+)$/gm, '<li>$1</li>')
+      // 过滤只有符号或空白的列表项
+      .replace(/^[-*•]\s*([^\s].*)$/gm, '<li>$1</li>')
       .replace(/^(\d+)[.)、]\s*(.+)$/gm, '<li class="numbered"><span class="list-num">$1.</span> $2</li>')
       // 冒号后内容高亮
       .replace(/([^<>\n]+?)：([^<>\n]+)/g, '<span class="label-text">$1：</span><span class="value-text">$2</span>')
@@ -964,68 +1034,22 @@ export class ResultPage {
       return '<ul class="block-list">' + match + '</ul>';
     });
     
-    // 清理多余的 <br>
-    formatted = formatted.replace(/(<br>){3,}/g, '<br><br>');
-    formatted = formatted.replace(/^(<br>)+/, '');
-    formatted = formatted.replace(/(<br>)+$/, '');
-    
-    // 识别甲方/乙方对比内容并转换为左右布局
-    formatted = this.convertToComparisonLayout(formatted);
+    // 清理多余的 <br> 和空白行
+    formatted = formatted.replace(/(<br>){2,}/g, '<br>');
+    formatted = formatted.replace(/^(<br>|\s)+/, '');
+    formatted = formatted.replace(/(<br>|\s)+$/, '');
+    // 清理空列表项和只有符号的行
+    formatted = formatted.replace(/<li[^>]*>\s*<\/li>/g, '');
+    formatted = formatted.replace(/<li[^>]*>\s*[-–—]+\s*<\/li>/g, '');
+    formatted = formatted.replace(/<ul class="block-list">\s*<\/ul>/g, '');
+    // 清理只有空格、符号的行
+    formatted = formatted.replace(/<br>\s*[-–—]+\s*<br>/g, '<br>');
+    formatted = formatted.replace(/<br>\s*[•●○]\s*[-–—]*\s*<br>/g, '<br>');
+    // 清理标题后的空白行
+    formatted = formatted.replace(/(<\/div>)(<br>)+/g, '$1');
+    formatted = formatted.replace(/(<br>)+(<div)/g, '$2');
     
     return `<div class="block-content">${formatted}</div>`;
-  }
-
-  /**
-   * 将甲方/乙方内容转换为左右对比布局
-   */
-  convertToComparisonLayout(html) {
-    // 匹配甲方和乙方的内容块
-    const partyAPattern = /<strong>\d*\.?\s*(甲方|A方|A：|甲：)[^<]*<\/strong>([\s\S]*?)(?=<strong>\d*\.?\s*(乙方|B方|B：|乙：)|<h[345]|$)/gi;
-    const partyBPattern = /<strong>\d*\.?\s*(乙方|B方|B：|乙：)[^<]*<\/strong>([\s\S]*?)(?=<strong>\d*\.?\s*(甲方|A方)|<h[345]|【|$)/gi;
-    
-    // 提取甲方和乙方内容
-    const partyAMatches = [...html.matchAll(partyAPattern)];
-    const partyBMatches = [...html.matchAll(partyBPattern)];
-    
-    // 如果同时存在甲方和乙方内容，进行对比布局转换
-    if (partyAMatches.length > 0 && partyBMatches.length > 0) {
-      for (let i = 0; i < Math.min(partyAMatches.length, partyBMatches.length); i++) {
-        const partyAContent = partyAMatches[i][0];
-        const partyBContent = partyBMatches[i][0];
-        
-        // 创建对比布局
-        const comparisonHtml = `
-          <div class="comparison-container">
-            <div class="comparison-item comparison-left">
-              <div class="comparison-label">👨 甲方</div>
-              <div class="comparison-content">${this.cleanComparisonContent(partyAContent)}</div>
-            </div>
-            <div class="comparison-item comparison-right">
-              <div class="comparison-label">👩 乙方</div>
-              <div class="comparison-content">${this.cleanComparisonContent(partyBContent)}</div>
-            </div>
-          </div>
-        `;
-        
-        // 替换原内容
-        html = html.replace(partyAContent, comparisonHtml);
-        html = html.replace(partyBContent, '');
-      }
-    }
-    
-    return html;
-  }
-
-  /**
-   * 清理对比内容中的标题
-   */
-  cleanComparisonContent(content) {
-    return content
-      // 移除开头的甲方/乙方标题
-      .replace(/<strong>\d*\.?\s*(甲方|乙方|A方|B方|A：|B：|甲：|乙：)[^<]*<\/strong>/gi, '')
-      // 清理多余的换行
-      .replace(/^(<br>|\s)+/g, '')
-      .replace(/(<br>|\s)+$/g, '');
   }
 
   rerender() {
@@ -1048,6 +1072,85 @@ export class ResultPage {
       navigator.clipboard.writeText(shareText).then(() => {
         window.showToast('链接已复制，快去分享吧！');
       });
+    }
+  }
+
+  /**
+   * 导出PNG长图
+   */
+  async handleExportPng() {
+    // 获取甲方乙方名称和匹配类型
+    const personA = this.testData?.personA?.name || '甲方';
+    const personB = this.testData?.personB?.name || '乙方';
+    const matchTitle = this.matchType?.title || '匹配';
+    const fileName = `${personA}_${personB}_${matchTitle}结果.png`;
+
+    // 显示加载提示
+    window.showToast('正在生成图片，请稍候...');
+
+    try {
+      // 获取要导出的内容区域
+      const contentEl = document.querySelector('.page-content');
+      if (!contentEl) {
+        window.showToast('导出失败：找不到内容区域');
+        return;
+      }
+
+      // 隐藏底部操作栏
+      const bottomBar = document.querySelector('.bottom-action-bar');
+      if (bottomBar) {
+        bottomBar.style.display = 'none';
+      }
+
+      // 添加导出模式样式类（让颜色更深更清晰）
+      contentEl.classList.add('export-mode');
+
+      // 动态加载 html2canvas
+      const html2canvasModule = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.esm.js');
+      const html2canvas = html2canvasModule.default;
+
+      // 使用 html2canvas 将内容转为图片
+      const canvas = await html2canvas(contentEl, {
+        scale: 2, // 提高清晰度
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null, // 使用CSS背景渐变
+        logging: false
+      });
+
+      // 移除导出模式样式类
+      contentEl.classList.remove('export-mode');
+
+      // 恢复底部操作栏
+      if (bottomBar) {
+        bottomBar.style.display = '';
+      }
+
+      // 将canvas转为PNG并下载
+      const imgData = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = imgData;
+      link.click();
+
+      window.showToast('图片导出成功！');
+
+    } catch (error) {
+      console.error('导出图片失败:', error);
+      
+      // 移除导出模式样式类
+      const contentEl = document.querySelector('.page-content');
+      if (contentEl) {
+        contentEl.classList.remove('export-mode');
+      }
+      
+      // 恢复底部操作栏
+      const bottomBar = document.querySelector('.bottom-action-bar');
+      if (bottomBar) {
+        bottomBar.style.display = '';
+      }
+
+      window.showToast('导出失败，请稍后重试');
     }
   }
 }

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config web/client/vite.config.js web/client",
+    "dev:mobile": "vite --config web/client/vite.config.js web/client --host",
     "build": "vite build --config web/client/vite.config.js web/client",
     "preview": "vite preview --config web/client/vite.config.js web/client",
     "server": "node server/index.js",
