@@ -75,20 +75,33 @@ npm run start
 
 ```
 匹配游戏/
-├── src/                       # 前端源码
-│   ├── main.js                # 主入口
-│   ├── styles/                # 样式系统
-│   ├── scripts/               # 核心脚本
-│   ├── components/            # UI 组件
-│   ├── pages/                 # 页面组件
-│   ├── data/                  # 数据模块
-│   └── services/              # API 服务
+├── web/                       # Web 前端
+│   ├── client/                # 用户端前端
+│   │   ├── src/               # 源码
+│   │   │   ├── main.js        # 主入口
+│   │   │   ├── styles/        # 样式系统
+│   │   │   ├── scripts/       # 核心脚本
+│   │   │   ├── components/    # UI 组件
+│   │   │   ├── pages/         # 页面组件
+│   │   │   ├── data/          # 数据模块
+│   │   │   └── services/      # API 服务
+│   │   ├── dist/              # 构建输出
+│   │   ├── index.html         # 入口页面
+│   │   └── vite.config.js     # Vite 配置
+│   │
+│   └── backend/               # 管理后台
+│       ├── css/               # 后台样式
+│       ├── js/                # 后台脚本
+│       ├── index.html         # 后台首页
+│       └── login.html         # 登录页面
 │
-├── server/                    # 后端源码
+├── server/                    # 后端 API
 │   ├── index.js               # Express 入口
+│   ├── config/                # 配置文件
 │   ├── middleware/            # 中间件
 │   ├── routes/                # API 路由
-│   └── services/              # 业务服务
+│   ├── services/              # 业务服务
+│   └── utils/                 # 工具函数
 │
 └── docs/                      # 项目文档
 ```

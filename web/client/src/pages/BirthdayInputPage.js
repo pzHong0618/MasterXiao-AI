@@ -187,29 +187,24 @@ export class BirthdayInputPage {
             });
         }
 
-        // 下一步按钮
+        // 下一步按钮 - 使用简单的 click 事件，移动端 click 事件是可靠的
         const nextBtn = document.querySelector('[data-action="next"]');
         if (nextBtn) {
-            // 同时监听 click 和 touchend 以确保移动端兼容
-            const handleNextClick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            nextBtn.onclick = (e) => {
+                console.log('点击了下一步/开始分析按钮');
+                console.log('当前步骤:', this.currentStep);
+                console.log('表单数据:', JSON.stringify(this.formData));
                 this.handleNext();
             };
-            nextBtn.addEventListener('click', handleNextClick);
-            nextBtn.addEventListener('touchend', handleNextClick);
         }
 
         // 返回上一步按钮
         const backStepBtn = document.querySelector('[data-action="back-step"]');
         if (backStepBtn) {
-            const handleBackClick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            backStepBtn.onclick = () => {
+                console.log('点击了上一步按钮');
                 this.goBackStep();
             };
-            backStepBtn.addEventListener('click', handleBackClick);
-            backStepBtn.addEventListener('touchend', handleBackClick);
         }
     }
 
@@ -237,6 +232,8 @@ export class BirthdayInputPage {
             : this.formData.personB.gender;
 
         const isValid = name && birthDate && gender;
+        
+        console.log('validateForm:', { name, birthDate, gender, isValid, step: this.currentStep });
 
         const nextBtn = document.querySelector('[data-action="next"]');
         if (nextBtn) {
@@ -262,11 +259,18 @@ export class BirthdayInputPage {
     }
 
     handleNext() {
-        if (!this.validateForm()) return;
+        console.log('handleNext 被调用');
+        
+        if (!this.validateForm()) {
+            console.log('表单验证未通过，返回');
+            return;
+        }
 
         // 保存当前步骤数据
         const name = document.getElementById('name').value.trim();
         const birthDate = document.getElementById('birthDate').value;
+        
+        console.log('表单数据:', { name, birthDate });
 
         if (this.currentStep === 1) {
             this.formData.personA.name = name;
@@ -278,6 +282,8 @@ export class BirthdayInputPage {
         } else {
             this.formData.personB.name = name;
             this.formData.personB.birthDate = birthDate;
+            
+            console.log('准备提交测试，跳转到结果页');
 
             // 保存数据并跳转到结果页
             this.submitTest();
@@ -310,8 +316,10 @@ export class BirthdayInputPage {
     }
 
     submitTest() {
+        console.log('submitTest 被调用');
+        
         // 保存测试数据到状态
-        window.appState.set('currentTest', {
+        const testData = {
             type: this.matchType.id,
             method: 'birthday',
             personA: {
@@ -325,9 +333,14 @@ export class BirthdayInputPage {
                 birthDate: this.formData.personB.birthDate
             },
             timestamp: Date.now()
-        });
+        };
+        
+        console.log('测试数据:', JSON.stringify(testData));
+        
+        window.appState.set('currentTest', testData);
 
         // 跳转到结果页（或付款页）
+        console.log('准备跳转到 /result/birthday');
         window.router.navigate(`/result/birthday`);
     }
 }
