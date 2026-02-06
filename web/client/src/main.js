@@ -28,8 +28,16 @@ import {
   TestSelectPage,
   BirthdayInputPage,
   TarotPage,
+  TarotTabooPage,
+  TarotPrinciplePage,
+  TarotShufflePage,
+  TarotPickPage,
+  TarotCardSelectionPage,
+  TarotResultLoadingPage,
+  TarotResultPage,
   ResultPage,
-  PaymentPage
+  PaymentPage,
+  DivinationResultPage
 } from './pages/index.js';
 
 /**
@@ -59,8 +67,16 @@ function registerRoutes() {
     .register('/test/:type', TestSelectPage)
     .register('/test/:type/birthday', BirthdayInputPage)
     .register('/test/:type/tarot', TarotPage)
+    .register('/test/:type/tarot/taboo', TarotTabooPage)
+    .register('/test/:type/tarot/principle', TarotPrinciplePage)
+    .register('/test/:type/tarot/shuffle', TarotShufflePage)
+    .register('/test/:type/tarot/pick', TarotPickPage)
+    .register('/test/:type/tarot/select/:slot', TarotCardSelectionPage)
+    .register('/test/:type/tarot/result-loading', TarotResultLoadingPage)
+    .register('/test/:type/tarot/result', TarotResultPage)
     .register('/pay/:type', PaymentPage)
-    .register('/result/:id', ResultPage);
+    .register('/result/:id', ResultPage)
+    .register('/divination/result', DivinationResultPage);
 }
 
 /**

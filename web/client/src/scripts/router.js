@@ -62,15 +62,25 @@ class Router {
      * @param {boolean} isForward - 是否为前进（用于动画方向）
      */
     handleRoute(path, isForward = true) {
-        const { handler, params } = this.matchRoute(path);
+        // 分离 pathname 和 query string
+        const [pathname, queryString] = path.split('?');
+        const { handler, params } = this.matchRoute(pathname);
 
         if (!handler) {
-            console.warn(`路由未找到: ${path}`);
+            console.warn(`路由未找到: ${pathname}`);
             // 导航到首页
-            if (path !== '/') {
+            if (pathname !== '/') {
                 this.navigate('/');
             }
             return;
+        }
+
+        // 解析 query string 并合并到 params
+        if (queryString) {
+            const searchParams = new URLSearchParams(queryString);
+            for (const [key, value] of searchParams) {
+                params[key] = value;
+            }
         }
 
         this.currentParams = params;

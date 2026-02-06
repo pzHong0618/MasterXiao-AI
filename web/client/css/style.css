@@ -835,3 +835,141 @@ img {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==================== 卦象结果页样式 ==================== */
+
+/* 卦象信息卡片 - 加载页 */
+.result-gua-card {
+    background: linear-gradient(135deg, #f8f7ff 0%, #fff 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid rgba(139, 127, 216, 0.2);
+}
+
+.gua-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.gua-info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.gua-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.gua-name {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.gua-palace {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.gua-arrow {
+    font-size: var(--font-size-xl);
+    color: var(--text-light);
+}
+
+.gua-moving-info {
+    text-align: center;
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--secondary-color);
+}
+
+/* 卦象信息 - 结果页 */
+.result-gua-section {
+    background: linear-gradient(135deg, #f8f7ff 0%, #fff 100%);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid rgba(139, 127, 216, 0.2);
+}
+
+.result-gua-title {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    text-align: center;
+}
+
+.result-gua-content {
+    display: flex;
+    justify-content: center;
+}
+
+.gua-display {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.gua-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 100px;
+}
+
+.gua-item-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-light);
+}
+
+.gua-item-name {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.gua-item-info {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
+.gua-arrow-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.gua-arrow-icon {
+    font-size: var(--font-size-xl);
+    color: var(--text-light);
+}
+
+.gua-moving-text {
+    font-size: var(--font-size-xs);
+    color: var(--secondary-color);
+    white-space: nowrap;
+}
+
+/* 问题卡片日期 */
+.result-question-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-light);
+    margin-top: var(--spacing-xs);
+}
+
+/* 动画延迟 */
+.animate-delay-50 {
+    animation-delay: 50ms;
+}
+

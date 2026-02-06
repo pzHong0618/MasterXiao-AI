@@ -1,304 +1,403 @@
 /**
- * 匹配游戏 卡牙样式
- * 3D 翻转效果和卡牌布局
+ * 问问页面整体布局
  */
-
-/* ==================== 卡牌容器 ==================== */
-
-.tarot-group {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--spacing-4);
-    padding: var(--spacing-4);
+.wenwen-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8f9ff 0%, #e8ecf3 100%);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
-
-.tarot-group--grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-3);
+.wenwen-header {
+  padding: 20px 30px;
+  margin-top: 60px;
+  display: flex;
+  align-items: center;
+  min-height: 64px;
 }
-
-.tarot-group--fan {
-    display: flex;
-    justify-content: center;
-    perspective: 1000px;
+.close-btn {
+  width: 48px;
+  height: 48px;
+  font-size: 32px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
-
-/* ==================== 卡牌包装器 ==================== */
-
-.tarot-card-wrapper {
-    perspective: 1000px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+.step-indicator {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40px;
 }
-
-/* ==================== 卡牌主体 ==================== */
-
-.tarot-card {
-    position: relative;
-    width: 100px;
-    height: 150px;
-    transform-style: preserve-3d;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+.step-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ddd;
+  transition: all 0.3s;
 }
-
-.tarot-card--small {
-    width: 80px;
-    height: 120px;
+.step-dot.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.5);
 }
-
-.tarot-card--large {
-    width: 120px;
-    height: 180px;
+.step-line {
+  width: 60px;
+  height: 4px;
+  background: #ddd;
+  margin: 0 6px;
+  transition: all 0.3s;
 }
-
-/* 翻转状态 */
-.tarot-card.flipped {
-    transform: rotateY(180deg);
+.step-line.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
-
-/* 选中状态 */
-.tarot-card.selected {
-    animation: cardGlow 2s ease-in-out infinite;
+.wenwen-content {
+  flex: 1;
+  padding: 20px 30px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-
-/* 悬停效果 */
-.tarot-card-wrapper:hover .tarot-card:not(.flipped) {
-    transform: translateY(-8px);
-    filter: brightness(1.1);
+.page-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  text-align: center;
+  margin-bottom: 12px;
 }
-
-/* ==================== 卡牌面 ==================== */
-
-.tarot-card__face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-lg);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #888;
+  text-align: center;
+  margin-bottom: 24px;
 }
-
-/* ==================== 卡牌背面 ==================== */
-
-.tarot-card__back {
-    background: linear-gradient(135deg,
-            #1A1A2E 0%,
-            #2D2D4A 50%,
-            #1A1A2E 100%);
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
 }
-
-.tarot-card__pattern {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+.category-tab {
+  padding: 10px 20px;
+  font-size: 1rem;
+  color: #666;
+  background: rgba(255,255,255,0.6);
+  border-radius: 30px;
+  border: 1px solid transparent;
+  cursor: pointer;
 }
-
-/* 图案边框 */
-.pattern-border {
-    position: absolute;
-    inset: 8px;
-    border: 1px solid rgba(139, 127, 216, 0.3);
-    border-radius: var(--radius-md);
+.category-tab.active {
+  color: #667eea;
+  background: rgba(102,126,234,0.1);
+  border-color: #667eea;
 }
-
-/* 中心符号 */
-.pattern-center {
-    font-size: 36px;
-    color: rgba(139, 127, 216, 0.8);
-    text-shadow: 0 0 20px rgba(139, 127, 216, 0.5);
-    animation: pulse 3s ease-in-out infinite;
+.suggest-questions {
+  flex: 1;
+  margin-bottom: 16px;
+  max-height: 40vh;
+  overflow-y: auto;
 }
-
-/* 星星装饰 */
-.pattern-star {
-    position: absolute;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.4);
-    animation: twinkle 2s ease-in-out infinite;
+.suggest-item {
+  background: rgba(255,255,255,0.8);
+  border-radius: 16px;
+  padding: 18px 24px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  color: #333;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  transition: all 0.2s;
+  cursor: pointer;
 }
-
-.pattern-star--1 {
-    top: 15px;
-    left: 15px;
-    animation-delay: 0s;
+.suggest-item.selected {
+  background: rgba(102,126,234,0.15);
+  border: 2px solid #667eea;
+  color: #667eea;
 }
-
-.pattern-star--2 {
-    top: 20px;
-    right: 20px;
-    animation-delay: 0.5s;
+.free-input-section {
+  background: rgba(255,255,255,0.8);
+  border-radius: 16px;
+  padding: 20px;
 }
-
-.pattern-star--3 {
-    bottom: 20px;
-    left: 20px;
-    animation-delay: 1s;
+.input-tip {
+  font-size: 1rem;
+  color: #8b5cf6;
+  margin-bottom: 12px;
 }
-
-/* 月亮装饰 */
-.pattern-moon {
-    position: absolute;
-    bottom: 15px;
-    right: 15px;
-    font-size: 16px;
-    color: rgba(255, 215, 0, 0.5);
-    animation: float 4s ease-in-out infinite;
+.free-input {
+  width: 100%;
+  min-height: 60px;
+  font-size: 1rem;
+  color: #333;
+  line-height: 1.5;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
 }
-
-/* ==================== 卡牌正面 ==================== */
-
-.tarot-card__front {
-    transform: rotateY(180deg);
-    background: linear-gradient(145deg,
-            rgba(255, 255, 255, 0.95) 0%,
-            rgba(248, 245, 255, 0.9) 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-2);
-    padding: var(--spacing-3);
+.taboo-list {
+  flex: 1;
+  overflow: hidden;
 }
-
-/* 符号图标 */
-.hexagram-symbol {
-    font-size: 28px;
-    color: var(--color-primary);
-    text-shadow: 0 2px 4px rgba(139, 127, 216, 0.2);
+.taboo-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
 }
-
-/* 符号名称 */
-.hexagram-name {
-    font-family: var(--font-family-heading);
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text-primary);
+.taboo-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
 }
-
-/* 含义 */
-.hexagram-meaning {
-    font-size: var(--font-size-xs);
-    color: var(--color-text-secondary);
-    text-align: center;
+.taboo-icon {
+  font-size: 1.5rem;
+  margin-right: 12px;
 }
-
-/* 五行元素 */
-.hexagram-element {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    font-size: 14px;
-    opacity: 0.7;
+.taboo-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
 }
-
-/* ==================== 卡牌发光动画 ==================== */
-
-@keyframes cardGlow {
-
-    0%,
-    100% {
-        box-shadow:
-            var(--shadow-lg),
-            0 0 10px rgba(139, 127, 216, 0.3);
-    }
-
-    50% {
-        box-shadow:
-            var(--shadow-xl),
-            0 0 30px rgba(139, 127, 216, 0.6),
-            0 0 60px rgba(139, 127, 216, 0.3);
-    }
+.taboo-desc {
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 10px;
 }
-
-/* ==================== 测试页面布局 ==================== */
-
-.tarot-page {
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    padding: var(--spacing-md);
+.taboo-examples {
+  background: #f8f9ff;
+  border-radius: 10px;
+  padding: 10px 16px;
 }
-
-.tarot-page__header {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
-    margin-bottom: var(--spacing-4);
+.example-item {
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.8;
+  display: inline-block;
+  margin-right: 16px;
 }
-
-.tarot-page__instruction {
-    text-align: center;
-    margin-bottom: var(--spacing-6);
+.principle-list {
+  flex: 1;
+  overflow: hidden;
 }
-
-.tarot-page__count {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-2);
-    margin-top: var(--spacing-3);
+.principle-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
 }
-
-.tarot-page__count-number {
-    font-family: var(--font-family-heading);
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-primary);
+.principle-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
 }
-
-.tarot-page__cards {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.principle-icon {
+  font-size: 1.5rem;
+  margin-right: 12px;
 }
-
-.tarot-page__action {
-    padding: var(--spacing-md) 0;
+.principle-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
 }
-
-/* ==================== 响应式调整 ==================== */
-
-@media (max-width: 360px) {
-    .tarot-card {
-        width: 85px;
-        height: 127px;
-    }
-
-    .tarot-group--grid {
-        gap: var(--spacing-2);
-    }
-
-    .hexagram-symbol {
-        font-size: 24px;
-    }
-
-    .hexagram-name {
-        font-size: var(--font-size-base);
-    }
+.principle-desc {
+  font-size: 1rem;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 10px;
 }
-
-@media (min-width: 768px) {
-    .tarot-card {
-        width: 120px;
-        height: 180px;
-    }
-
-    .hexagram-symbol {
-        font-size: 36px;
-    }
-
-    .hexagram-name {
-        font-size: var(--font-size-xl);
-    }
+.principle-tips {
+  background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+.tip-item {
+  display: flex;
+  align-items: flex-start;
+  font-size: 1rem;
+  color: #667eea;
+  line-height: 1.8;
+}
+.tip-dot {
+  margin-right: 12px;
+}
+.wenwen-bottom-bar {
+  padding: 20px 30px 20px;
+  display: flex;
+  gap: 20px;
+}
+.btn-prev, .btn-next {
+  flex: 1;
+  height: 48px;
+  line-height: 48px;
+  text-align: center;
+  font-size: 1.1rem;
+  border-radius: 24px;
+  border: 2px solid #667eea;
+  background: #fff;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-next {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+}
+.btn-next.disabled {
+  background: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.wenwen-disclaimer {
+  text-align: center;
+  font-size: 0.95rem;
+  color: #aaa;
+  margin: 12px 0 0 0;
+}
+.principles-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  padding: 10px 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+}
+.principle-divider {
+  width: 2px;
+  height: 36px;
+  background: rgba(255,255,255,0.3);
+}
+.coin-card {
+  margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.coins-container {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+.coin {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8ecf3 100%);
+  box-shadow: 0 2px 8px rgba(102,126,234,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #764ba2;
+  transition: transform 0.3s;
+}
+.coin.flipping {
+  animation: coinFlip 0.8s linear infinite;
+}
+@keyframes coinFlip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(180deg); }
+  100% { transform: rotateY(360deg); }
+}
+.coin.show-result {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+.progress-card {
+  margin: 16px 0;
+  padding: 12px 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.progress-text {
+  font-size: 1rem;
+  color: #667eea;
+  margin-bottom: 8px;
+}
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.throw-tip-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  margin: 24px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24px;
+  box-shadow: 0 8px 30px rgba(102,126,234,0.4);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+.throw-tip-icon {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}
+.throw-tip-text {
+  font-size: 1.1rem;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 8px;
+}
+.throw-tip-highlight {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 30px rgba(102,126,234,0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(102,126,234,0.6);
+  }
+}
+.history-list {
+  margin-top: 16px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+}
+.history-title {
+  font-size: 1rem;
+  color: #764ba2;
+  margin-bottom: 8px;
+}
+.history-item-simple {
+  font-size: 0.95rem;
+  color: #333;
+  margin-bottom: 6px;
+}
+.current-result {
+  margin-top: 8px;
+  text-align: center;
+}
+.result-text-simple {
+  font-size: 1.1rem;
+  color: #667eea;
+  font-weight: bold;
 }

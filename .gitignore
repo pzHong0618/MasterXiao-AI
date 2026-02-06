@@ -34,3 +34,12 @@ package-lock.json
 # Test results
 testResult/
 test-api.js
+
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+server/database/data/*.db
+
+prompt_dev
+prompt_dev/

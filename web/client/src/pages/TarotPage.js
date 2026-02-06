@@ -1,51 +1,223 @@
 /**
- * 匹配游戏 直觉卡牙测试页面
- * 翻牌测试，每轮展示6张牌，选择3张翻开
- * 仅供娱乐参考
+ * 直觉卡牌 问题选择页
+ * 选择问题类型和具体问题
+ * 参数流程参考 MasterChenAI-mp 小程序的"问问"页面
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
-import { drawCards, generateTarotReading } from '../data/tarot.js';
 import { Navbar, ProgressBar } from '../components/Common.js';
+
+// ==================== 问题分类与问题列表（与小程序保持一致）====================
+
+// 问题分类列表（与小程序 CATEGORIES 一致）
+const CATEGORIES = ['综合', '健康类', '事业类', '财运类', '感情类', '投资类', '学业类', '其他类'];
+
+// 分类对应的问题列表（与小程序 CATEGORY_QUESTIONS 一致）
+const CATEGORY_QUESTIONS = {
+  '健康类': [
+    '疾病什么时候能痊愈',
+    '明年身体健康状况',
+    '什么时候能怀孕',
+    '亲人病了，这个病能好吗',
+    '这个病适合保守治疗还是做手术',
+    '这个病最长还能活多久'
+  ],
+  '事业类': [
+    '升职机遇',
+    '现在适合创业吗',
+    '现在适合换工作吗',
+    '怎么选择工作方向',
+    '跟人合作是否有利',
+    '投资新生意是否有利',
+    '入职新公司是否有利',
+    '我能顺利通过面试吗',
+    '单位有人故意为难怎么办',
+    '目前推进的项目会顺利吗',
+    '未来三个月，我会遇到新的工作机会吗',
+    '现在面试的公司怎么选择'
+  ],
+  '财运类': [
+    '最近三个月财运怎么样',
+    '未来一年财运怎样',
+    '什么时候有财运'
+  ],
+  '感情类': [
+    '明年桃花运怎么样',
+    '算和TA是否合适在一起',
+    '最近会不会遇到烂桃花',
+    '我和TA会走到一起吗',
+    '我和TA感情不好，是不是不适合',
+    '我和TA2026年是不是感情会更好',
+    '下一次遇到正缘是什么时候',
+    'A和B哪个更适合在一起',
+    '要谈几个男/女朋友才会遇到适合结婚的人',
+    '未来三个月，我是否会遇到新的桃花',
+    '我和TA异地恋，会有结果吗',
+    '现在遇到的人会是我的正缘吗',
+    '我和TA能复合吗',
+    '家人反对该怎么办'
+  ],
+  '投资类': [
+    '近一个月A股走势',
+    '近期适不适合投资',
+    '什么时候投资有财运',
+    '某只股票近一个月走势',
+    '某行业能投资吗'
+  ],
+  '学业类': [
+    '本次考试能否顺利',
+    '适合学什么专业',
+    '适合考哪里的大学',
+    '能否考上重点学校',
+    '适合往哪个方向发展',
+    '小孩学习不好，怎么办',
+    '应该选文科还是理科',
+    '适合什么类型课外兴趣班',
+    '学校A和学校B去哪个更好'
+  ],
+  '综合': [
+    '明天会怎么样',
+    '明年事业、财运',
+    '明年整体情况',
+    '2026年会不会发财',
+    '2026年会不会遇到合适的人',
+    '最近特别不顺该怎么办',
+    '下周会怎么样'
+  ],
+  '其他类': [
+    '明天适合出远门吗（确定位置的地方）',
+    '近期哪天适合出远门（确定位置的地方）',
+    '近期哪天去办事比较顺利（确定某一件事）',
+    '明天穿什么颜色衣服会有好运',
+    '近期我如何处理和家人的关系',
+    '怎么避小人',
+    '适合住哪个位置的房子/A和B小区，哪个更适合'
+  ]
+};
+
+// 问题分类与规则类型的映射（与小程序 CATEGORY_RULE_MAP 一致）
+const CATEGORY_RULE_MAP = {
+  '综合': 'nianyun',
+  '健康类': 'jiankang',
+  '事业类': 'shiye',
+  '财运类': 'caiyun',
+  '感情类': 'ganqing',
+  '投资类': 'gushi',
+  '学业类': 'shengxue',
+  '其他类': 'qita'
+};
+
+// 自由输入选项的标识
+const FREE_INPUT_OPTION = '以上问题均不符合，自由问题输入';
+
+// 分类图标映射
+const CATEGORY_ICONS = {
+  '综合': '🌟',
+  '健康类': '💪',
+  '事业类': '📈',
+  '财运类': '💰',
+  '感情类': '❤️',
+  '投资类': '📊',
+  '学业类': '📚',
+  '其他类': '✨'
+};
+
+/**
+ * 根据问题分类获取对应的规则类型
+ */
+function getRuleTypeByCategory(categoryName) {
+  return CATEGORY_RULE_MAP[categoryName] || 'nianyun';
+}
+
+/**
+ * 获取当前分类下的问题列表（包含自由输入选项）
+ */
+function getQuestionsWithFreeInput(categoryName) {
+  const questions = CATEGORY_QUESTIONS[categoryName] || [];
+  return [...questions, FREE_INPUT_OPTION];
+}
 
 export class TarotPage {
     constructor(params) {
         this.matchType = getMatchTypeById(params.type);
+        
+        // 参数命名与小程序保持一致
+        this.selectedCategoryIndex = 0;  // 选中的分类索引
+        this.categories = CATEGORIES;     // 分类列表
+        this.categoryQuestions = CATEGORY_QUESTIONS; // 分类对应的问题
+        this.categoryRuleMap = CATEGORY_RULE_MAP;    // 分类映射到规则类型
+        
+        this.currentQuestions = [];       // 当前分类下的问题列表（包含自由输入选项）
+        this.selectedQuestionIndex = -1;  // 选中的问题索引
+        this.selectedQuestion = '';       // 最终选定的问题
+        this.showFreeInput = false;       // 是否显示自由输入框
+        this.freeInputQuestion = '';      // 自由输入的问题内容
+        
+        // 小程序参数（将保存到全局）
+        this.questionCategory = '';       // 问题分类名称
+        this.questionType = '';           // 规则类型（ruleType）
+        
+        this.showGenderModal = false;     // 是否显示性别选择弹框
+        this.selectedGender = null;       // 选择的性别 'male' | 'female'
+        
         if (!this.matchType) {
             window.router.navigate('/');
             return;
         }
-
-        this.currentRound = 0;  // 当前轮次 (0-2)，共3轮
-        this.totalRounds = 3;   // 共3轮
-        this.cardsPerRound = 6; // 每轮展示6张牌
-        this.selectCount = 3;   // 每轮选择3张
-        this.results = [];      // 每轮翻牌的结果
-        this.isFlipping = false;
-        this.cardStates = new Array(this.cardsPerRound).fill(false); // 6张牌的翻转状态
-        this.currentCards = []; // 当前轮的牌
-        this.selectedCards = []; // 本轮已选择的牌
-        this.allSelectedCards = []; // 所有选中的牌
         
-        // 初始化第一轮的牌
-        this.initRoundCards();
+        // 初始化问题列表
+        this.updateQuestionList(this.selectedCategoryIndex);
     }
 
-    initRoundCards() {
-        // 排除已选的牌，抽取新的牌
-        const excludeIds = this.allSelectedCards.map(c => c.id);
-        this.currentCards = drawCards(this.cardsPerRound);
-        this.cardStates = new Array(this.cardsPerRound).fill(false);
-        this.selectedCards = [];
+    /**
+     * 更新问题列表（添加自由输入选项）
+     * 与小程序 updateQuestionList 方法一致
+     */
+    updateQuestionList(categoryIndex) {
+        const category = this.categories[categoryIndex];
+        const questions = this.categoryQuestions[category] || [];
+        // 在问题列表末尾添加自由输入选项
+        this.currentQuestions = [...questions, FREE_INPUT_OPTION];
+        
+        this.selectedQuestionIndex = -1;
+        this.selectedQuestion = '';
+        this.showFreeInput = false;
+        this.freeInputQuestion = '';
+    }
+
+    /**
+     * 保存问题信息到全局
+     * 与小程序 saveQuestionToGlobal 方法一致
+     */
+    saveQuestionToGlobal(question) {
+        const categoryIndex = this.selectedCategoryIndex;
+        const categoryName = this.categories[categoryIndex];
+        const ruleType = this.categoryRuleMap[categoryName] || 'nianyun';
+        
+        // 更新实例属性
+        this.selectedQuestion = question;
+        this.questionCategory = categoryName;
+        this.questionType = ruleType;
+        
+        // 保存到全局状态（与小程序 app.globalData 对应）
+        if (window.appState) {
+            window.appState.set('selectedQuestion', question);
+            window.appState.set('questionCategory', categoryName);
+            window.appState.set('questionType', ruleType);
+        }
+        
+        console.log('[问事] 选择问题:', question);
+        console.log('[问事] 问题分类:', categoryName);
+        console.log('[问事] 规则类型:', ruleType);
     }
 
     render() {
         if (!this.matchType) return '';
 
         return `
-      <div class="page tarot-page">
+      <div class="page tarot-question-page">
         ${Navbar({
-            title: '直觉卡牌测试',
+            title: '',
             showBack: true,
             showHistory: false,
             showProfile: false
@@ -54,169 +226,107 @@ export class TarotPage {
         <main class="page-content">
           <div class="app-container">
             
-            <!-- 进度指示 -->
-            <section class="progress-section mt-4 mb-4">
-              ${ProgressBar(this.currentRound, this.totalRounds, { showText: true })}
+            <!-- 进度指示器 -->
+            <div class="tarot-progress">
+              ${ProgressBar(1, 5, {
+                  showText: false,
+                  showSteps: true,
+                  stepLabel: ''
+              })}
+            </div>
+
+            <!-- 页面标题 -->
+            <section class="question-header animate-fade-in-up">
+              <h1 class="question-title">你想问什么呢？</h1>
+              <p class="question-subtitle">无论大小，任何问题都可以</p>
             </section>
 
-            <!-- 指引说明 -->
-            <section class="instruction-section mb-4 animate-fade-in-up">
-              <div class="glass-card text-center">
-                <div class="instruction-icon animate-float">🃏</div>
-                <h3 class="heading-3 mb-2">第 ${this.currentRound + 1} 轮抽牌</h3>
-                <p class="body-text-secondary">
-                  ${this.getInstructionText()}
-                </p>
+            <!-- 分类标签 -->
+            <section class="category-tags animate-fade-in-up animate-delay-100">
+              ${this.categories.map((cat, index) => `
+                <button class="category-tag ${index === this.selectedCategoryIndex ? 'active' : ''}" 
+                        data-category-index="${index}">
+                  ${cat}
+                </button>
+              `).join('')}
+            </section>
+
+            <!-- 问题列表 -->
+            <section class="question-list animate-fade-in-up animate-delay-200">
+              ${this.renderQuestionList()}
+            </section>
+
+            <!-- 提示区域 -->
+            <section class="question-tip animate-fade-in-up animate-delay-300">
+              <div class="tip-card">
+                <div class="tip-icon">💡</div>
+                <div class="tip-content">
+                  <p class="tip-highlight">每次问一个准确的问题会测算更准</p>
+                  ${this.showFreeInput ? `
+                  <div class="custom-input-wrapper">
+                    <input type="text" 
+                           class="custom-question-input" 
+                           placeholder="请输入你想问的问题..."
+                           value="${this.freeInputQuestion}"
+                           maxlength="100">
+                  </div>
+                  ` : ''}
+                </div>
               </div>
             </section>
 
-            <!-- 问题展示 -->
-            <section class="question-section mb-4 animate-fade-in-up animate-delay-100">
-              <div class="glass-card glass-card--light text-center">
-                <p class="small-text" style="color: var(--color-primary);">测试问题</p>
-                <p class="body-text mt-2">
-                  ${this.getQuestionText()}
-                </p>
+            <!-- 性别选择弹框 -->
+            <div class="gender-modal ${this.showGenderModal ? 'show' : ''}" id="genderModal">
+              <div class="gender-modal__overlay"></div>
+              <div class="gender-modal__content">
+                <h3 class="gender-modal__title">请确认您的性别</h3>
+                <p class="gender-modal__subtitle">性别信息将帮助更准确解读结果</p>
+                <div class="gender-modal__options">
+                  <div class="gender-option ${this.selectedGender === 'male' ? 'selected' : ''}" data-gender="male">
+                    <div class="gender-option__avatar gender-option__avatar--male">
+                      <span class="gender-avatar-icon">👨</span>
+                    </div>
+                    <span class="gender-option__label">男</span>
+                  </div>
+                  <div class="gender-option ${this.selectedGender === 'female' ? 'selected' : ''}" data-gender="female">
+                    <div class="gender-option__avatar gender-option__avatar--female">
+                      <span class="gender-avatar-icon">👩</span>
+                    </div>
+                    <span class="gender-option__label">女</span>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <!-- 底部按钮区域 -->
+            <section class="question-footer animate-fade-in-up animate-delay-400">
+              <button class="btn btn--primary btn--full btn--lg submit-btn ${!this.selectedQuestion && !this.freeInputQuestion ? 'disabled' : ''}" 
+                      ${!this.selectedQuestion && !this.freeInputQuestion ? 'disabled' : ''}
+                      id="submitBtn">
+                ${this.getSubmitButtonText()}
+              </button>
+              <p class="disclaimer">本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据</p>
             </section>
 
-            <!-- 翻牌区域 -->
-            <section class="cards-section mb-4 animate-fade-in-up animate-delay-200">
-              <div class="flip-cards-container">
-                ${this.renderFlipCards()}
-              </div>
-              <p class="text-center small-text mt-3" id="card-hint">
-                ${this.getCardHint()}
-              </p>
-            </section>
-
-            <!-- 已完成的轮次展示 -->
-            ${this.results.length > 0 ? this.renderCompletedRounds() : ''}
-
-            <!-- 免责声明 -->
-            <section class="disclaimer-section mt-4 mb-4">
-              <p class="text-center small-text" style="color: var(--color-text-tertiary);">
-                本测试仅供娱乐参考，不构成任何专业建议
-              </p>
-            </section>
-
+            <div class="safe-area-bottom"></div>
           </div>
         </main>
-
-        <!-- 底部操作栏 -->
-        ${this.renderBottomBar()}
       </div>
     `;
     }
 
-    getInstructionText() {
-        const instructions = [
-            '静下心来，凭直觉从下方6张牌中选择3张翻开',
-            '继续保持专注，再选择3张牌',
-            '最后一轮，完成你的选择'
-        ];
-        return instructions[this.currentRound] || instructions[0];
-    }
-
-    getQuestionText() {
-        const typeTexts = {
-            'love': '你和TA的性格契合度如何？',
-            'career': '你和同事/领导的关系如何？',
-            'cooperation': '这次合作是否值得？',
-            'thoughts': 'TA对你的真实想法是什么？',
-            'job': '你的职业发展方向如何？',
-            'city': '哪个方向更适合你发展？',
-            'peach': '你的社交魅力如何？',
-            'benefactor': '谁是你身边的助力者？',
-            'yesno': '这件事应该做吗？',
-            'choice': '两个选择哪个更好？'
-        };
-        return typeTexts[this.matchType.id] || '你面临的问题将如何发展？';
-    }
-
-    getCardHint() {
-        const selected = this.cardStates.filter(s => s).length;
-        if (selected >= this.selectCount) {
-            return '本轮选择完成，点击下方按钮继续';
-        }
-        return `请选择 ${this.selectCount - selected} 张牌`;
-    }
-
-    renderFlipCards() {
-        return `
-      <div class="flip-cards-grid">
-        ${this.currentCards.map((card, index) => `
-          <div class="flip-card-wrapper ${this.cardStates[index] ? 'selected' : ''}" data-card-index="${index}">
-            <div class="flip-card ${this.cardStates[index] ? 'flipped' : ''}">
-              <!-- 背面 -->
-              <div class="flip-card__face flip-card__back">
-                <div class="flip-card__pattern">
-                  <span class="pattern-symbol">✦</span>
-                  <span class="pattern-number">${index + 1}</span>
-                </div>
-              </div>
-              <!-- 正面 -->
-              <div class="flip-card__face flip-card__front">
-                <div class="flip-card__result">
-                  ${this.cardStates[index] ? card.symbol : ''}
-                </div>
-                <div class="flip-card__name">
-                  ${this.cardStates[index] ? card.name : ''}
-                </div>
-                <div class="flip-card__label ${this.cardStates[index] ? (card.isUpright ? 'upright' : 'reversed') : ''}">
-                  ${this.cardStates[index] ? card.position : ''}
-                </div>
-              </div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    }
-
-    renderCompletedRounds() {
-        return `
-      <section class="completed-rounds mt-4 animate-fade-in">
-        <h4 class="small-text text-center mb-3" style="color: var(--color-text-tertiary);">
-          已翻开的牌
-        </h4>
-        <div class="selected-cards-display">
-          ${this.allSelectedCards.map((card, index) => `
-            <div class="selected-card-item">
-              <span class="card-symbol">${card.symbol}</span>
-              <span class="card-name">${card.name}</span>
-              <span class="card-position ${card.isUpright ? 'upright' : 'reversed'}">${card.position}</span>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
-    }
-
-    renderBottomBar() {
-        const selected = this.cardStates.filter(s => s).length;
-        const isRoundComplete = selected >= this.selectCount;
-
-        if (isRoundComplete) {
-            const isLastRound = this.currentRound >= this.totalRounds - 1;
+    renderQuestionList() {
+        return this.currentQuestions.map((q, index) => {
+            const isFreeInput = q === FREE_INPUT_OPTION;
+            const isSelected = this.selectedQuestionIndex === index;
             return `
-      <div class="bottom-action-bar safe-area-bottom">
-        <div class="action-bar__buttons">
-          <button class="btn btn--primary btn--full" data-action="next-round">
-            ${isLastRound ? '查看结果' : '下一轮'}
-          </button>
-        </div>
-      </div>
-    `;
-        }
-
-        return `
-      <div class="bottom-action-bar safe-area-bottom">
-        <div class="action-bar__info text-center">
-          <span class="small-text">已选 ${selected}/${this.selectCount} 张 · 第 ${this.currentRound + 1}/${this.totalRounds} 轮</span>
-        </div>
-      </div>
-    `;
+              <div class="question-item ${isSelected ? 'selected' : ''} ${isFreeInput ? 'free-input-option' : ''}" 
+                   data-question-index="${index}">
+                <span class="question-text">${q}</span>
+                ${isSelected ? '<span class="question-check">✓</span>' : ''}
+              </div>
+            `;
+        }).join('');
     }
 
     attachEvents() {
@@ -224,161 +334,303 @@ export class TarotPage {
         const backBtn = document.querySelector('.navbar__back-btn');
         if (backBtn) {
             backBtn.addEventListener('click', () => {
-                if (this.currentRound > 0 || this.allSelectedCards.length > 0) {
-                    if (confirm('确定要退出吗？当前进度将丢失。')) {
-                        window.router.back();
-                    }
-                } else {
-                    window.router.back();
-                }
+                window.router.back();
             });
         }
 
-        // 卡牌翻转
-        document.querySelectorAll('.flip-card-wrapper').forEach(wrapper => {
-            wrapper.addEventListener('click', () => {
-                const index = parseInt(wrapper.dataset.cardIndex);
-                this.flipCard(index);
+        // 分类标签点击
+        document.querySelectorAll('.category-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                const index = parseInt(tag.dataset.categoryIndex);
+                this.onCategoryChange(index);
             });
         });
 
-        // 下一轮按钮
-        const nextRoundBtn = document.querySelector('[data-action="next-round"]');
-        if (nextRoundBtn) {
-            nextRoundBtn.addEventListener('click', () => {
-                this.handleNextRound();
+        // 问题选择
+        this.attachQuestionEvents();
+
+        // 自定义问题输入
+        this.attachFreeInputEvents();
+
+        // 提交按钮
+        const submitBtn = document.querySelector('.submit-btn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', () => {
+                this.handleSubmit();
+            });
+        }
+
+        // 性别选择弹框事件
+        this.attachGenderModalEvents();
+    }
+
+    attachGenderModalEvents() {
+        // 性别选项点击
+        document.querySelectorAll('.gender-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const gender = option.dataset.gender;
+                this.handleGenderSelect(gender);
+            });
+        });
+
+        // 点击遮罩关闭弹框
+        const overlay = document.querySelector('.gender-modal__overlay');
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                this.hideGenderModal();
             });
         }
     }
 
-    flipCard(index) {
-        // 检查是否可以翻牌
-        const selected = this.cardStates.filter(s => s).length;
-        if (this.cardStates[index] || this.isFlipping || selected >= this.selectCount) return;
-
-        this.isFlipping = true;
-        this.cardStates[index] = true;
-
-        // 更新卡牌UI
-        const cardWrapper = document.querySelector(`[data-card-index="${index}"]`);
-        const card = cardWrapper.querySelector('.flip-card');
-        card.classList.add('flipped');
-        cardWrapper.classList.add('selected');
-
-        // 保存选中的牌
-        this.selectedCards.push(this.currentCards[index]);
-
-        // 更新结果显示
-        setTimeout(() => {
-            const selectedCard = this.currentCards[index];
-            const resultEl = card.querySelector('.flip-card__result');
-            const nameEl = card.querySelector('.flip-card__name');
-            const labelEl = card.querySelector('.flip-card__label');
-
-            resultEl.textContent = selectedCard.symbol;
-            nameEl.textContent = selectedCard.name;
-            labelEl.textContent = selectedCard.position;
-            labelEl.classList.add(selectedCard.isUpright ? 'upright' : 'reversed');
-
-            this.isFlipping = false;
-
-            // 更新提示
-            const hintEl = document.getElementById('card-hint');
-            if (hintEl) {
-                hintEl.textContent = this.getCardHint();
-            }
-
-            // 更新底部栏
-            this.updateBottomBar();
-
-            // 检查是否完成本轮选择
-            const currentSelected = this.cardStates.filter(s => s).length;
-            if (currentSelected >= this.selectCount) {
-                this.completeRound();
-            }
-        }, 300);
+    attachQuestionEvents() {
+        document.querySelectorAll('.question-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const index = parseInt(item.dataset.questionIndex);
+                this.onQuestionChange(index);
+            });
+        });
     }
 
-    updateBottomBar() {
-        const bottomBar = document.querySelector('.bottom-action-bar');
-        if (bottomBar) {
-            const selected = this.cardStates.filter(s => s).length;
-            const isRoundComplete = selected >= this.selectCount;
-
-            if (isRoundComplete) {
-                const isLastRound = this.currentRound >= this.totalRounds - 1;
-                bottomBar.innerHTML = `
-          <div class="action-bar__buttons">
-            <button class="btn btn--primary btn--full" data-action="next-round">
-              ${isLastRound ? '查看结果' : '下一轮'}
-            </button>
-          </div>
-        `;
-                // 重新绑定事件
-                const nextRoundBtn = bottomBar.querySelector('[data-action="next-round"]');
-                if (nextRoundBtn) {
-                    nextRoundBtn.addEventListener('click', () => {
-                        this.handleNextRound();
-                    });
-                }
-            } else {
-                bottomBar.innerHTML = `
-          <div class="action-bar__info text-center">
-            <span class="small-text">已选 ${selected}/${this.selectCount} 张 · 第 ${this.currentRound + 1}/${this.totalRounds} 轮</span>
-          </div>
-        `;
-            }
+    /**
+     * 绑定自由输入框事件
+     */
+    attachFreeInputEvents() {
+        const customInput = document.querySelector('.custom-question-input');
+        if (customInput) {
+            customInput.addEventListener('input', (e) => {
+                this.onFreeInputChange(e.target.value);
+            });
         }
     }
 
-    completeRound() {
-        // 将本轮选中的牌添加到总选择中
-        this.allSelectedCards.push(...this.selectedCards);
+    /**
+     * 选择分类
+     * 与小程序 onCategoryChange 方法一致
+     */
+    onCategoryChange(index) {
+        this.selectedCategoryIndex = index;
+        this.updateQuestionList(index);
 
-        // 保存本轮结果
-        this.results.push({
-            round: this.currentRound + 1,
-            cards: [...this.selectedCards]
+        // 更新分类标签样式
+        document.querySelectorAll('.category-tag').forEach((tag, i) => {
+            tag.classList.toggle('active', i === index);
         });
 
-        // 更新底部栏显示下一步按钮
-        this.updateBottomBar();
+        // 更新问题列表
+        this.updateQuestionListUI();
+
+        // 更新提交按钮
+        this.updateSubmitButton();
     }
 
-    handleNextRound() {
-        if (this.currentRound < this.totalRounds - 1) {
-            // 进入下一轮
-            this.currentRound++;
-            this.initRoundCards();
-            this.rerender();
+    /**
+     * 选择问题
+     * 与小程序 onQuestionChange 方法一致
+     */
+    onQuestionChange(index) {
+        const question = this.currentQuestions[index];
+        const isFreeInput = question === FREE_INPUT_OPTION;
+        
+        this.selectedQuestionIndex = index;
+        this.showFreeInput = isFreeInput;
+        
+        if (isFreeInput) {
+            this.selectedQuestion = '';
         } else {
-            // 完成所有轮次，显示结果
-            this.completeTest();
+            this.selectedQuestion = question;
+            this.freeInputQuestion = '';
+            // 如果不是自由输入，保存问题信息到全局
+            this.saveQuestionToGlobal(question);
+        }
+
+        // 更新问题列表样式
+        document.querySelectorAll('.question-item').forEach((item, i) => {
+            const isSelected = i === index;
+            item.classList.toggle('selected', isSelected);
+            
+            // 更新勾选标记
+            let checkMark = item.querySelector('.question-check');
+            if (isSelected && !checkMark) {
+                checkMark = document.createElement('span');
+                checkMark.className = 'question-check';
+                checkMark.textContent = '✓';
+                item.appendChild(checkMark);
+            } else if (!isSelected && checkMark) {
+                checkMark.remove();
+            }
+        });
+
+        // 更新自由输入框显示
+        this.updateFreeInputUI();
+
+        // 更新提交按钮
+        this.updateSubmitButton();
+    }
+
+    /**
+     * 自由输入问题内容变化
+     * 与小程序 onFreeInputChange 方法一致
+     */
+    onFreeInputChange(value) {
+        this.freeInputQuestion = value;
+        this.selectedQuestion = value;
+        
+        // 保存到全局
+        if (value) {
+            this.saveQuestionToGlobal(value);
+        }
+
+        // 更新提交按钮
+        this.updateSubmitButton();
+    }
+
+    /**
+     * 更新自由输入框UI
+     */
+    updateFreeInputUI() {
+        const tipContent = document.querySelector('.tip-content');
+        if (tipContent) {
+            let inputWrapper = tipContent.querySelector('.custom-input-wrapper');
+            
+            if (this.showFreeInput && !inputWrapper) {
+                // 添加输入框
+                inputWrapper = document.createElement('div');
+                inputWrapper.className = 'custom-input-wrapper';
+                inputWrapper.innerHTML = `
+                    <input type="text" 
+                           class="custom-question-input" 
+                           placeholder="请输入你想问的问题..."
+                           value="${this.freeInputQuestion}"
+                           maxlength="100">
+                `;
+                tipContent.appendChild(inputWrapper);
+                this.attachFreeInputEvents();
+                
+                // 自动聚焦
+                const input = inputWrapper.querySelector('.custom-question-input');
+                if (input) {
+                    input.focus();
+                }
+            } else if (!this.showFreeInput && inputWrapper) {
+                // 移除输入框
+                inputWrapper.remove();
+            }
         }
     }
 
-    rerender() {
-        const container = document.getElementById('app');
-        container.innerHTML = this.render();
-        this.attachEvents();
+    /**
+     * 更新问题列表UI
+     */
+    updateQuestionListUI() {
+        const listContainer = document.querySelector('.question-list');
+        if (listContainer) {
+            listContainer.innerHTML = this.renderQuestionList();
+            this.attachQuestionEvents();
+        }
+        
+        // 同时更新自由输入框
+        this.updateFreeInputUI();
     }
 
-    completeTest() {
-        // 生成卡牌解读
-        const reading = generateTarotReading(this.allSelectedCards, this.matchType.id);
+    handleSubmit() {
+        const question = this.freeInputQuestion || this.selectedQuestion;
+        if (!question || !question.trim()) {
+            window.showToast('请先选择或输入问题', 'error');
+            return;
+        }
 
-        // 保存到状态
-        window.appState.set('currentTest', {
-            type: this.matchType.id,
-            method: 'tarot',
-            results: this.results,
-            allCards: this.allSelectedCards,
-            reading: reading,
-            timestamp: Date.now()
+        // 如果弹框已显示且已选择性别，则提交
+        if (this.showGenderModal && this.selectedGender) {
+            this.submitWithGender();
+            return;
+        }
+
+        // 显示性别选择弹框
+        this.showGenderModalFn();
+    }
+
+    showGenderModalFn() {
+        this.showGenderModal = true;
+        const modal = document.getElementById('genderModal');
+        if (modal) {
+            modal.classList.add('show');
+        }
+        this.updateSubmitButton();
+    }
+
+    hideGenderModal() {
+        this.showGenderModal = false;
+        this.selectedGender = null;
+        const modal = document.getElementById('genderModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+        // 更新性别选项样式
+        document.querySelectorAll('.gender-option').forEach(opt => {
+            opt.classList.remove('selected');
+        });
+        this.updateSubmitButton();
+    }
+
+    handleGenderSelect(gender) {
+        this.selectedGender = gender;
+        
+        // 更新性别选项样式
+        document.querySelectorAll('.gender-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.gender === gender);
         });
 
-        // 跳转到结果页
-        window.router.navigate(`/result/tarot`);
+        // 选择性别后延迟500ms自动提交
+        setTimeout(() => {
+            this.submitWithGender();
+        }, 500);
+    }
+
+    getSubmitButtonText() {
+        const hasQuestion = this.selectedQuestion || this.freeInputQuestion;
+        if (!hasQuestion) {
+            return '请选择问题';
+        }
+        return '下一步';
+    }
+
+    updateSubmitButton() {
+        const submitBtn = document.querySelector('.submit-btn');
+        if (submitBtn) {
+            const hasQuestion = this.selectedQuestion || this.freeInputQuestion;
+            const canSubmit = this.showGenderModal ? (hasQuestion && this.selectedGender) : hasQuestion;
+            submitBtn.disabled = !canSubmit;
+            submitBtn.classList.toggle('disabled', !canSubmit);
+            submitBtn.textContent = this.getSubmitButtonText();
+        }
+    }
+
+    submitWithGender() {
+        const question = this.freeInputQuestion || this.selectedQuestion;
+        
+        // 确保全局数据已保存（与小程序 saveQuestionToGlobal 对应）
+        this.saveQuestionToGlobal(question.trim());
+
+        // 保存到全局状态（与小程序 app.globalData 对应）
+        if (window.appState) {
+            // 保留原有的命名以兼容
+            window.appState.set('tarotQuestion', question);
+            window.appState.set('tarotCategory', this.categories[this.selectedCategoryIndex]);
+            window.appState.set('tarotGender', this.selectedGender);
+            
+            // 新增与小程序一致的参数命名
+            window.appState.set('selectedQuestion', question);
+            window.appState.set('questionCategory', this.questionCategory);
+            window.appState.set('questionType', this.questionType);
+        }
+
+        // 记录日志
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        console.log(`[${timestamp}] 提交: 问题=${question}, 分类=${this.questionCategory}, 规则类型=${this.questionType}, 性别=${this.selectedGender}`);
+
+        // 跳转到问事禁忌页面
+        window.router.navigate(`/test/${this.matchType.id}/tarot/taboo`);
     }
 }
 

@@ -42,6 +42,9 @@ import apiRoutes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logger.js';
 
+// 数据库导入
+import { initDatabase, closeDatabase } from './database/index.js';
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -51,19 +54,29 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
     origin: function (origin, callback) {
-        // 允许无 origin 的请求（如 curl）
-        if (!origin) return callback(null, true);
+        // 开发环境：允许所有请求
+        if (process.env.NODE_ENV === 'development') {
+            return callback(null, true);
+        }
+        
+        // 生产环境：检查白名单
+        if (!origin) return callback(null, true); // 允许无 origin 的请求
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
+        
         return callback(new Error('CORS not allowed'), false);
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // JSON 解析
@@ -85,11 +98,19 @@ app.use('/api', apiRoutes);
 // 管理后台静态文件（开发和生产环境都可访问）
 app.use('/admin', express.static(join(__dirname, '../web/backend')));
 
+// 测试结果数据（开发环境）
+app.use('/testResult', express.static(join(__dirname, '../testResult')));
+
 // 前端静态文件（所有环境）- 构建输出在 web/client/dist
 app.use(express.static(join(__dirname, '../web/client/dist')));
 
+// 开发环境：服务 web/client 目录（用于测试页面）
+if (process.env.NODE_ENV === 'development') {
+    app.use(express.static(join(__dirname, '../web/client')));
+}
+
 // SPA 回退（排除 /api 和 /admin 路径）
-app.get(/^(?!\/(api|admin)).*/, (req, res, next) => {
+app.get(/^(?!\/(api|admin|testResult)).*/, (req, res, next) => {
     const indexPath = join(__dirname, '../web/client/dist/index.html');
     res.sendFile(indexPath, (err) => {
         if (err) {
@@ -105,10 +126,39 @@ app.use(errorHandler);
 
 // ==================== 启动服务器 ====================
 
-app.listen(PORT, () => {
-    console.log(`[${getTimestamp()}] 🚀 匹配游戏 服务器启动成功`);
-    console.log(`[${getTimestamp()}] 📍 地址: http://localhost:${PORT}`);
-    console.log(`[${getTimestamp()}] 🔧 环境: ${process.env.NODE_ENV || 'development'}`);
+// 异步启动函数
+async function startServer() {
+    try {
+        // 初始化数据库
+        await initDatabase();
+        console.log(`[${getTimestamp()}] 📦 SQLite 数据库初始化成功`);
+
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`[${getTimestamp()}] 🚀 匹配游戏 服务器启动成功`);
+            console.log(`[${getTimestamp()}] 📍 地址: http://localhost:${PORT}`);
+            console.log(`[${getTimestamp()}] 🔧 环境: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`[${getTimestamp()}] 🛠️  后台管理: http://localhost:${PORT}/admin`);
+        });
+    } catch (error) {
+        console.error(`[${getTimestamp()}] ❌ 服务器启动失败:`, error);
+        process.exit(1);
+    }
+}
+
+// 优雅关闭
+process.on('SIGINT', () => {
+    console.log(`\n[${getTimestamp()}] 🛑 正在关闭服务器...`);
+    closeDatabase();
+    process.exit(0);
 });
+
+process.on('SIGTERM', () => {
+    console.log(`\n[${getTimestamp()}] 🛑 收到 SIGTERM 信号，正在关闭服务器...`);
+    closeDatabase();
+    process.exit(0);
+});
+
+// 启动服务器
+startServer();
 
 export default app;

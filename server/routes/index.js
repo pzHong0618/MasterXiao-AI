@@ -13,6 +13,9 @@ import verificationRoutes from './verification.js';
 import userRoutes from './user.js';
 import paymentRoutes from './payment.js';
 
+import tarotRoutes from './tarot.js';
+import divinationRoutes from './divination.js';
+
 const router = express.Router();
 
 // 健康检查
@@ -31,7 +34,7 @@ router.use('/auth', authRoutes);
 router.use('/test', testRoutes);
 
 // AI 分析路由
-router.use('/analysis', analysisRoutes);
+// router.use('/analysis', analysisRoutes);
 
 // Deepseek 生日匹配分析路由
 router.use('/analysis', birthdayMatchRoutes);
@@ -44,5 +47,11 @@ router.use('/user', userRoutes);
 
 // 支付路由
 router.use('/payment', paymentRoutes);
+
+// 塔罗牌路由
+// router.use('/tarot', tarotRoutes);
+
+// 六爻/卦象解读路由
+router.use('/divination', divinationRoutes);
 
 export default router;

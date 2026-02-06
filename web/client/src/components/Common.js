@@ -297,6 +297,22 @@ export function BottomActionBar(options = {}) {
   `;
 }
 
+/**
+ * 路由导航工具函数
+ * @param {string} path - 目标路径
+ * @param {object} state - 传递的状态数据
+ */
+export function navigateTo(path, state = {}) {
+    // 检查全局路由器是否存在
+    if (window.router && typeof window.router.navigate === 'function') {
+        window.router.navigate(path, state);
+    } else {
+        // 降级方案：直接更改 location
+        console.warn('路由器不可用，使用 location 导航');
+        window.location.href = path;
+    }
+}
+
 // 导出所有组件
 export default {
     Navbar,
@@ -308,5 +324,6 @@ export default {
     EmptyState,
     TestMethodSelector,
     VerificationCodeInput,
-    BottomActionBar
+    BottomActionBar,
+    navigateTo
 };
