@@ -67,16 +67,6 @@ export class TarotResultPage {
               </button>
             </section>
 
-            <!-- 底部按钮 -->
-            <section class="result-actions animate-fade-in-up animate-delay-200">
-              <button class="btn btn--outline btn--lg" id="btnRestart">
-                重新开始
-              </button>
-              <button class="btn btn--primary btn--lg" id="btnShare">
-                分享结果
-              </button>
-            </section>
-
             <div class="result-disclaimer">
               本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据
             </div>
