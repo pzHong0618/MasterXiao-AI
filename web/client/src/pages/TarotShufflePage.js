@@ -116,11 +116,11 @@ export class TarotShufflePage {
     initCards() {
         // 初始化卡片时就随机铺开
         this.cards = Array.from({ length: TOTAL_CARDS }, (_, index) => {
-            const maxSpreadX = 180; // X轴散开范围（缩小）
-            const maxSpreadY = 200; // Y轴散开范围（缩小）
+            const maxSpreadX = 300; // X轴散开范围扩大
+            const maxSpreadY = 350; // Y轴散开范围扩大
             const x = (Math.random() - 0.5) * maxSpreadX;
             const y = (Math.random() - 0.5) * maxSpreadY;
-            const rotation = (Math.random() - 0.5) * 90; // ±45度，更凌乱
+            const rotation = (Math.random() - 0.5) * 120; // ±60度，更分散
             
             return {
                 id: index,
@@ -170,21 +170,14 @@ export class TarotShufflePage {
               <p class="shuffle-subtitle">点击牌堆，洗牌一次，可重复操作</p>
             </section>
 
-            <!-- 卡牌堆叠区域（上移缩小） -->
-            <section class="shuffle-cards-container shuffle-cards-container--compact">
-              <div class="shuffle-cards shuffle-cards--small" id="shuffleCards">
+            <!-- 卡牌堆叠区域 -->
+            <section class="shuffle-cards-container shuffle-cards-container--large">
+              <div class="shuffle-cards shuffle-cards--large" id="shuffleCards">
                 ${this.renderCards()}
               </div>
             </section>
 
-            <!-- 放牌槽框区域（两行3列） -->
-            <section class="card-slots-container animate-fade-in-up animate-delay-200">
-              <div class="card-slots-grid">
-                ${this.renderCardSlots()}
-              </div>
-            </section>
-
-            <!-- 洗牌/抽牌按钮 -->
+            <!-- 洗牌按钮 -->
             <section class="shuffle-actions animate-fade-in-up animate-delay-300">
               <button class="btn btn--primary btn--full btn--lg shuffle-btn ${isButtonDisabled ? 'disabled' : ''}" 
                       id="shuffleBtn" ${isButtonDisabled ? 'disabled' : ''}>
@@ -192,9 +185,9 @@ export class TarotShufflePage {
               </button>
             </section>
 
-            <!-- 下一步提示 -->
+            <!-- 下一步按钮 -->
             <section class="shuffle-next-hint">
-              <button class="shuffle-next-text" id="nextBtn">下一步</button>
+              <button class="btn btn--secondary" id="nextBtn">下一步</button>
             </section>
 
             <div class="safe-area-bottom"></div>
@@ -211,13 +204,7 @@ export class TarotShufflePage {
         if (this.isShuffling) {
             return '洗牌中...';
         }
-        if (!this.hasShuffled) {
-            return '洗牌';
-        }
-        if (this.selectedSlots.length >= CARDS_TO_SELECT * DRAW_ROUNDS) {
-            return '已完成抽牌';
-        }
-        return '请抽牌';
+        return '洗牌';
     }
 
     renderCards() {
@@ -365,14 +352,8 @@ export class TarotShufflePage {
 
     handleButtonClick() {
         if (this.isShuffling) return;
-
-        if (!this.hasShuffled) {
-            // 还没洗过牌，执行洗牌
-            this.handleShuffle();
-        } else if (this.selectedSlots.length < CARDS_TO_SELECT * DRAW_ROUNDS) {
-            // 已洗牌但未抽完，打开抽牌弹框
-            this.openDrawModal();
-        }
+        // 每次点击都执行洗牌
+        this.handleShuffle();
     }
 
     handleShuffle() {
@@ -394,10 +375,10 @@ export class TarotShufflePage {
     }
 
     performShuffleAnimation() {
-        const totalDuration = 1000; // 总时长1秒
+        const totalDuration = 300; // 总时长300毫秒
         const stages = [
-            { duration: 600, speed: 2 },    // 快速洗牌
-            { duration: 400, speed: 1 }     // 减速
+            { duration: 180, speed: 2 },    // 快速洗牌
+            { duration: 120, speed: 1 }     // 减速
         ];
 
         let currentTime = 0;
@@ -436,11 +417,11 @@ export class TarotShufflePage {
 
     randomizeCards(cardElements) {
         cardElements.forEach((card, index) => {
-            const maxOffsetX = 170;
-            const maxOffsetY = 190;
+            const maxOffsetX = 300; // 扩大X轴范围
+            const maxOffsetY = 350; // 扩大Y轴范围
             const x = (Math.random() - 0.5) * maxOffsetX;
             const y = (Math.random() - 0.5) * maxOffsetY;
-            const rotation = (Math.random() - 0.5) * 90;
+            const rotation = (Math.random() - 0.5) * 120; // 更大的旋转角度
             const zIndex = Math.floor(Math.random() * TOTAL_CARDS);
 
             card.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
@@ -465,11 +446,11 @@ export class TarotShufflePage {
             card.style.transform = `translate(${currentX * 1.15}px, ${currentY * 1.15}px) rotate(${currentRotation * 1.1}deg)`;
 
             setTimeout(() => {
-                const maxSpreadX = 180;
-                const maxSpreadY = 200;
+                const maxSpreadX = 300; // 扩大最终散开范围
+                const maxSpreadY = 350; // 扩大最终散开范围
                 const finalX = (Math.random() - 0.5) * maxSpreadX;
                 const finalY = (Math.random() - 0.5) * maxSpreadY;
-                const finalRotation = (Math.random() - 0.5) * 90;
+                const finalRotation = (Math.random() - 0.5) * 120; // 更大旋转角度
                 const finalZIndex = Math.floor(Math.random() * TOTAL_CARDS);
 
                 card.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -645,71 +626,8 @@ export class TarotShufflePage {
     }
 
     async handleNext() {
-        // 检查是否抽完牌
-        if (this.selectedSlots.length < CARDS_TO_SELECT * DRAW_ROUNDS) {
-            if (!this.hasShuffled) {
-                window.showToast && window.showToast('请先洗牌', 'warning');
-            } else {
-                window.showToast && window.showToast('请抽完牌再继续', 'warning');
-            }
-            return;
-        }
-
-        // 记录日志
-        const now = new Date();
-        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-        console.log(`[${timestamp}] 洗牌${this.shuffleCount}次，抽牌完成`);
-        console.log('[抽牌完成] 六爻数据 yaos:', this.yaos);
-
-        // === 计算卦象（与小程序 result.js 逻辑一致）===
-        // 生成本卦卦码
-        const benGuaCode = generateGuaCode(this.yaos);
-        const benGuaInfo = getGuaInfo(benGuaCode);
-        
-        // 生成变卦卦码
-        const bianGuaCode = generateBianGuaCode(this.yaos);
-        const bianGuaInfo = getGuaInfo(bianGuaCode);
-        
-        // 获取动爻位置
-        const movingPositions = getMovingYaoPositions(this.yaos);
-        
-        // 获取农历日期
-        const lunarDate = getLunarDate();
-
-        console.log('[卦象计算] 本卦:', benGuaInfo?.name, '变卦:', bianGuaInfo?.name, '动爻:', movingPositions);
-
-        // 从全局状态获取问题相关信息
-        const question = window.appState?.get?.('selectedQuestion') || '未指定问题';
-        const questionCategory = window.appState?.get?.('questionCategory') || '';
-        const gender = window.appState?.get?.('userGender') || '';
-
-        // 构建卦象数据（与小程序 guaDataObj 结构一致）
-        const guaData = {
-            question,
-            benGuaInfo,
-            bianGuaInfo,
-            yaos: this.yaos,
-            movingPositions,
-            questionCategory,
-            gender
-        };
-
-        console.log('[解卦] 准备请求API，卦象数据:', guaData);
-
-        // 保存数据到全局状态
-        if (window.appState) {
-            window.appState.set('selectedCards', this.selectedSlots);
-            window.appState.set('yaos', this.yaos);
-            window.appState.set('yaoHistory', this.yaoHistory);
-            window.appState.set('lunarDate', lunarDate);
-            window.appState.set('guaData', guaData);
-            window.appState.set('benGuaInfo', benGuaInfo);
-            window.appState.set('bianGuaInfo', bianGuaInfo);
-            window.appState.set('movingPositions', movingPositions);
-        }
-
-        // 跳转到加载页面，加载页面会负责调用API
-        window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${encodeURIComponent(question)}`);
+        // 跳转到抽牌页面
+        window.router.navigate(`/test/${this.matchType.id}/tarot/pick`);
     }
 }
 

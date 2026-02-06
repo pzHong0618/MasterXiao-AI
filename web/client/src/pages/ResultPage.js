@@ -48,7 +48,7 @@ export class ResultPage {
                 <span class="result-header__icon">${this.matchType?.icon || '✨'}</span>
                 <h2 class="heading-2 mb-1">${this.matchType?.title || '匹配分析'}</h2>
                 <p class="small-text" style="color: var(--color-text-tertiary);">
-                  ${this.method === 'birthday' ? '生日匹配分析' : '直觉卡牌分析'}
+                  ${this.method === 'birthday' ? '生日匹配分析' : '直觉塔罗分析'}
                 </p>
               </div>
             </section>

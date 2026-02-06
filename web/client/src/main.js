@@ -73,7 +73,7 @@ function registerRoutes() {
     .register('/test/:type/tarot/principle', TarotPrinciplePage)
     .register('/test/:type/tarot/shuffle', TarotShufflePage)
     .register('/test/:type/tarot/pick', TarotPickPage)
-    .register('/test/:type/tarot/select/:slot', TarotCardSelectionPage)
+    .register('/test/:type/tarot/card-selection', TarotCardSelectionPage)
     .register('/test/:type/tarot/result-loading', TarotResultLoadingPage)
     .register('/test/:type/tarot/result', TarotResultPage)
     .register('/pay/:type', PaymentPage)

@@ -130,11 +130,11 @@ function getRuleTypeByCategory(categoryName) {
 }
 
 /**
- * 获取当前分类下的问题列表（包含自由输入选项）
+ * 获取当前分类下的问题列表
  */
 function getQuestionsWithFreeInput(categoryName) {
   const questions = CATEGORY_QUESTIONS[categoryName] || [];
-  return [...questions, FREE_INPUT_OPTION];
+  return questions;
 }
 
 export class TarotPage {
@@ -170,14 +170,14 @@ export class TarotPage {
     }
 
     /**
-     * 更新问题列表（添加自由输入选项）
+     * 更新问题列表
      * 与小程序 updateQuestionList 方法一致
      */
     updateQuestionList(categoryIndex) {
         const category = this.categories[categoryIndex];
         const questions = this.categoryQuestions[category] || [];
-        // 在问题列表末尾添加自由输入选项
-        this.currentQuestions = [...questions, FREE_INPUT_OPTION];
+        // 不添加自由输入选项
+        this.currentQuestions = questions;
         
         this.selectedQuestionIndex = -1;
         this.selectedQuestion = '';
@@ -256,25 +256,6 @@ export class TarotPage {
               ${this.renderQuestionList()}
             </section>
 
-            <!-- 提示区域 -->
-            <section class="question-tip animate-fade-in-up animate-delay-300">
-              <div class="tip-card">
-                <div class="tip-icon">💡</div>
-                <div class="tip-content">
-                  <p class="tip-highlight">每次问一个准确的问题会测算更准</p>
-                  ${this.showFreeInput ? `
-                  <div class="custom-input-wrapper">
-                    <input type="text" 
-                           class="custom-question-input" 
-                           placeholder="请输入你想问的问题..."
-                           value="${this.freeInputQuestion}"
-                           maxlength="100">
-                  </div>
-                  ` : ''}
-                </div>
-              </div>
-            </section>
-
             <!-- 性别选择弹框 -->
             <div class="gender-modal ${this.showGenderModal ? 'show' : ''}" id="genderModal">
               <div class="gender-modal__overlay"></div>
@@ -317,10 +298,9 @@ export class TarotPage {
 
     renderQuestionList() {
         return this.currentQuestions.map((q, index) => {
-            const isFreeInput = q === FREE_INPUT_OPTION;
             const isSelected = this.selectedQuestionIndex === index;
             return `
-              <div class="question-item ${isSelected ? 'selected' : ''} ${isFreeInput ? 'free-input-option' : ''}" 
+              <div class="question-item ${isSelected ? 'selected' : ''}" 
                    data-question-index="${index}">
                 <span class="question-text">${q}</span>
                 ${isSelected ? '<span class="question-check">✓</span>' : ''}
@@ -348,9 +328,6 @@ export class TarotPage {
 
         // 问题选择
         this.attachQuestionEvents();
-
-        // 自定义问题输入
-        this.attachFreeInputEvents();
 
         // 提交按钮
         const submitBtn = document.querySelector('.submit-btn');
@@ -392,18 +369,6 @@ export class TarotPage {
     }
 
     /**
-     * 绑定自由输入框事件
-     */
-    attachFreeInputEvents() {
-        const customInput = document.querySelector('.custom-question-input');
-        if (customInput) {
-            customInput.addEventListener('input', (e) => {
-                this.onFreeInputChange(e.target.value);
-            });
-        }
-    }
-
-    /**
      * 选择分类
      * 与小程序 onCategoryChange 方法一致
      */
@@ -429,19 +394,12 @@ export class TarotPage {
      */
     onQuestionChange(index) {
         const question = this.currentQuestions[index];
-        const isFreeInput = question === FREE_INPUT_OPTION;
         
         this.selectedQuestionIndex = index;
-        this.showFreeInput = isFreeInput;
-        
-        if (isFreeInput) {
-            this.selectedQuestion = '';
-        } else {
-            this.selectedQuestion = question;
-            this.freeInputQuestion = '';
-            // 如果不是自由输入，保存问题信息到全局
-            this.saveQuestionToGlobal(question);
-        }
+        this.selectedQuestion = question;
+        this.freeInputQuestion = '';
+        // 保存问题信息到全局
+        this.saveQuestionToGlobal(question);
 
         // 更新问题列表样式
         document.querySelectorAll('.question-item').forEach((item, i) => {
@@ -460,62 +418,8 @@ export class TarotPage {
             }
         });
 
-        // 更新自由输入框显示
-        this.updateFreeInputUI();
-
         // 更新提交按钮
         this.updateSubmitButton();
-    }
-
-    /**
-     * 自由输入问题内容变化
-     * 与小程序 onFreeInputChange 方法一致
-     */
-    onFreeInputChange(value) {
-        this.freeInputQuestion = value;
-        this.selectedQuestion = value;
-        
-        // 保存到全局
-        if (value) {
-            this.saveQuestionToGlobal(value);
-        }
-
-        // 更新提交按钮
-        this.updateSubmitButton();
-    }
-
-    /**
-     * 更新自由输入框UI
-     */
-    updateFreeInputUI() {
-        const tipContent = document.querySelector('.tip-content');
-        if (tipContent) {
-            let inputWrapper = tipContent.querySelector('.custom-input-wrapper');
-            
-            if (this.showFreeInput && !inputWrapper) {
-                // 添加输入框
-                inputWrapper = document.createElement('div');
-                inputWrapper.className = 'custom-input-wrapper';
-                inputWrapper.innerHTML = `
-                    <input type="text" 
-                           class="custom-question-input" 
-                           placeholder="请输入你想问的问题..."
-                           value="${this.freeInputQuestion}"
-                           maxlength="100">
-                `;
-                tipContent.appendChild(inputWrapper);
-                this.attachFreeInputEvents();
-                
-                // 自动聚焦
-                const input = inputWrapper.querySelector('.custom-question-input');
-                if (input) {
-                    input.focus();
-                }
-            } else if (!this.showFreeInput && inputWrapper) {
-                // 移除输入框
-                inputWrapper.remove();
-            }
-        }
     }
 
     /**
@@ -527,15 +431,12 @@ export class TarotPage {
             listContainer.innerHTML = this.renderQuestionList();
             this.attachQuestionEvents();
         }
-        
-        // 同时更新自由输入框
-        this.updateFreeInputUI();
     }
 
     handleSubmit() {
-        const question = this.freeInputQuestion || this.selectedQuestion;
+        const question = this.selectedQuestion;
         if (!question || !question.trim()) {
-            window.showToast('请先选择或输入问题', 'error');
+            window.showToast('请先选择问题', 'error');
             return;
         }
 
@@ -587,7 +488,7 @@ export class TarotPage {
     }
 
     getSubmitButtonText() {
-        const hasQuestion = this.selectedQuestion || this.freeInputQuestion;
+        const hasQuestion = this.selectedQuestion;
         if (!hasQuestion) {
             return '请选择问题';
         }
@@ -597,7 +498,7 @@ export class TarotPage {
     updateSubmitButton() {
         const submitBtn = document.querySelector('.submit-btn');
         if (submitBtn) {
-            const hasQuestion = this.selectedQuestion || this.freeInputQuestion;
+            const hasQuestion = this.selectedQuestion;
             const canSubmit = this.showGenderModal ? (hasQuestion && this.selectedGender) : hasQuestion;
             submitBtn.disabled = !canSubmit;
             submitBtn.classList.toggle('disabled', !canSubmit);
@@ -606,7 +507,7 @@ export class TarotPage {
     }
 
     submitWithGender() {
-        const question = this.freeInputQuestion || this.selectedQuestion;
+        const question = this.selectedQuestion;
         
         // 确保全局数据已保存（与小程序 saveQuestionToGlobal 对应）
         this.saveQuestionToGlobal(question.trim());
@@ -629,8 +530,8 @@ export class TarotPage {
         const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
         console.log(`[${timestamp}] 提交: 问题=${question}, 分类=${this.questionCategory}, 规则类型=${this.questionType}, 性别=${this.selectedGender}`);
 
-        // 跳转到问事禁忌页面
-        window.router.navigate(`/test/${this.matchType.id}/tarot/taboo`);
+        // 跳转到洗牌页面
+        window.router.navigate(`/test/${this.matchType.id}/tarot/shuffle`);
     }
 }
 

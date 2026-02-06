@@ -180,7 +180,7 @@ export class TarotResultPage {
         }
         
         shareText += `${simpleVersion}\n\n`;
-        shareText += `来自小肖AI - 直觉卡牌`;
+        shareText += `来自小肖AI - 直觉塔罗`;
         
         // 尝试使用 Clipboard API
         if (navigator.clipboard && navigator.clipboard.writeText) {

@@ -1,6 +1,6 @@
 /**
- * 匹配游戏 直觉卡牙数据
- * 22张趣味卡牌 - 用于性格分析和人际关系测试
+ * 78张标准塔罗牌数据
+ * 22张大阿尔卡纳 + 56张小阿尔卡纳
  * 仅供娱乐参考，不构成任何专业建议
  */
 
@@ -24,11 +24,62 @@ export const MAJOR_ARCANA = [
     { id: 15, name: '恶魔', symbol: '🔗', upright: '束缚、欲望、物质', reversed: '解脱、摆脱限制', element: '土' },
     { id: 16, name: '塔', symbol: '🗼', upright: '突变、觉醒、重建', reversed: '逃避改变、延迟', element: '火' },
     { id: 17, name: '星星', symbol: '⭐', upright: '希望、灵感、平静', reversed: '失望、缺乏信心', element: '风' },
-    { id: 18, name: '月亮', symbol: '🌙', upright: '直觉、潜意识、情绪', reversed: '困惑、恐惧', element: '水' },
+    { id: 18, name: '月亮', symbol: '🌑', upright: '直觉、潜意识、情绪', reversed: '困惑、恐惧', element: '水' },
     { id: 19, name: '太阳', symbol: '☀️', upright: '快乐、成功、活力', reversed: '暂时受阻、过度乐观', element: '火' },
     { id: 20, name: '审判', symbol: '📯', upright: '觉醒、评估、新阶段', reversed: '自我批判、拒绝改变', element: '火' },
     { id: 21, name: '世界', symbol: '🌍', upright: '完成、整合、成就', reversed: '未完成、缺乏闭合', element: '土' }
 ];
+
+// 56张小阿尔卡纳牌
+const SUIT_WANDS = { suit: '权杖', suitSymbol: '🔥', element: '火' };
+const SUIT_CUPS = { suit: '圣杯', suitSymbol: '💧', element: '水' };
+const SUIT_SWORDS = { suit: '宝剑', suitSymbol: '⚔️', element: '风' };
+const SUIT_PENTACLES = { suit: '星币', suitSymbol: '⭕', element: '土' };
+
+const MINOR_NAMES = ['Ace', '二', '三', '四', '五', '六', '七', '八', '九', '十', '侍从', '骑士', '王后', '国王'];
+
+function buildMinorArcana() {
+    const suits = [SUIT_WANDS, SUIT_CUPS, SUIT_SWORDS, SUIT_PENTACLES];
+    const cards = [];
+    let id = 22; // 从22开始编号
+    for (const s of suits) {
+        for (let rank = 0; rank < 14; rank++) {
+            const label = MINOR_NAMES[rank];
+            cards.push({
+                id: id++,
+                name: `${s.suit}${label}`,
+                symbol: s.suitSymbol,
+                suit: s.suit,
+                rank: rank + 1,
+                element: s.element,
+                upright: '',
+                reversed: ''
+            });
+        }
+    }
+    return cards;
+}
+
+export const MINOR_ARCANA = buildMinorArcana();
+
+/** 完整78张塔罗牌 */
+export const FULL_DECK = [...MAJOR_ARCANA, ...MINOR_ARCANA];
+
+/**
+ * 从78张中随机抽取count张牌
+ * @param {number} count - 抽取数量
+ * @returns {Array} 抽到的牌数组 (含 id, name, symbol, suit 等)
+ */
+export function drawFromFullDeck(count = 6) {
+    const deck = [...FULL_DECK];
+    const drawn = [];
+    for (let i = 0; i < count && deck.length > 0; i++) {
+        const ri = Math.floor(Math.random() * deck.length);
+        drawn.push({ ...deck[ri] });
+        deck.splice(ri, 1);
+    }
+    return drawn;
+}
 
 /**
  * 根据正位牌数量获取能量类型

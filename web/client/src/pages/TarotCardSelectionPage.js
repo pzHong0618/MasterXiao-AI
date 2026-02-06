@@ -1,323 +1,288 @@
 /**
- * 直觉卡牌 卡牌选择页
- * 圆环形排列的卡牌轮，可旋转选择
+ * 直觉塔罗 摇牌页
+ * 6张牌排列（2行×3列），点击摇牌从6张中随机选3张
+ * 每张牌正反随机（字=正面，背=反面），与铜钱抛掷规则一致
+ * 正面显示塔罗牌图案（symbol + name），反面显示牌背
+ * 摇6次后根据爻数据计算卦象，跳转到解读页
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
-import { Navbar, ProgressBar } from '../components/Common.js';
+import { Navbar } from '../components/Common.js';
+import { getGuaInfo, generateGuaCode, generateBianGuaCode, getMovingYaoPositions, getLunarDate } from '../utils/guaData.js';
+
+const TOTAL_SHAKES = 6;
+const COINS_PER_SHAKE = 3; // 每次摇3张牌（=3枚铜钱）
+const YAO_NAMES = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
 
 export class TarotCardSelectionPage {
     constructor(params) {
         this.matchType = getMatchTypeById(params.type);
-        this.currentSlotIndex = parseInt(params.slot) || 0; // 当前要选择的槽位索引
-        this.rotation = 0; // 卡牌轮的旋转角度
-        this.isDragging = false;
-        this.startX = 0;
-        this.startY = 0;
-        this.lastRotation = 0;
-        this.velocity = 0; // 旋转速度（用于惯性效果）
-        this.animationId = null;
-        
-        // 槽位标签
-        this.slotLabels = ['目标', '动力', '障碍', '资源', '支持', '结果'];
-        
-        // 卡牌总数
-        this.totalCards = 78;
-        
-        if (!this.matchType) {
-            window.router.navigate('/');
-            return;
-        }
+        if (!this.matchType) { window.router.navigate('/'); return; }
+
+        this.selectedCards = window.appState?.selectedTarotCards || [];
+        this.shakeCount = 0;
+        this.yaos = [];           // 6次爻数据
+        this.collectedCards = []; // 正面（字）的牌
+        this.isShaking = false;
     }
 
     render() {
         if (!this.matchType) return '';
 
-        const currentSlotLabel = this.slotLabels[this.currentSlotIndex] || '选牌';
-        
+        const cardsHtml = this.selectedCards.map((card, i) => `
+          <div class="cs-card" data-idx="${i}" id="csCard${i}">
+            <div class="cs-card__inner">
+              <div class="cs-card__back">
+                <span class="cs-card__star">✦</span>
+              </div>
+              <div class="cs-card__front">
+                <span class="cs-card__symbol">${card.symbol || '✦'}</span>
+                <span class="cs-card__name">${card.name || ''}</span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
         return `
       <div class="page tarot-card-selection-page">
-        ${Navbar({
-            title: '',
-            showBack: true,
-            showHistory: false,
-            showProfile: false
-        })}
-        
+        ${Navbar({ title: '摇牌', showBack: true, showHistory: false, showProfile: false })}
         <main class="page-content">
-          <div class="app-container">
-            
-            <!-- 进度指示器 -->
-            <div class="tarot-progress">
-              ${ProgressBar(6, 6, {
-                  showText: false,
-                  showSteps: true,
-                  stepLabel: ''
-              })}
+          <div class="cs-page-wrap">
+
+            <div class="cs-title">命运之牌</div>
+            <div class="cs-status" id="csStatus">第 1 / ${TOTAL_SHAKES} 次摇牌</div>
+
+            <!-- 6张大牌 -->
+            <div class="cs-card-grid" id="csCardGrid">
+              ${cardsHtml}
             </div>
 
-            <!-- 页面标题 -->
-            <section class="card-selection-header animate-fade-in-up">
-              <p class="card-selection-step">抽第 ${this.currentSlotIndex + 1} 张牌</p>
-              <h1 class="card-selection-title">未来一月运势的核心方向</h1>
-              <p class="card-selection-subtitle">手指可放大牌轮，滑动牌轮，点击选牌</p>
-            </section>
+            <!-- 摇牌按钮 -->
+            <div class="cs-shake-bar">
+              <button class="btn btn--primary btn--full btn--lg" id="csShakeBtn">摇牌</button>
+            </div>
 
-            <!-- 卡牌轮容器 -->
-            <section class="card-wheel-container animate-fade-in-up animate-delay-100">
-              <div class="card-wheel-wrapper" id="cardWheelWrapper">
-                <div class="card-wheel" id="cardWheel">
-                  ${this.renderCards()}
-                </div>
-              </div>
-            </section>
+            <!-- 底部收集区 -->
+            <div class="cs-collect-area" id="csCollectArea">
+              <div class="cs-collect-label">已获得的正面牌</div>
+              <div class="cs-collect-slots" id="csCollectSlots"></div>
+            </div>
 
-            <div class="safe-area-bottom"></div>
           </div>
         </main>
-      </div>
-    `;
-    }
-
-    renderCards() {
-        const cards = [];
-        const angleStep = 360 / this.totalCards; // 每张牌的角度间隔
-        
-        for (let i = 0; i < this.totalCards; i++) {
-            // 计算角度（从顶部开始，顺时针排列）
-            const angle = i * angleStep - 90; // -90 使第一张牌在顶部
-            
-            cards.push(`
-                <div class="wheel-card" 
-                     style="--angle: ${angle}deg; --index: ${i};"
-                     data-card-id="${i}"
-                     data-index="${i}">
-                    <div class="wheel-card-inner">
-                        <div class="wheel-card-back">
-                            <div class="card-pattern"></div>
-                            <div class="card-symbol"></div>
-                        </div>
-                    </div>
-                </div>
-            `);
-        }
-        
-        return cards.join('');
+      </div>`;
     }
 
     attachEvents() {
-        // 返回按钮
-        const backBtn = document.querySelector('.navbar__back-btn');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                this.cleanup();
-                window.router.back();
-            });
+        document.querySelector('.navbar__back-btn')?.addEventListener('click', () => window.router.back());
+        document.getElementById('csShakeBtn')?.addEventListener('click', () => this.doShake());
+    }
+
+    doShake() {
+        if (this.isShaking || this.shakeCount >= TOTAL_SHAKES) return;
+        this.isShaking = true;
+
+        const cards = document.querySelectorAll('.cs-card');
+
+        // 1. 重置所有牌
+        cards.forEach(c => {
+            c.classList.remove('cs-card--face-up', 'cs-card--face-down', 'cs-card--picked', 'cs-card--shake', 'cs-card--not-picked');
+        });
+
+        // 2. 晃动动画
+        cards.forEach(c => c.classList.add('cs-card--shake'));
+
+        // 3. 随机选3张（= 3枚铜钱）
+        const indices = [0, 1, 2, 3, 4, 5];
+        const picked = [];
+        for (let i = 0; i < COINS_PER_SHAKE; i++) {
+            const ri = Math.floor(Math.random() * indices.length);
+            picked.push(indices[ri]);
+            indices.splice(ri, 1);
         }
 
-        // 卡牌轮事件
-        this.initCardWheelEvents();
-    }
+        // 4. 每张牌随机正面（字）或反面（背）
+        const coins = picked.map(() => Math.random() > 0.5 ? '字' : '背');
+        const backCount = coins.filter(c => c === '背').length;
 
-    initCardWheelEvents() {
-        const wrapper = document.getElementById('cardWheelWrapper');
-        const cardWheel = document.getElementById('cardWheel');
-        if (!wrapper || !cardWheel) return;
+        // 5. 根据背面数量计算爻（与小程序铜钱规则完全一致）
+        const yao = this.calculateYao(backCount, this.shakeCount + 1, coins);
 
-        // 触摸事件
-        wrapper.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
-        wrapper.addEventListener('touchmove', this.handleTouchMove.bind(this), { passive: false });
-        wrapper.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
-
-        // 鼠标事件（用于桌面调试）
-        wrapper.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
-
-        // 点击事件（用于选牌）
-        cardWheel.addEventListener('click', this.handleCardClick.bind(this));
-
-        // 初始渲染
-        this.updateWheelTransform();
-    }
-
-    getAngleFromCenter(clientX, clientY) {
-        const wrapper = document.getElementById('cardWheelWrapper');
-        if (!wrapper) return 0;
-        
-        const rect = wrapper.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        
-        return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
-    }
-
-    handleTouchStart(e) {
-        if (e.touches.length === 1) {
-            e.preventDefault();
-            this.isDragging = true;
-            this.velocity = 0;
-            this.cancelAnimation();
-            
-            const touch = e.touches[0];
-            this.startX = touch.clientX;
-            this.startY = touch.clientY;
-            this.lastRotation = this.rotation;
-            this.lastTime = Date.now();
-            this.lastAngle = this.getAngleFromCenter(touch.clientX, touch.clientY);
-        }
-    }
-
-    handleTouchMove(e) {
-        if (!this.isDragging || e.touches.length !== 1) return;
-        e.preventDefault();
-        
-        const touch = e.touches[0];
-        const currentAngle = this.getAngleFromCenter(touch.clientX, touch.clientY);
-        let deltaAngle = currentAngle - this.lastAngle;
-        
-        // 处理角度跨越 -180/180 的情况
-        if (deltaAngle > 180) deltaAngle -= 360;
-        if (deltaAngle < -180) deltaAngle += 360;
-        
-        const now = Date.now();
-        const dt = now - this.lastTime;
-        if (dt > 0) {
-            this.velocity = deltaAngle / dt * 16; // 归一化到约60fps
-        }
-        
-        this.rotation += deltaAngle;
-        this.lastAngle = currentAngle;
-        this.lastTime = now;
-        
-        this.updateWheelTransform();
-    }
-
-    handleTouchEnd() {
-        this.isDragging = false;
-        // 启动惯性动画
-        this.startInertiaAnimation();
-    }
-
-    handleMouseDown(e) {
-        e.preventDefault();
-        this.isDragging = true;
-        this.velocity = 0;
-        this.cancelAnimation();
-        
-        this.startX = e.clientX;
-        this.startY = e.clientY;
-        this.lastRotation = this.rotation;
-        this.lastTime = Date.now();
-        this.lastAngle = this.getAngleFromCenter(e.clientX, e.clientY);
-    }
-
-    handleMouseMove(e) {
-        if (!this.isDragging) return;
-        
-        const currentAngle = this.getAngleFromCenter(e.clientX, e.clientY);
-        let deltaAngle = currentAngle - this.lastAngle;
-        
-        // 处理角度跨越 -180/180 的情况
-        if (deltaAngle > 180) deltaAngle -= 360;
-        if (deltaAngle < -180) deltaAngle += 360;
-        
-        const now = Date.now();
-        const dt = now - this.lastTime;
-        if (dt > 0) {
-            this.velocity = deltaAngle / dt * 16;
-        }
-        
-        this.rotation += deltaAngle;
-        this.lastAngle = currentAngle;
-        this.lastTime = now;
-        
-        this.updateWheelTransform();
-    }
-
-    handleMouseUp() {
-        if (this.isDragging) {
-            this.isDragging = false;
-            this.startInertiaAnimation();
-        }
-    }
-
-    startInertiaAnimation() {
-        const friction = 0.95; // 摩擦系数
-        const minVelocity = 0.1;
-        
-        const animate = () => {
-            if (Math.abs(this.velocity) < minVelocity) {
-                this.velocity = 0;
-                return;
-            }
-            
-            this.rotation += this.velocity;
-            this.velocity *= friction;
-            this.updateWheelTransform();
-            
-            this.animationId = requestAnimationFrame(animate);
-        };
-        
-        animate();
-    }
-
-    cancelAnimation() {
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
-    }
-
-    updateWheelTransform() {
-        const cardWheel = document.getElementById('cardWheel');
-        if (cardWheel) {
-            cardWheel.style.transform = `rotate(${this.rotation}deg)`;
-        }
-    }
-
-    handleCardClick(e) {
-        // 如果正在拖拽或有明显速度，不响应点击
-        if (this.isDragging || Math.abs(this.velocity) > 1) return;
-
-        const cardItem = e.target.closest('.wheel-card');
-        if (!cardItem) return;
-
-        const cardId = cardItem.dataset.cardId;
-        console.log(`选择了卡牌 ${cardId}`);
-
-        // 添加选中效果
-        cardItem.classList.add('card-selected');
-
-        // 延迟返回，显示选中效果
+        // 6. 晃动结束后翻牌
         setTimeout(() => {
-            this.onCardSelected(parseInt(cardId));
+            cards.forEach(c => c.classList.remove('cs-card--shake'));
+
+            // 未被选中的牌暗化
+            cards.forEach((c, i) => {
+                if (!picked.includes(i)) {
+                    c.classList.add('cs-card--not-picked');
+                }
+            });
+
+            picked.forEach((idx, pi) => {
+                const isFaceUp = coins[pi] === '字';
+                const cardEl = document.getElementById(`csCard${idx}`);
+                if (!cardEl) return;
+
+                setTimeout(() => {
+                    cardEl.classList.add('cs-card--picked');
+                    cardEl.classList.add(isFaceUp ? 'cs-card--face-up' : 'cs-card--face-down');
+
+                    if (isFaceUp) {
+                        this.collectedCards.push({
+                            cardIndex: idx,
+                            shakeRound: this.shakeCount,
+                            cardData: this.selectedCards[idx]
+                        });
+                    }
+                }, pi * 200);
+            });
+
+            // 7. 翻完后更新
+            setTimeout(() => {
+                this.yaos.push(yao);
+                this.shakeCount++;
+                this.updateCollectSlots();
+                this.updateStatus();
+                this.isShaking = false;
+
+                if (this.shakeCount >= TOTAL_SHAKES) {
+                    this.onAllShakesDone();
+                }
+            }, COINS_PER_SHAKE * 200 + 400);
+
         }, 600);
     }
 
-    onCardSelected(cardId) {
-        // 保存选中的卡牌
-        if (!window.appState.selectedTarotCards) {
-            window.appState.selectedTarotCards = [];
+    /**
+     * 根据背面数量计算爻（与小程序铜钱规则完全一致）
+     * 3背=老阳(动) / 2背=少阳 / 1背=少阴 / 0背=老阴(动)
+     */
+    calculateYao(backCount, step, coins) {
+        let value, isMoving, name, symbol;
+
+        switch (backCount) {
+            case 3: // 三背 - 老阳 - 阳动
+                value = 1; isMoving = true;
+                name = '老阳（三背）'; symbol = '○';
+                break;
+            case 2: // 二背一字 - 少阳 - 阳静
+                value = 1; isMoving = false;
+                name = '少阳（二背一字）'; symbol = '⚊';
+                break;
+            case 1: // 一背二字 - 少阴 - 阴静
+                value = 0; isMoving = false;
+                name = '少阴（一背二字）'; symbol = '⚋';
+                break;
+            case 0: // 三字 - 老阴 - 阴动
+            default:
+                value = 0; isMoving = true;
+                name = '老阴（三字）'; symbol = '×';
+                break;
         }
-        
-        window.appState.selectedTarotCards[this.currentSlotIndex] = {
-            id: cardId,
-            slot: this.currentSlotIndex,
-            label: this.slotLabels[this.currentSlotIndex]
+
+        return {
+            value, isMoving, name, symbol,
+            position: YAO_NAMES[step - 1],
+            step, backCount, coins
         };
-
-        console.log('已选择卡牌:', window.appState.selectedTarotCards);
-
-        this.cleanup();
-        // 返回到选牌页面
-        window.router.navigate(`/test/${this.matchType.id}/tarot/pick`);
     }
 
-    cleanup() {
-        this.cancelAnimation();
-        document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
-        document.removeEventListener('mouseup', this.handleMouseUp.bind(this));
+    updateStatus() {
+        const el = document.getElementById('csStatus');
+        if (!el) return;
+        if (this.shakeCount >= TOTAL_SHAKES) {
+            el.textContent = `摇牌完成！共获得 ${this.collectedCards.length} 张正面牌`;
+        } else {
+            el.textContent = `第 ${this.shakeCount + 1} / ${TOTAL_SHAKES} 次摇牌`;
+        }
+    }
+
+    updateCollectSlots() {
+        const container = document.getElementById('csCollectSlots');
+        if (!container) return;
+        container.innerHTML = this.collectedCards.map((item, i) => {
+            const card = item.cardData || {};
+            return `
+              <div class="cs-mini-card cs-mini-card--enter" style="animation-delay: ${i * 0.05}s">
+                <div class="cs-mini-card__face">
+                  <span class="cs-mini-card__symbol">${card.symbol || '✦'}</span>
+                  <span class="cs-mini-card__name">${card.name || ''}</span>
+                </div>
+              </div>`;
+        }).join('');
+    }
+
+    onAllShakesDone() {
+        const btn = document.getElementById('csShakeBtn');
+        if (!btn) return;
+
+        // 计算卦象
+        try {
+            const guaCode = generateGuaCode(this.yaos);
+            const benGuaInfo = getGuaInfo(guaCode);
+            const bianGuaCode = generateBianGuaCode(this.yaos);
+            const bianGuaInfo = getGuaInfo(bianGuaCode);
+            const movingPositions = getMovingYaoPositions(this.yaos);
+            const lunarDate = getLunarDate();
+
+            // 获取问题信息
+            const question = window.appState?.get?.('tarotQuestion') || '运势指引';
+            const questionCategory = window.appState?.get?.('questionCategory') || '综合';
+            const gender = window.appState?.get?.('gender') || '';
+
+            // 组装 guaData（与小程序完全一致的结构）
+            const guaData = {
+                question,
+                benGuaInfo,
+                bianGuaInfo,
+                yaos: this.yaos,
+                movingPositions,
+                questionCategory,
+                gender
+            };
+
+            console.log('[摇牌完成] 卦象数据:', {
+                本卦: benGuaInfo.name,
+                变卦: bianGuaInfo.name,
+                动爻: movingPositions,
+                爻数据: this.yaos.map(y => `${y.position}: ${y.name} ${y.symbol}`),
+                正面牌: this.collectedCards.map(c => c.cardData?.name)
+            });
+
+            // 保存到全局状态
+            if (window.appState) {
+                window.appState.set('guaData', guaData);
+                window.appState.set('yaos', this.yaos);
+                window.appState.set('benGuaInfo', benGuaInfo);
+                window.appState.set('bianGuaInfo', bianGuaInfo);
+                window.appState.set('movingPositions', movingPositions);
+                window.appState.set('lunarDate', lunarDate);
+            }
+
+            btn.textContent = '开始解读';
+            btn.onclick = () => {
+                const q = encodeURIComponent(question);
+                window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${q}`);
+            };
+
+        } catch (error) {
+            console.error('[摇牌] 卦象计算失败:', error);
+            btn.textContent = '重新摇牌';
+            btn.onclick = () => {
+                this.shakeCount = 0;
+                this.yaos = [];
+                this.collectedCards = [];
+                this.isShaking = false;
+                this.updateStatus();
+                this.updateCollectSlots();
+                document.querySelectorAll('.cs-card').forEach(c => {
+                    c.classList.remove('cs-card--face-up', 'cs-card--face-down', 'cs-card--picked', 'cs-card--not-picked');
+                });
+                btn.textContent = '摇牌';
+                btn.onclick = () => this.doShake();
+            };
+        }
     }
 }
 

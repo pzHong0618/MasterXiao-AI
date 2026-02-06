@@ -218,11 +218,11 @@ export function TestMethodSelector() {
           <span class="method-card__arrow">→</span>
         </div>
         
-        <!-- 直觉卡牌测试 -->
+        <!-- 直觉塔罗测试 -->
         <div class="glass-card glass-card--interactive method-card" data-method="tarot">
           <div class="method-card__icon">🃏</div>
           <div class="method-card__content">
-            <h4 class="method-card__title">直觉卡牌</h4>
+            <h4 class="method-card__title">直觉塔罗</h4>
             <p class="method-card__description">凭直觉选择卡牌，探索内心的答案</p>
           </div>
           <span class="method-card__arrow">→</span>

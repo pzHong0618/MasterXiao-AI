@@ -1,161 +1,258 @@
 /**
- * 直觉卡牌 抽牌页
- * 选择6张牌放入槽位
+ * 直觉塔罗 抽牌页
+ * 圆环牌轮排列，手指上下滑动旋转牌轮
+ * 点击单张牌可放大预览，点击摇牌抽6张并播放飞牌动画
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
-import { Navbar, ProgressBar } from '../components/Common.js';
+import { Navbar } from '../components/Common.js';
+import { drawFromFullDeck } from '../data/tarot.js';
 
-// 卡槽配置 - 两行布局：每行3个
-const cardSlots = [
-    { id: 1, label: '目标', row: 1 },
-    { id: 2, label: '动力', row: 1 },
-    { id: 3, label: '障碍', row: 1 },
-    { id: 4, label: '资源', row: 2 },
-    { id: 5, label: '支持', row: 2 },
-    { id: 6, label: '结果', row: 2 }
-];
+const TOTAL_CARDS = 72;
+const CARDS_TO_DRAW = 6;
+const SLOT_LABELS = ['目标', '动力', '障碍', '资源', '支持', '结果'];
+
+// 响应式半径：与 CSS --wheel-size 的一半对应
+function getWheelRadius() {
+    const vw = window.innerWidth;
+    // CSS: max(140vw, 600px) / 2，再稍微缩进一点留内边距
+    const size = Math.max(vw * 1.4, 600);
+    // 手机端用 160vw
+    const mobileSize = vw * 1.6;
+    const wheelSize = vw <= 500 ? mobileSize : size;
+    return wheelSize / 2 - 20; // 半径 = 半径 - 一点内边距
+}
 
 export class TarotPickPage {
     constructor(params) {
         this.matchType = getMatchTypeById(params.type);
-        
-        if (!this.matchType) {
-            window.router.navigate('/');
-            return;
-        }
-        
-        // 从全局状态恢复已选择的卡牌
-        const savedCards = window.appState.selectedTarotCards || [];
-        this.selectedCards = [null, null, null, null, null, null];
-        
-        // 复制已保存的卡牌到本地状态
-        savedCards.forEach((card, index) => {
-            if (card && index < 6) {
-                this.selectedCards[index] = card;
-            }
-        });
-        
-        // 计算当前应该选择的槽位（第一个空槽位）
-        this.currentPickIndex = this.selectedCards.findIndex(card => card === null);
-        if (this.currentPickIndex === -1) {
-            this.currentPickIndex = 6; // 所有槽位都已填满
-        }
+        if (!this.matchType) { window.router.navigate('/'); return; }
+
+        this.currentRotation = 0;
+        this.isDragging = false;
+        this.hasMoved = false;
+        this.startY = 0;
+        this.lastRotation = 0;
+        this.velocity = 0;
+        this.lastMoveTime = 0;
+        this.lastMoveY = 0;
+        this.animFrameId = null;
+        this._cleanups = [];
     }
 
     render() {
         if (!this.matchType) return '';
 
-        const allFilled = this.currentPickIndex >= 6;
-        const currentSlot = cardSlots[this.currentPickIndex];
-        
+        const angleStep = 360 / TOTAL_CARDS;
+        const radius = getWheelRadius();
+        let cardsHtml = '';
+        for (let i = 0; i < TOTAL_CARDS; i++) {
+            const angle = i * angleStep;
+            cardsHtml += `
+                <div class="wheel-card" data-idx="${i}"
+                     style="transform: rotate(${angle}deg) translateY(-${radius}px)">
+                  <div class="wheel-card__face"></div>
+                </div>`;
+        }
+
         return `
       <div class="page tarot-pick-page">
-        ${Navbar({
-            title: '',
-            showBack: true,
-            showHistory: false,
-            showProfile: false
-        })}
-        
+        ${Navbar({ title: '抽牌', showBack: true, showHistory: false, showProfile: false })}
         <main class="page-content">
-          <div class="app-container">
-            
-            <!-- 进度指示器 -->
-            <div class="tarot-progress">
-              ${ProgressBar(6, 6, {
-                  showText: false,
-                  showSteps: true,
-                  stepLabel: ''
-              })}
+          <div class="pick-page-wrap">
+            <div class="pick-hint-bar">
+              <span class="pick-hint-text">手指可放大牌轮，滑动牌轮，点击选牌</span>
             </div>
-
-            <!-- 页面标题 -->
-            <section class="pick-header animate-fade-in-up">
-              <p class="pick-step">${allFilled ? '选牌完成' : `抽第 ${this.currentPickIndex + 1} 张牌`}</p>
-              <h1 class="pick-title">未来一月运势的核心方向</h1>
-            </section>
-
-            <!-- 卡槽区域 -->
-            <section class="pick-slots animate-fade-in-up animate-delay-100">
-              <!-- 第一行：3个槽位 -->
-              <div class="pick-slots-row">
-                ${cardSlots.filter(s => s.row === 1).map((slot, idx) => this.renderSlot(slot, idx)).join('')}
+            <div class="pick-wheel-viewport" id="wheelViewport">
+              <div class="pick-wheel" id="pickWheel">
+                ${cardsHtml}
               </div>
-              <!-- 第二行：3个槽位 -->
-              <div class="pick-slots-row">
-                ${cardSlots.filter(s => s.row === 2).map((slot, idx) => this.renderSlot(slot, idx + 3)).join('')}
-              </div>
-            </section>
-
-            <!-- 底部按钮 -->
-            <section class="pick-footer animate-fade-in-up animate-delay-200">
-              <button class="btn btn--primary btn--full btn--lg pick-btn" id="pickBtn">
-                ${allFilled ? '查看结果' : '点击选牌'}
-              </button>
-            </section>
-
-            <div class="safe-area-bottom"></div>
+            </div>
           </div>
         </main>
-      </div>
-    `;
-    }
-
-    renderSlot(slot, index) {
-        const isActive = index === this.currentPickIndex;
-        const isFilled = this.selectedCards[index] !== null;
-        const isPending = index > this.currentPickIndex;
-        
-        return `
-            <div class="pick-slot ${isActive ? 'pick-slot--active' : ''} ${isFilled ? 'pick-slot--filled' : ''} ${isPending ? 'pick-slot--pending' : ''}"
-                 data-slot-index="${index}">
-                <div class="pick-slot__card">
-                    ${isFilled ? '<div class="pick-slot__card-back"></div>' : ''}
-                </div>
-                <span class="pick-slot__label">${slot.label}</span>
-            </div>
-        `;
+      </div>`;
     }
 
     attachEvents() {
-        // 返回按钮
         const backBtn = document.querySelector('.navbar__back-btn');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                window.router.back();
-            });
-        }
+        if (backBtn) backBtn.addEventListener('click', () => window.router.back());
 
-        // 选牌按钮
-        const pickBtn = document.getElementById('pickBtn');
-        if (pickBtn) {
-            pickBtn.addEventListener('click', () => {
-                if (this.currentPickIndex >= 6) {
-                    // 所有牌选完，查看结果
-                    this.handleComplete();
-                } else {
-                    this.handlePick();
-                }
-            });
-        }
+        // 卡牌点击直接抽牌
+        document.getElementById('pickWheel')?.addEventListener('click', (e) => {
+            if (this.hasMoved) return;
+            const card = e.target.closest('.wheel-card');
+            if (card) this.handleDraw();
+        });
+
+        const vp = document.getElementById('wheelViewport');
+        if (!vp) return;
+
+        // touch
+        vp.addEventListener('touchstart', (e) => {
+            this.stopInertia();
+            this.hasMoved = false;
+            this.onDragStart(e.touches[0].clientY);
+        }, { passive: true });
+        vp.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            this.hasMoved = true;
+            this.onDragMove(e.touches[0].clientY);
+        }, { passive: false });
+        vp.addEventListener('touchend', () => this.onDragEnd());
+
+        // mouse
+        vp.addEventListener('mousedown', (e) => {
+            this.stopInertia();
+            this.hasMoved = false;
+            this.onDragStart(e.clientY);
+        });
+        const onMM = (e) => { if (this.isDragging) { this.hasMoved = true; this.onDragMove(e.clientY); } };
+        const onMU = () => { if (this.isDragging) this.onDragEnd(); };
+        document.addEventListener('mousemove', onMM);
+        document.addEventListener('mouseup', onMU);
+        this._cleanups.push(() => {
+            document.removeEventListener('mousemove', onMM);
+            document.removeEventListener('mouseup', onMU);
+        });
     }
 
-    handlePick() {
-        if (this.currentPickIndex >= 6) return;
-
-        // 跳转到卡牌选择页面
-        window.router.navigate(`/test/${this.matchType.id}/tarot/select/${this.currentPickIndex}`);
+    /* ---- 拖动 ---- */
+    onDragStart(y) {
+        this.isDragging = true;
+        this.startY = y;
+        this.lastRotation = this.currentRotation;
+        this.velocity = 0;
+        this.lastMoveTime = Date.now();
+        this.lastMoveY = y;
+    }
+    onDragMove(y) {
+        if (!this.isDragging) return;
+        this.currentRotation = this.lastRotation + (y - this.startY) * 0.45;
+        this.applyRotation();
+        const now = Date.now(), dt = now - this.lastMoveTime;
+        if (dt > 0) this.velocity = ((y - this.lastMoveY) / dt) * 0.45;
+        this.lastMoveTime = now;
+        this.lastMoveY = y;
+    }
+    onDragEnd() {
+        this.isDragging = false;
+        if (Math.abs(this.velocity) > 0.02) this.startInertia();
+    }
+    startInertia() {
+        const step = () => {
+            this.velocity *= 0.96;
+            if (Math.abs(this.velocity) < 0.005) { this.animFrameId = null; return; }
+            this.currentRotation += this.velocity * 16;
+            this.applyRotation();
+            this.animFrameId = requestAnimationFrame(step);
+        };
+        this.animFrameId = requestAnimationFrame(step);
+    }
+    stopInertia() {
+        if (this.animFrameId) { cancelAnimationFrame(this.animFrameId); this.animFrameId = null; }
+    }
+    applyRotation() {
+        const el = document.getElementById('pickWheel');
+        if (el) el.style.transform = `rotate(${this.currentRotation}deg)`;
     }
 
-    handleComplete() {
-        // 记录日志
-        const now = new Date();
-        const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-        console.log(`[${timestamp}] 抽牌完成，选中的牌:`, this.selectedCards);
+    /* ---- 摇牌 ---- */
+    handleDraw() {
+        this.stopInertia();
 
-        // 跳转到解读loading页面
-        window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=未来一月运势的核心方向`);
+        // 从78张塔罗牌中随机抽6张
+        const drawnCards = drawFromFullDeck(CARDS_TO_DRAW);
+        const selected = drawnCards.map(c => c.id);
+
+        // 保存完整牌面数据
+        if (window.appState) {
+            window.appState.set('selectedCards', selected);
+            window.appState.set('drawnTarotCards', drawnCards);
+            window.appState.selectedTarotCards = drawnCards.map((card, i) => ({
+                ...card, slot: i, label: SLOT_LABELS[i]
+            }));
+        }
+
+        // 创建浮层
+        this.showDrawOverlay(selected);
+    }
+
+    showDrawOverlay(selected) {
+        const overlay = document.createElement('div');
+        overlay.className = 'draw-overlay';
+
+        // 标题
+        const title = document.createElement('div');
+        title.className = 'draw-overlay-title';
+        title.textContent = '命运之牌';
+        overlay.appendChild(title);
+
+        // 6个槽框
+        const grid = document.createElement('div');
+        grid.className = 'draw-slots';
+        const slotEls = [];
+        for (let i = 0; i < CARDS_TO_DRAW; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'draw-slot';
+            slot.innerHTML = `<span class="draw-slot__label">${SLOT_LABELS[i]}</span>`;
+            grid.appendChild(slot);
+            slotEls.push(slot);
+        }
+        overlay.appendChild(grid);
+
+        // 下一步按钮（先隐藏）
+        const btnWrap = document.createElement('div');
+        btnWrap.className = 'draw-overlay-btn';
+        btnWrap.innerHTML = `<button class="btn btn--primary btn--full btn--lg" id="drawNextBtn">下一步</button>`;
+        overlay.appendChild(btnWrap);
+
+        document.body.appendChild(overlay);
+
+        // 创建飞牌并依次飞入
+        const screenCX = window.innerWidth / 2;
+        const screenCY = window.innerHeight / 2;
+
+        selected.forEach((cardId, i) => {
+            const flyCard = document.createElement('div');
+            flyCard.className = 'draw-flying-card';
+            // 初始位置：屏幕中央偏上
+            flyCard.style.left = `${screenCX - 40}px`;
+            flyCard.style.top = `${screenCY - 200}px`;
+            flyCard.style.opacity = '0';
+            flyCard.style.transform = 'scale(0.4) rotate(' + (Math.random() * 40 - 20) + 'deg)';
+            document.body.appendChild(flyCard);
+
+            // 延迟依次飞入
+            setTimeout(() => {
+                flyCard.style.opacity = '1';
+                const slotRect = slotEls[i].getBoundingClientRect();
+                flyCard.style.left = `${slotRect.left}px`;
+                flyCard.style.top = `${slotRect.top}px`;
+                flyCard.style.width = `${slotRect.width}px`;
+                flyCard.style.height = `${slotRect.height}px`;
+                flyCard.style.transform = 'scale(1) rotate(0deg)';
+                flyCard.classList.add('landed');
+            }, 300 + i * 250);
+        });
+
+        // 全部飞完后显示按钮
+        setTimeout(() => {
+            btnWrap.classList.add('show');
+        }, 300 + CARDS_TO_DRAW * 250 + 400);
+
+        // 点击下一步
+        btnWrap.addEventListener('click', () => {
+            // 清理飞牌和浮层
+            overlay.remove();
+            document.querySelectorAll('.draw-flying-card').forEach(el => el.remove());
+            window.router.navigate(`/test/${this.matchType.id}/tarot/card-selection`);
+        });
+    }
+
+    destroy() {
+        this.stopInertia();
+        this._cleanups.forEach(fn => fn());
+        document.querySelectorAll('.card-zoom-overlay, .draw-overlay, .draw-flying-card').forEach(el => el.remove());
     }
 }
 

@@ -3012,8 +3012,8 @@
 /* 标题区域 */
 .shuffle-header {
     text-align: center;
-    margin-bottom: var(--spacing-xl);
-    padding-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    padding-top: var(--spacing-xs);
 }
 
 .shuffle-title {
@@ -3036,14 +3036,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-xl) 0;
-    min-height: 500px;
+    padding: var(--spacing-sm) 0;
+    min-height: 400px;
 }
 
-.shuffle-cards {
+.shuffle-cards,
+.shuffle-cards--large {
     position: relative;
-    width: 480px;
-    height: 580px;
+    width: 100%;
+    max-width: 600px;
+    height: 450px;
     perspective: 1200px;
     cursor: pointer;
 }
@@ -3483,6 +3485,265 @@
     min-height: calc(100vh - var(--navbar-height));
 }
 
+/* 提示信息 */
+.pick-hint-bar {
+    text-align: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.pick-hint-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+/* ===== 牌轮 ===== */
+.pick-page-wrap {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--navbar-height));
+    overflow: hidden;
+    position: relative;
+}
+
+/* 牌轮视口 */
+.pick-wheel-viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+}
+
+/* 旋转容器 – 圆心偏右，露出左侧弧线 */
+.pick-wheel {
+    position: absolute;
+    /* 直径 = 视口宽 * 2.2，保证弧线足够大 */
+    --wheel-size: max(140vw, 600px);
+    width: var(--wheel-size);
+    height: var(--wheel-size);
+    /* 圆心水平：视口右侧偏出 */
+    right: calc(var(--wheel-size) * -0.32);
+    /* 圆心垂直：居中偏下一点 */
+    top: 50%;
+    margin-top: calc(var(--wheel-size) * -0.42);
+    transform-origin: center center;
+    transition: transform 0.08s linear;
+    will-change: transform;
+}
+
+/* 每张牌 */
+.wheel-card {
+    position: absolute;
+    width: 44px;
+    height: 70px;
+    left: 50%;
+    top: 50%;
+    margin-left: -22px;
+    margin-top: -35px;
+    transform-origin: center center;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+/* 手机端适配 */
+@media (max-width: 500px) {
+    .pick-wheel {
+        --wheel-size: 160vw;
+        right: calc(var(--wheel-size) * -0.34 - 30vw);
+        margin-top: calc(var(--wheel-size) * -0.44 + 5vw);
+    }
+    .wheel-card {
+        width: 50px;
+        height: 74px;
+        margin-left: -25px;
+        margin-top: -37px;
+    }
+}
+
+.wheel-card:active {
+    filter: brightness(1.3);
+}
+
+.wheel-card__face {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(160deg, #1A0B2E 0%, #2D1B4E 50%, #3D246E 100%);
+    border: 1.5px solid rgba(212, 175, 55, 0.35);
+    box-shadow:
+        0 1px 4px rgba(0,0,0,0.35),
+        inset 0 0 8px rgba(212, 175, 55, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.wheel-card__face::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(212, 175, 55, 0.18);
+    border-radius: 4px;
+}
+
+.wheel-card__face::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    color: rgba(212, 175, 55, 0.35);
+}
+
+/* 底部摇牌按钮区域 */
+.pick-bottom-bar {
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
+    flex-shrink: 0;
+}
+
+.pick-draw-btn {
+    font-size: var(--font-size-lg) !important;
+    letter-spacing: 4px;
+}
+
+/* ===== 卡牌放大浮层 ===== */
+.card-zoom-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.card-zoom-box {
+    width: 120px;
+    height: 190px;
+    border-radius: 12px;
+    background: linear-gradient(160deg, #1A0B2E 0%, #2D1B4E 50%, #3D246E 100%);
+    border: 2px solid rgba(212, 175, 55, 0.5);
+    box-shadow:
+        0 8px 32px rgba(0,0,0,0.5),
+        0 0 20px rgba(167, 139, 250, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: zoomIn 0.25s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+}
+
+.card-zoom-box::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 8px;
+}
+
+.card-zoom-box::after {
+    content: '✦';
+    font-size: 32px;
+    color: rgba(212, 175, 55, 0.45);
+}
+
+@keyframes zoomIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ===== 摇牌抽牌动画浮层 ===== */
+.draw-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(15, 5, 30, 0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.35s ease;
+}
+
+.draw-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 0 24px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.draw-slot {
+    aspect-ratio: 2/3;
+    border: 2px dashed rgba(167, 139, 250, 0.4);
+    border-radius: 10px;
+    background: rgba(167, 139, 250, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.draw-slot__label {
+    position: absolute;
+    bottom: 6px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(167, 139, 250, 0.6);
+}
+
+/* 飞入的卡牌 */
+.draw-flying-card {
+    position: fixed;
+    width: 80px;
+    height: 120px;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #1A0B2E 0%, #2D1B4E 50%, #3D246E 100%);
+    border: 2px solid rgba(212, 175, 55, 0.45);
+    box-shadow:
+        0 4px 20px rgba(0,0,0,0.5),
+        0 0 12px rgba(167, 139, 250, 0.25);
+    z-index: 210;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.55s cubic-bezier(.34,1.2,.64,1);
+}
+
+.draw-flying-card::after {
+    content: '✦';
+    font-size: 22px;
+    color: rgba(212, 175, 55, 0.5);
+}
+
+.draw-flying-card.landed {
+    box-shadow:
+        0 2px 8px rgba(0,0,0,0.3),
+        0 0 16px rgba(167, 139, 250, 0.35);
+    border-color: rgba(167, 139, 250, 0.6);
+}
+
+.draw-overlay-title {
+    font-size: 20px;
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 32px;
+    letter-spacing: 4px;
+    font-weight: 600;
+}
+
+.draw-overlay-btn {
+    margin-top: 36px;
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+
+.draw-overlay-btn.show {
+    opacity: 1;
+}
+
 /* 标题区域 */
 .pick-header {
     text-align: center;
@@ -3667,7 +3928,268 @@
 }
 
 /* ===========================================
-   卡牌选择页 - 圆环形卡牌轮
+   摇牌页 (cs- prefix)
+   =========================================== */
+.cs-page-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - var(--navbar-height));
+    padding: var(--spacing-md) var(--spacing-md) 0;
+}
+
+.cs-title {
+    text-align: center;
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 2px;
+    letter-spacing: 2px;
+}
+
+.cs-status {
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* --- 6张大牌 2×3 --- */
+.cs-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 0 var(--spacing-sm);
+}
+
+.cs-card {
+    aspect-ratio: 2/3;
+    perspective: 600px;
+    cursor: pointer;
+}
+
+.cs-card__inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(.34,1.2,.64,1);
+    border-radius: 10px;
+}
+
+/* 背面 */
+.cs-card__back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #1A0B2E 0%, #2D1B4E 50%, #3D246E 100%);
+    border: 2px solid rgba(212, 175, 55, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cs-card__star {
+    font-size: 24px;
+    color: rgba(212, 175, 55, 0.4);
+}
+
+/* 正面 - 显示塔罗牌图案 */
+.cs-card__front {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    transform: rotateY(180deg);
+    border-radius: 10px;
+    background: linear-gradient(135deg, #E8D5FF 0%, #F0E5FF 50%, #FFE5F0 100%);
+    border: 2px solid rgba(167, 139, 250, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 4px 16px rgba(167, 139, 250, 0.3);
+    padding: 6px;
+}
+
+.cs-card__symbol {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.cs-card__name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-align: center;
+    line-height: 1.2;
+    word-break: break-all;
+}
+
+/* 晃动动画 */
+.cs-card--shake .cs-card__inner {
+    animation: cardShake 0.5s ease-in-out;
+}
+
+@keyframes cardShake {
+    0%, 100% { transform: rotateZ(0deg); }
+    15% { transform: rotateZ(-8deg) scale(0.95); }
+    30% { transform: rotateZ(8deg) scale(0.95); }
+    45% { transform: rotateZ(-6deg); }
+    60% { transform: rotateZ(6deg); }
+    75% { transform: rotateZ(-3deg); }
+    90% { transform: rotateZ(3deg); }
+}
+
+/* 被选中的牌 */
+.cs-card--picked {
+    z-index: 2;
+}
+
+/* 翻到正面 */
+.cs-card--face-up .cs-card__inner {
+    transform: rotateY(180deg);
+}
+
+/* 翻到反面（标记为灰暗） */
+.cs-card--face-down .cs-card__inner {
+    transform: rotateY(0deg);
+}
+.cs-card--face-down .cs-card__back {
+    opacity: 0.5;
+}
+
+/* 未被选中的牌 */
+.cs-card--not-picked {
+    opacity: 0.35;
+    filter: grayscale(0.5);
+    transition: opacity 0.3s, filter 0.3s;
+}
+
+/* --- 爻结果提示 --- */
+.cs-yao-result {
+    min-height: 36px;
+    padding: 0 var(--spacing-sm);
+}
+
+.cs-yao-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(139, 127, 216, 0.12);
+    font-size: var(--font-size-sm);
+    animation: fadeIn 0.3s ease;
+}
+
+.cs-yao-pos {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.cs-yao-coins {
+    font-size: 13px;
+}
+
+.cs-yao-name {
+    color: var(--color-text-secondary);
+}
+
+.cs-yao-symbol {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.cs-yao-moving {
+    background: linear-gradient(135deg, #FF8A65, #FF6F61);
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+/* --- 摇牌按钮 --- */
+.cs-shake-bar {
+    padding: var(--spacing-md) 0;
+    flex-shrink: 0;
+}
+
+/* --- 底部收集区 --- */
+.cs-collect-area {
+    flex-shrink: 0;
+    padding: var(--spacing-sm) 0 var(--spacing-xl);
+    min-height: 100px;
+}
+
+.cs-collect-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.cs-collect-slots {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    min-height: 56px;
+}
+
+/* 小卡槽 */
+.cs-mini-card {
+    width: 38px;
+    height: 56px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #E8D5FF 0%, #FFE5F0 100%);
+    border: 1.5px solid rgba(167, 139, 250, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(167, 139, 250, 0.25);
+}
+
+.cs-mini-card--enter {
+    animation: miniCardIn 0.35s cubic-bezier(.34,1.4,.64,1) both;
+}
+
+@keyframes miniCardIn {
+    0% { transform: scale(0) translateY(-20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.cs-mini-card__face {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 2px;
+}
+
+.cs-mini-card__symbol {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.cs-mini-card__name {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-align: center;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ===========================================
+   卡牌选择页 - 旧样式（保留兼容）
    =========================================== */
 .tarot-card-selection-page {
     /* 参考图片中的渐变背景：上方偏黄绿，中间淡紫，下方淡粉 */

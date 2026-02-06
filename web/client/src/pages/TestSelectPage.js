@@ -77,11 +77,11 @@ export class TestSelectPage {
                   <span class="method-card__arrow">→</span>
                 </div>
 
-                <!-- 直觉卡牌测试 -->
+                <!-- 直觉塔罗测试 -->
                 <div class="glass-card glass-card--interactive method-card" data-method="tarot">
                   <div class="method-card__icon">🃏</div>
                   <div class="method-card__content">
-                    <h4 class="method-card__title">直觉卡牌</h4>
+                    <h4 class="method-card__title">直觉塔罗</h4>
                     <p class="method-card__description">凭直觉翻牌，通过卡牌符号解析关系</p>
                     <div class="method-card__tag">
                       <span class="badge badge--secondary">无需生日</span>
@@ -101,7 +101,7 @@ export class TestSelectPage {
                 </div>
                 <ul class="tips-list">
                   <li>如果知道双方准确的出生日期，推荐使用<strong>生日匹配</strong>，结果更精准</li>
-                  <li>如果不清楚对方生日，可以使用<strong>直觉卡牌</strong>，凭直觉感应</li>
+                  <li>如果不清楚对方生日，可以使用<strong>直觉塔罗</strong>，凭直觉感应</li>
                   <li>两种方式都是趣味性格测试，仅供娱乐参考</li>
                 </ul>
               </div>
