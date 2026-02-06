@@ -6,6 +6,9 @@
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar, BottomActionBar } from '../components/Common.js';
 import { formatLunarDate } from '../scripts/lunar.js';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import { Mandarin } from 'flatpickr/dist/l10n/zh.js';
 
 export class BirthdayInputPage {
     constructor(params) {
@@ -82,15 +85,13 @@ export class BirthdayInputPage {
 
                   <!-- 出生日期 -->
                   <div class="input-group mb-4">
-                    <div class="date-input-wrapper" id="date-input-wrapper">
+                    <div class="date-input-wrapper">
                       <input 
                         type="text" 
                         id="birthDate" 
-                        class="input date-input-placeholder"
-                        placeholder="请选择阳历（公历）生日"
+                        class="input flatpickr-input"
+                        placeholder="请选择阳历生日"
                         readonly
-                        max="${new Date().toISOString().split('T')[0]}"
-                        min="1920-01-01"
                       >
                     </div>
                     <div id="lunar-date" class="lunar-date-display" style="display: none;">
@@ -201,31 +202,323 @@ export class BirthdayInputPage {
         // 表单输入
         const nameInput = document.getElementById('name');
         const birthDateInput = document.getElementById('birthDate');
-        const dateInputWrapper = document.getElementById('date-input-wrapper');
 
         if (nameInput) {
             nameInput.addEventListener('input', () => this.validateForm());
         }
-        if (birthDateInput) {
-            birthDateInput.addEventListener('change', () => {
-                this.updateLunarDate(birthDateInput.value);
-                this.validateForm();
-            });
-        }
         
-        // 点击整个日期输入区域触发日期选择器
-        if (dateInputWrapper && birthDateInput) {
-            dateInputWrapper.addEventListener('click', () => {
-                // 如果还是text类型，先切换成date类型
-                if (birthDateInput.type === 'text') {
-                    birthDateInput.type = 'date';
-                    birthDateInput.removeAttribute('readonly');
+        // 初始化 flatpickr 日期选择器
+        if (birthDateInput) {
+            // 生成年份选项（1920-当前年）
+            const currentYear = new Date().getFullYear();
+            const years = [];
+            for (let y = currentYear; y >= 1920; y--) {
+                years.push(y);
+            }
+            
+            this.flatpickrInstance = flatpickr(birthDateInput, {
+                dateFormat: 'Y-m-d',
+                locale: Mandarin,
+                maxDate: 'today',
+                minDate: '1920-01-01',
+                disableMobile: true,  // 强制在移动端也使用flatpickr UI
+                allowInput: false,
+                clickOpens: true,
+                appendTo: document.body,  // 添加到body，方便居中定位
+                onChange: (selectedDates, dateStr) => {
+                    this.updateLunarDate(dateStr);
+                    this.validateForm();
+                    // 更新顶部日期显示
+                    this.updateCalendarHeader(selectedDates[0]);
+                },
+                onReady: (selectedDates, dateStr, instance) => {
+                    const calendar = instance.calendarContainer;
+                    if (calendar) {
+                        // 创建顶部日期显示区域
+                        const headerDiv = document.createElement('div');
+                        headerDiv.className = 'flatpickr-header-display';
+                        headerDiv.innerHTML = '<span class="header-date">请选择日期</span>';
+                        calendar.insertBefore(headerDiv, calendar.firstChild);
+                        
+                        // 替换年份输入框为下拉选择器，并调整顺序（年份在前）
+                        const yearInput = calendar.querySelector('.cur-year');
+                        const monthSelect = calendar.querySelector('.flatpickr-monthDropdown-months');
+                        if (yearInput && monthSelect) {
+                            const yearSelect = document.createElement('select');
+                            yearSelect.className = 'flatpickr-yearDropdown';
+                            years.forEach(y => {
+                                const option = document.createElement('option');
+                                option.value = y;
+                                option.textContent = y + '年';
+                                yearSelect.appendChild(option);
+                            });
+                            yearSelect.value = instance.currentYear;
+                            yearSelect.addEventListener('change', (e) => {
+                                instance.changeYear(parseInt(e.target.value));
+                            });
+                            yearInput.parentNode.replaceChild(yearSelect, yearInput);
+                            
+                            // 调整顺序：年份在前，月份在后
+                            const currentMonth = calendar.querySelector('.flatpickr-current-month');
+                            if (currentMonth) {
+                                currentMonth.insertBefore(yearSelect, monthSelect);
+                            }
+                        }
+                        
+                        // 创建遮罩层
+                        const overlay = document.createElement('div');
+                        overlay.className = 'flatpickr-overlay';
+                        document.body.appendChild(overlay);
+                        this.flatpickrOverlay = overlay;
+                        
+                        // 点击遮罩关闭日历
+                        overlay.addEventListener('click', () => {
+                            instance.close();
+                        });
+                        
+                        // 添加自定义样式
+                        const style = document.createElement('style');
+                        style.textContent = `
+                            /* 遮罩层 */
+                            .flatpickr-overlay {
+                                display: none;
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                background: rgba(0, 0, 0, 0.5);
+                                z-index: 9998;
+                            }
+                            .flatpickr-overlay.active {
+                                display: block;
+                            }
+                            
+                            /* 日历容器居中 + 紫色阴影 - 无圆角 */
+                            .flatpickr-calendar {
+                                position: fixed !important;
+                                top: 50% !important;
+                                left: 50% !important;
+                                transform: translate(-50%, -50%) !important;
+                                z-index: 9999 !important;
+                                border-radius: 16px !important;
+                                box-shadow: 0 12px 48px rgba(139, 127, 216, 0.35) !important;
+                                width: 340px !important;
+                                max-width: 92vw !important;
+                                border: none !important;
+                                overflow: hidden !important;
+                                background: linear-gradient(180deg, #8B7FD8 0%, #A78BFA 15%, #E8D5FF 35%, #FFE5F0 60%, #E5F0FF 100%) !important;
+                            }
+                            .flatpickr-calendar.open {
+                                display: block !important;
+                            }
+                            
+                            /* 顶部日期显示 - 透明背景融入整体渐变 */
+                            .flatpickr-header-display {
+                                background: transparent !important;
+                                padding: 24px 20px !important;
+                                text-align: center;
+                                border-radius: 0 !important;
+                                border: none !important;
+                                margin: 0 !important;
+                            }
+                            .flatpickr-header-display .header-date {
+                                color: #1E40AF !important;
+                                font-size: 26px !important;
+                                font-weight: 700 !important;
+                                display: block;
+                                text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+                            }
+                            
+                            /* 月份导航栏 - 透明背景融入整体渐变 */
+                            .flatpickr-calendar .flatpickr-months {
+                                background: transparent !important;
+                                padding: 14px 12px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-month {
+                                height: auto !important;
+                                line-height: 1.4 !important;
+                            }
+                            .flatpickr-calendar .flatpickr-current-month {
+                                display: flex !important;
+                                align-items: center !important;
+                                justify-content: center !important;
+                                gap: 12px !important;
+                                color: #2D2D3D !important;
+                                font-size: 16px !important;
+                                font-weight: 600 !important;
+                                padding: 0 40px !important;
+                                height: auto !important;
+                                position: relative !important;
+                                width: 100% !important;
+                            }
+                            
+                            /* 年份下拉选择器样式 */
+                            .flatpickr-yearDropdown {
+                                color: #2D2D3D !important;
+                                font-size: 15px !important;
+                                font-weight: 600 !important;
+                                background: white !important;
+                                border: 2px solid rgba(139, 127, 216, 0.4) !important;
+                                border-radius: 10px !important;
+                                padding: 8px 12px !important;
+                                cursor: pointer !important;
+                                outline: none !important;
+                                width: 115px !important;
+                                height: 40px !important;
+                            }
+                            .flatpickr-yearDropdown:focus {
+                                border-color: #8B7FD8 !important;
+                                box-shadow: 0 0 0 3px rgba(139, 127, 216, 0.15) !important;
+                            }
+                            
+                            /* 月份下拉样式 */
+                            .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months {
+                                color: #2D2D3D !important;
+                                font-size: 15px !important;
+                                font-weight: 600 !important;
+                                background: white !important;
+                                border: 2px solid rgba(139, 127, 216, 0.4) !important;
+                                border-radius: 10px !important;
+                                padding: 8px 16px !important;
+                                cursor: pointer !important;
+                                -webkit-appearance: none !important;
+                                appearance: none !important;
+                                width: 100px !important;
+                                height: 40px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months:focus {
+                                border-color: #8B7FD8 !important;
+                                box-shadow: 0 0 0 3px rgba(139, 127, 216, 0.15) !important;
+                                outline: none !important;
+                            }
+                            
+                            .flatpickr-calendar .flatpickr-prev-month,
+                            .flatpickr-calendar .flatpickr-next-month {
+                                fill: #8B7FD8 !important;
+                                color: #8B7FD8 !important;
+                                position: absolute !important;
+                                top: 50% !important;
+                                transform: translateY(-50%) !important;
+                                padding: 10px !important;
+                                border-radius: 8px !important;
+                                transition: background 0.2s !important;
+                            }
+                            .flatpickr-calendar .flatpickr-prev-month {
+                                left: 8px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-next-month {
+                                right: 8px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-prev-month:hover,
+                            .flatpickr-calendar .flatpickr-next-month:hover {
+                                background: rgba(139, 127, 216, 0.1) !important;
+                            }
+                            .flatpickr-calendar .flatpickr-prev-month svg,
+                            .flatpickr-calendar .flatpickr-next-month svg {
+                                fill: #8B7FD8 !important;
+                                width: 14px !important;
+                                height: 14px !important;
+                            }
+                            
+                            /* 日历主体 - 透明背景融入整体渐变 */
+                            .flatpickr-calendar .flatpickr-innerContainer {
+                                background: transparent !important;
+                                padding: 12px 16px 16px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-rContainer {
+                                background: transparent !important;
+                            }
+                            .flatpickr-calendar .flatpickr-days {
+                                background: transparent !important;
+                                width: 100% !important;
+                            }
+                            .flatpickr-calendar .dayContainer {
+                                width: 100% !important;
+                                min-width: 100% !important;
+                                max-width: 100% !important;
+                            }
+                            
+                            /* 星期标题 */
+                            .flatpickr-calendar .flatpickr-weekdays {
+                                background: transparent !important;
+                                margin-bottom: 8px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-weekday {
+                                color: #6B5B95 !important;
+                                font-weight: 700 !important;
+                                font-size: 13px !important;
+                            }
+                            
+                            /* 日期样式 */
+                            .flatpickr-calendar .flatpickr-day {
+                                color: #2D2D3D !important;
+                                border-radius: 10px !important;
+                                font-weight: 500 !important;
+                                height: 42px !important;
+                                line-height: 42px !important;
+                            }
+                            .flatpickr-calendar .flatpickr-day.selected {
+                                background: linear-gradient(135deg, #8B7FD8, #A78BFA) !important;
+                                border-color: transparent !important;
+                                color: white !important;
+                                box-shadow: 0 4px 12px rgba(139, 127, 216, 0.4) !important;
+                            }
+                            .flatpickr-calendar .flatpickr-day.today {
+                                border: 2px solid #8B7FD8 !important;
+                                background: rgba(139, 127, 216, 0.08) !important;
+                            }
+                            .flatpickr-calendar .flatpickr-day.flatpickr-disabled {
+                                color: #bbb !important;
+                            }
+                            .flatpickr-calendar .flatpickr-day:hover:not(.flatpickr-disabled):not(.selected) {
+                                background: rgba(139, 127, 216, 0.12) !important;
+                                border-color: rgba(139, 127, 216, 0.3) !important;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                    
+                    // 移动端优化：确保点击输入框能打开选择器
+                    instance.input.addEventListener('click', () => {
+                        instance.open();
+                    });
+                },
+                onOpen: () => {
+                    // 显示遮罩
+                    if (this.flatpickrOverlay) {
+                        this.flatpickrOverlay.classList.add('active');
+                    }
+                    // 更新顶部显示
+                    const currentDate = this.flatpickrInstance.selectedDates[0];
+                    this.updateCalendarHeader(currentDate);
+                    
+                    // 同步年份下拉选择器的值
+                    const yearSelect = document.querySelector('.flatpickr-yearDropdown');
+                    if (yearSelect && this.flatpickrInstance) {
+                        yearSelect.value = this.flatpickrInstance.currentYear;
+                    }
+                },
+                onClose: () => {
+                    // 隐藏遮罩
+                    if (this.flatpickrOverlay) {
+                        this.flatpickrOverlay.classList.remove('active');
+                    }
+                },
+                onMonthChange: () => {
+                    // 月份改变时同步年份下拉
+                    const yearSelect = document.querySelector('.flatpickr-yearDropdown');
+                    if (yearSelect && this.flatpickrInstance) {
+                        yearSelect.value = this.flatpickrInstance.currentYear;
+                    }
+                },
+                onYearChange: () => {
+                    // 年份改变时同步年份下拉
+                    const yearSelect = document.querySelector('.flatpickr-yearDropdown');
+                    if (yearSelect && this.flatpickrInstance) {
+                        yearSelect.value = this.flatpickrInstance.currentYear;
+                    }
                 }
-                // 延迟一帧后打开选择器，确保类型切换完成
-                setTimeout(() => {
-                    birthDateInput.showPicker?.();
-                    birthDateInput.focus();
-                }, 0);
             });
         }
 
@@ -267,6 +560,23 @@ export class BirthdayInputPage {
         this.updatePersonCards();
         
         this.validateForm();
+    }
+    
+    // 更新日历顶部日期显示
+    updateCalendarHeader(date) {
+        const headerDisplay = document.querySelector('.flatpickr-header-display .header-date');
+        if (headerDisplay) {
+            if (date) {
+                const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const weekDay = weekDays[date.getDay()];
+                headerDisplay.textContent = `${year}年${month}月${day}日${weekDay}`;
+            } else {
+                headerDisplay.textContent = '请选择日期';
+            }
+        }
     }
     
     // 更新底部人员卡片显示
@@ -491,6 +801,18 @@ export class BirthdayInputPage {
     }
 
     rerender() {
+        // 销毁旧的 flatpickr 实例
+        if (this.flatpickrInstance) {
+            this.flatpickrInstance.destroy();
+            this.flatpickrInstance = null;
+        }
+        
+        // 移除遮罩层
+        if (this.flatpickrOverlay) {
+            this.flatpickrOverlay.remove();
+            this.flatpickrOverlay = null;
+        }
+        
         const container = document.getElementById('app');
         const formSection = document.querySelector('.form-section');
         
