@@ -2,7 +2,13 @@
  * 匹配游戏 匹配类型数据
  * 10种匹配分析类型定义
  */
-
+/**
+ * 小红书跳转链接示例：
+ * http://localhost:5173/xhs?t=job
+ * t参数可选值：love、cooperation、city、job
+ * 点击"开始测试"后直接跳转到对应的测试页面：
+ * http://localhost:5173/test/love/birthday
+ */
 export const matchTypes = [
     {
         id: 'love',

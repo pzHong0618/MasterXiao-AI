@@ -1,11 +1,17 @@
 /**
  * 匹配游戏 测试选择页
  * 选择测试方式：生日匹配或直觉卡牌
+ * 
+ * 支持URL参数：
+ * - /test/love?s=XHS12345678  兑换码，选择测试方式时需要先验证
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar } from '../components/Common.js';
 import { FeatureCardDetail } from '../components/FeatureCard.js';
+
+// API 配置
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
 
 export class TestSelectPage {
     constructor(params) {
@@ -14,6 +20,12 @@ export class TestSelectPage {
             window.router.navigate('/');
             return;
         }
+        
+        // 解析URL参数获取兑换码
+        const urlParams = new URLSearchParams(window.location.search);
+        this.redeemCode = urlParams.get('s');
+        this.isVerifying = false;
+        this.codeVerified = false;  // 是否已验证通过
     }
 
     render() {
@@ -39,6 +51,17 @@ export class TestSelectPage {
             <!-- 测试方式选择 -->
             <section class="test-method-section animate-fade-in-up animate-delay-200">
               <h3 class="heading-3 mb-4 text-center">选择测试方式</h3>
+              
+              <!-- 价格信息（仅在无兑换码时显示）-->
+              ${!this.redeemCode ? `
+                <div class="price-info mb-4">
+                  <div class="price-info__original">原价 <span class="price-info__original-value">¥29.8</span></div>
+                  <div class="price-info__discount">
+                    <span class="price-info__tag">限时优惠</span>
+                    <span class="price-info__discount-value">¥19.8</span>
+                  </div>
+                </div>
+              ` : ''}
               
               <div class="method-cards">
                 <!-- 生日匹配 -->
@@ -109,9 +132,156 @@ export class TestSelectPage {
         });
     }
 
-    handleMethodSelect(method) {
+    /**
+     * 验证兑换码
+     */
+    async verifyRedeemCode() {
+        if (!this.redeemCode) {
+            return { valid: true };  // 没有兑换码参数，跳过验证
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/redeem/verify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: this.redeemCode })
+            });
+
+            const result = await response.json();
+            return result;
+        } catch (error) {
+            console.error('验证兑换码失败:', error);
+            return { valid: false, message: '网络错误，请稍后重试' };
+        }
+    }
+
+    /**
+     * 使用兑换码（标记已使用）
+     */
+    async useRedeemCode() {
+        if (!this.redeemCode) return true;
+
+        try {
+            const response = await fetch(`${API_BASE}/redeem/use`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: this.redeemCode })
+            });
+
+            const result = await response.json();
+            return result.success;
+        } catch (error) {
+            console.error('使用兑换码失败:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 显示Toast提示
+     */
+    showToast(message, type = 'error') {
+        // 移除已存在的toast
+        const existingToast = document.querySelector('.redeem-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `redeem-toast redeem-toast--${type}`;
+        toast.innerHTML = `
+            <span class="redeem-toast__icon">${type === 'error' ? '❌' : '✅'}</span>
+            <span class="redeem-toast__message">${message}</span>
+        `;
+        
+        // 添加样式
+        toast.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: ${type === 'error' ? 'rgba(220, 38, 38, 0.95)' : 'rgba(34, 197, 94, 0.95)'};
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: toastIn 0.3s ease;
+        `;
+
+        // 添加动画样式
+        if (!document.querySelector('#redeem-toast-style')) {
+            const style = document.createElement('style');
+            style.id = 'redeem-toast-style';
+            style.textContent = `
+                @keyframes toastIn {
+                    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                }
+                @keyframes toastOut {
+                    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    to { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        document.body.appendChild(toast);
+
+        // 自动移除
+        setTimeout(() => {
+            toast.style.animation = 'toastOut 0.3s ease forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
+    async handleMethodSelect(method) {
+        // 防止重复点击
+        if (this.isVerifying) return;
+        
         const typeId = this.matchType.id;
 
+        // 如果有兑换码参数，先验证
+        if (this.redeemCode && !this.codeVerified) {
+            this.isVerifying = true;
+
+            // 显示加载状态
+            const clickedCard = document.querySelector(`.method-card[data-method="${method}"]`);
+            if (clickedCard) {
+                clickedCard.style.opacity = '0.7';
+                clickedCard.style.pointerEvents = 'none';
+            }
+
+            const verifyResult = await this.verifyRedeemCode();
+            
+            // 恢复卡片状态
+            if (clickedCard) {
+                clickedCard.style.opacity = '';
+                clickedCard.style.pointerEvents = '';
+            }
+
+            this.isVerifying = false;
+
+            if (!verifyResult.valid && !verifyResult.success) {
+                // 兑换码无效
+                this.showToast(verifyResult.message || '兑换码无效', 'error');
+                return;
+            }
+
+            // 验证通过，标记为已使用
+            await this.useRedeemCode();
+            this.codeVerified = true;
+        }
+
+        // 导航到下一页
         if (method === 'birthday') {
             // 跳转到生日输入页
             window.router.navigate(`/test/${typeId}/birthday`);

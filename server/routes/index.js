@@ -12,6 +12,7 @@ import birthdayMatchRoutes from './birthdayMatch.js';
 import verificationRoutes from './verification.js';
 import userRoutes from './user.js';
 import paymentRoutes from './payment.js';
+import redeemRoutes from './redeem.js';
 
 import tarotRoutes from './tarot.js';
 import divinationRoutes from './divination.js';
@@ -47,6 +48,9 @@ router.use('/user', userRoutes);
 
 // 支付路由
 router.use('/payment', paymentRoutes);
+
+// 兑换码路由
+router.use('/redeem', redeemRoutes);
 
 // 塔罗牌路由
 // router.use('/tarot', tarotRoutes);

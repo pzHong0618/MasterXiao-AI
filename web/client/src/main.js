@@ -25,6 +25,7 @@ import state from './scripts/state.js';
 // 导入页面
 import {
   HomePage,
+  XHSLandingPage,
   TestSelectPage,
   BirthdayInputPage,
   TarotPage,
@@ -64,6 +65,7 @@ function initApp() {
 function registerRoutes() {
   router
     .register('/', HomePage)
+    .register('/xhs', XHSLandingPage)
     .register('/test/:type', TestSelectPage)
     .register('/test/:type/birthday', BirthdayInputPage)
     .register('/test/:type/tarot', TarotPage)

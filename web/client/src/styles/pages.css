@@ -4849,6 +4849,55 @@
     box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
 }
 
+/* ==================== 价格信息 ==================== */
+.price-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.08) 0%, rgba(167, 139, 250, 0.08) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(139, 127, 216, 0.2);
+}
+
+.price-info__original {
+    font-size: 14px;
+    color: var(--color-text-tertiary);
+    text-decoration: line-through;
+}
+
+.price-info__original-value {
+    font-size: 16px;
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.price-info__discount {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.price-info__tag {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.price-info__discount-value {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #8B7FD8 0%, #A78BFA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 /* 响应式适配 */
 @media (max-width: 480px) {
     .divination-result-page .gua-section {
@@ -4862,5 +4911,14 @@
     .divination-result-page .mode-tab {
         font-size: 12px;
         padding: 8px 10px;
+    }
+    
+    .price-info {
+        gap: 12px;
+        padding: 14px 16px;
+    }
+    
+    .price-info__discount-value {
+        font-size: 22px;
     }
 }

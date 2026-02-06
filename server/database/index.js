@@ -119,6 +119,23 @@ async function initTables() {
         )
     `);
 
+    // 兑换码表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS redeem_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            type TEXT DEFAULT 'single',
+            max_uses INTEGER DEFAULT 1,
+            used_count INTEGER DEFAULT 0,
+            expires_at DATETIME,
+            status TEXT DEFAULT 'active',
+            source TEXT DEFAULT 'admin',
+            remark TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
     console.log('✅ 数据库表初始化完成');
 }
 
