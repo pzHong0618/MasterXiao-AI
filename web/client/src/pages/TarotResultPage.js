@@ -37,38 +37,23 @@ export class TarotResultPage {
           <div class="app-container">
             
             <!-- 问题卡片 -->
-            <section class="result-question-section animate-fade-in-up">
+            <section class="result-question-card animate-fade-in-up">
               <div class="result-question-label">所问事项</div>
-              <div class="result-question-text">${question}</div>
-              ${lunarDate ? `<div class="result-question-date">起卦时间：${lunarDate}</div>` : ''}
+              <div class="result-question-title">${question}</div>
+              ${lunarDate ? `<div class="result-question-date">${lunarDate}</div>` : ''}
             </section>
 
-            <!-- 卦象信息 -->
-            ${benGuaInfo && benGuaInfo.name ? `
-            <section class="result-gua-section animate-fade-in-up animate-delay-50">
-              <div class="result-gua-title">卦象</div>
-              <div class="result-gua-content">
-                <div class="gua-display">
-                  <div class="gua-item">
-                    <div class="gua-item-label">本卦</div>
-                    <div class="gua-item-name">${benGuaInfo.name}</div>
-                    <div class="gua-item-info">${benGuaInfo.palace || ''}宫 · ${benGuaInfo.wuxing || ''}</div>
-                  </div>
-                  ${hasMovingYao && bianGuaInfo && bianGuaInfo.name ? `
-                  <div class="gua-arrow-wrapper">
-                    <span class="gua-arrow-icon">→</span>
-                    <span class="gua-moving-text">${movingPositions.map(p => ['初','二','三','四','五','上'][p-1]).join('、')}爻动</span>
-                  </div>
-                  <div class="gua-item">
-                    <div class="gua-item-label">变卦</div>
-                    <div class="gua-item-name">${bianGuaInfo.name}</div>
-                    <div class="gua-item-info">${bianGuaInfo.palace || ''}宫 · ${bianGuaInfo.wuxing || ''}</div>
-                  </div>
-                  ` : ''}
-                </div>
+            <!-- 解读内容卡片 -->
+            <section class="result-interpretation-card animate-fade-in-up animate-delay-50">
+              <div class="result-interpretation-header">
+                <span class="result-interpretation-icon">💡</span>
+                <span class="result-interpretation-title">解读</span>
+              </div>
+              
+              <div class="result-interpretation-content" id="resultContent">
+                ${this.formatContent(currentVersion)}
               </div>
             </section>
-            ` : ''}
 
             <!-- 版本切换 -->
             <section class="result-version-switch animate-fade-in-up animate-delay-100">
@@ -80,17 +65,6 @@ export class TarotResultPage {
                       data-version="professional">
                 专业版
               </button>
-            </section>
-
-            <!-- 解读内容 -->
-            <section class="result-content-section animate-fade-in-up animate-delay-150">
-              <div class="result-content-title">
-                <span class="result-content-icon">💡</span>
-                肖大师解读
-              </div>
-              <div class="result-content-text" id="resultContent">
-                ${this.formatContent(currentVersion)}
-              </div>
             </section>
 
             <!-- 底部按钮 -->
