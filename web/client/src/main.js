@@ -21,6 +21,7 @@ import './styles/main.css';
 // 导入核心模块
 import router from './scripts/router.js';
 import state from './scripts/state.js';
+import { configApi } from './services/api.js';
 
 // 导入页面
 import {
@@ -56,6 +57,9 @@ function initApp() {
 
   // 初始化全局功能
   initGlobalFeatures();
+
+  // 获取服务端状态（test模式下跳过登录和购买校验）
+  fetchServerState();
 
   // 启动路由
   router.start();
@@ -107,6 +111,22 @@ function registerRoutes() {
     .register('/pay/:type', PaymentPage)
     .register('/result/:id', ResultPage)
     .register('/divination/result', DivinationResultPage);
+}
+
+/**
+ * 获取服务端状态
+ */
+async function fetchServerState() {
+  try {
+    const result = await configApi.getServerState();
+    if (result.success && result.data) {
+      state.set('serverState', result.data.serverState);
+      console.log(`[${getTimestamp()}] 🔧 服务端状态: ${result.data.serverState}`);
+    }
+  } catch (err) {
+    console.warn(`[${getTimestamp()}] ⚠️ 获取服务端状态失败:`, err.message);
+    state.set('serverState', 'production'); // 默认生产模式
+  }
 }
 
 /**

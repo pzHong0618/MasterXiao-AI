@@ -8,18 +8,21 @@ const geminiConfig = {
             apiUrl: 'https://api.sydney-ai.com/v1',
             model: 'gemini-3-pro-all'
         };
+const serverState = 'test';
 let config = {
     dev: {
         port,
         frontendUrl,
         ds_key,
         geminiConfig,
+        serverState
     },
     production: {
         port,
         frontendUrl,
         ds_key,
         geminiConfig,
+        serverState
     }
 }
 export default config[process.env.NODE_ENV || 'dev'];

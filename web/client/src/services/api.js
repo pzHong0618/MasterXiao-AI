@@ -465,6 +465,17 @@ export const matchRecordApi = {
     }
 };
 
+// ==================== 配置 API ====================
+
+export const configApi = {
+    /**
+     * 获取服务端状态（test / production）
+     */
+    async getServerState() {
+        return request('/config/server-state');
+    }
+};
+
 // 导出默认对象
 export default {
     auth: authApi,
@@ -473,6 +484,7 @@ export default {
     user: userApi,
     verification: verificationApi,
     payment: paymentApi,
-    matchRecord: matchRecordApi
+    matchRecord: matchRecordApi,
+    config: configApi
 };
 

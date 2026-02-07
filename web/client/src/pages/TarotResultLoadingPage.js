@@ -4,6 +4,8 @@
  */
 import { Navbar } from '../components/Common.js';
 import { getMatchTypeById } from '../data/matchTypes.js';
+import { matchRecordApi } from '../services/api.js';
+import { getSessionId } from '../scripts/state.js';
 
 // 加载提示语列表
 const LOADING_TIPS = [
@@ -213,6 +215,9 @@ export class TarotResultLoadingPage {
                 lunarDate: resultData.lunarDate
             };
 
+            // 更新匹配记录状态为成功
+            await this.updateMatchRecordStatus(1, resultData);
+
             // 跳转到结果页面
             setTimeout(() => {
                 window.router.navigate(`/test/${this.matchType.id}/tarot/result`);
@@ -239,6 +244,9 @@ export class TarotResultLoadingPage {
             this.stopProgress();
 
             window.showToast && window.showToast(error.message || '解读失败，请稍后重试', 'error');
+
+            // 更新匹配记录状态为失败
+            await this.updateMatchRecordStatus(2, { error: error.message });
             
             // 延迟返回
             setTimeout(() => {
@@ -319,6 +327,26 @@ export class TarotResultLoadingPage {
         if (barInner) barInner.style.width = '100%';
         if (spinner) spinner.setAttribute('stroke-dashoffset', '0');
         if (tipEl) tipEl.textContent = '解读完成！';
+    }
+
+    /**
+     * 更新匹配记录状态
+     * @param {number} status - 1=成功, 2=失败
+     * @param {object} resultData - 结果数据
+     */
+    async updateMatchRecordStatus(status, resultData = null) {
+        const sessionId = window.appState?.get?.('currentTest')?.sessionId || getSessionId();
+        if (!sessionId) {
+            console.log('无 sessionId，跳过匹配记录状态更新');
+            return;
+        }
+
+        try {
+            await matchRecordApi.updateStatus(sessionId, status, resultData);
+            console.log(`✅ 匹配记录状态已更新为 ${status === 1 ? '成功' : '失败'}`);
+        } catch (error) {
+            console.error('更新匹配记录状态失败:', error);
+        }
     }
 }
 

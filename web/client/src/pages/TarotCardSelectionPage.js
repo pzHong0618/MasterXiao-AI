@@ -9,6 +9,8 @@
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar } from '../components/Common.js';
 import { getGuaInfo, generateGuaCode, generateBianGuaCode, getMovingYaoPositions, getLunarDate } from '../utils/guaData.js';
+import { matchRecordApi } from '../services/api.js';
+import { getSessionId } from '../scripts/state.js';
 
 const TOTAL_SHAKES = 6;
 const COINS_PER_SHAKE = 3; // 每次摇3张牌（=3枚铜钱）
@@ -511,7 +513,37 @@ export class TarotCardSelectionPage {
             }
 
             btn.textContent = '开始解读';
-            btn.onclick = () => {
+            btn.onclick = async () => {
+                // 创建匹配记录
+                const sessionId = getSessionId();
+                const testData = {
+                    type: this.matchType.id,
+                    method: 'tarot',
+                    guaData: {
+                        question,
+                        questionCategory,
+                        gender,
+                        benGua: benGuaInfo.name,
+                        bianGua: bianGuaInfo.name,
+                        movingPositions,
+                        yaos: this.yaos.map(y => ({ position: y.position, name: y.name, symbol: y.symbol }))
+                    },
+                    collectedCards: this.collectedCards.map(c => c.cardData?.name || ''),
+                    timestamp: Date.now()
+                };
+
+                try {
+                    const result = await matchRecordApi.create(sessionId, testData);
+                    console.log('匹配记录创建成功:', result);
+                    testData.recordId = result.data?.recordId;
+                    testData.sessionId = sessionId;
+                } catch (error) {
+                    console.error('创建匹配记录失败:', error);
+                    testData.sessionId = sessionId;
+                }
+
+                window.appState?.set('currentTest', testData);
+
                 const q = encodeURIComponent(question);
                 window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${q}`);
             };

@@ -18,6 +18,7 @@ import matchRecordRoutes from './matchRecord.js';
 import tarotRoutes from './tarot.js';
 import divinationRoutes from './divination.js';
 import adminRoutes from './admin.js';
+import config from '../config/index.js';
 
 const router = express.Router();
 
@@ -27,6 +28,16 @@ router.get('/health', (req, res) => {
         status: 'ok',
         timestamp: new Date().toISOString(),
         version: '1.0.0'
+    });
+});
+
+// 获取服务端配置（serverState）
+router.get('/config/server-state', (req, res) => {
+    res.json({
+        success: true,
+        data: {
+            serverState: config.serverState || 'production'
+        }
     });
 });
 

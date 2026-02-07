@@ -250,46 +250,52 @@ export class TestSelectPage {
         
         const typeId = this.matchType.id;
 
-        // === 权限校验流程 ===
-        // 1. 检查登录状态
-        if (!authApi.isLoggedIn()) {
-            // 未登录，保存当前页面状态，跳转登录
-            sessionStorage.setItem('redirect_after_login', JSON.stringify({
-                path: `/test/${typeId}`,
-                page: 'detail',
-                testTypeId: typeId,
-                timestamp: Date.now()
-            }));
-            window.showToast('请先登录', 'default');
-            window.router.navigate('/auth?action=login');
-            return;
-        }
-
-        // 2. 检查服务权限（已登录的情况下）
-        try {
-            const sessionId = localStorage.getItem('app_session_id') || '';
-            const permResult = await userApi.checkPermission(typeId, sessionId);
-            
-            if (permResult.data && !permResult.data.hasAccess) {
-                if (permResult.data.needsLogin) {
-                    sessionStorage.setItem('redirect_after_login', JSON.stringify({
-                        path: `/test/${typeId}`,
-                        page: 'detail',
-                        testTypeId: typeId,
-                        timestamp: Date.now()
-                    }));
-                    window.router.navigate('/auth?action=login');
-                    return;
-                }
-                if (permResult.data.needsPurchase) {
-                    // 跳转支付页面
-                    window.router.navigate(`/pay/${typeId}`);
-                    return;
-                }
+        // 测试模式下跳过登录和购买校验
+        const serverState = window.appState?.get('serverState');
+        if (serverState !== 'test') {
+            // === 权限校验流程 ===
+            // 1. 检查登录状态
+            if (!authApi.isLoggedIn()) {
+                // 未登录，保存当前页面状态，跳转登录
+                sessionStorage.setItem('redirect_after_login', JSON.stringify({
+                    path: `/test/${typeId}`,
+                    page: 'detail',
+                    testTypeId: typeId,
+                    timestamp: Date.now()
+                }));
+                window.showToast('请先登录', 'default');
+                window.router.navigate('/auth?action=login');
+                return;
             }
-        } catch (err) {
-            // 权限检查失败时不阻塞流程，继续执行
-            console.warn('权限检查失败，继续流程:', err.message);
+
+            // 2. 检查服务权限（已登录的情况下）
+            try {
+                const sessionId = localStorage.getItem('app_session_id') || '';
+                const permResult = await userApi.checkPermission(typeId, sessionId);
+                
+                if (permResult.data && !permResult.data.hasAccess) {
+                    if (permResult.data.needsLogin) {
+                        sessionStorage.setItem('redirect_after_login', JSON.stringify({
+                            path: `/test/${typeId}`,
+                            page: 'detail',
+                            testTypeId: typeId,
+                            timestamp: Date.now()
+                        }));
+                        window.router.navigate('/auth?action=login');
+                        return;
+                    }
+                    if (permResult.data.needsPurchase) {
+                        // 跳转支付页面
+                        window.router.navigate(`/pay/${typeId}`);
+                        return;
+                    }
+                }
+            } catch (err) {
+                // 权限检查失败时不阻塞流程，继续执行
+                console.warn('权限检查失败，继续流程:', err.message);
+            }
+        } else {
+            console.log(`[测试模式] 跳过登录和购买校验`);
         }
 
         // === 兑换码验证流程 ===
