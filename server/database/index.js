@@ -136,6 +136,25 @@ async function initTables() {
         )
     `);
 
+    // 会话匹配记录表（核销码兑换匹配流程追踪）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS session_match_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT UNIQUE NOT NULL,
+            user_id TEXT DEFAULT NULL,
+            status INTEGER NOT NULL DEFAULT 0,
+            req_data TEXT,
+            result_data TEXT,
+            create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            update_date DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 为 session_match_records 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smr_session_id ON session_match_records(session_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smr_status ON session_match_records(status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smr_create_date ON session_match_records(create_date)`);
+
     console.log('✅ 数据库表初始化完成');
 }
 

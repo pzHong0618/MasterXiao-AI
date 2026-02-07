@@ -1353,8 +1353,15 @@
 
 .bottom-action-bar .btn {
     /* 移动端点击区域优化 */
-    min-height: 48px;
+    min-height: 40px;
     touch-action: manipulation;
+}
+
+.bottom-action-bar .btn--sm {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 36px;
+    white-space: nowrap;
 }
 
 .action-bar__buttons {
@@ -2199,40 +2206,94 @@
 }
 
 /* ==================== 导出模式样式 ==================== */
-/* 导出图片时使用的样式，模拟毛玻璃效果（因为html2canvas不支持backdrop-filter） */
+/* 导出图片时去掉毛玻璃和遮罩效果，使用纯色背景确保清晰可读 */
 .export-mode {
-    background: linear-gradient(180deg, #E8D5FF 0%, #FFE5F0 50%, #E5F0FF 100%) !important;
+    background: linear-gradient(180deg, #F3EDFF 0%, #FFF0F5 50%, #EDF4FF 100%) !important;
 }
 
-/* 禁用所有毛玻璃效果，因为html2canvas不支持 */
+/* 禁用所有毛玻璃/遮罩效果 */
 .export-mode * {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
-/* 用不透明背景模拟毛玻璃效果 */
+/* 所有卡片使用纯白不透明背景 */
 .export-mode .glass-card {
-    background: rgba(255, 255, 255, 0.85) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2ddf5 !important;
+    box-shadow: 0 2px 8px rgba(139, 127, 216, 0.1) !important;
 }
 
 .export-mode .ai-result-card {
-    background: rgba(255, 255, 255, 0.85) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2ddf5 !important;
 }
 
 .export-mode .analysis-block {
     background: #ffffff !important;
+    border: 1px solid #ece7f7 !important;
+    box-shadow: 0 1px 4px rgba(139, 127, 216, 0.08) !important;
 }
 
 .export-mode .persons-card {
-    background: rgba(255, 255, 255, 0.85) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2ddf5 !important;
 }
 
 .export-mode .result-header .glass-card {
-    background: rgba(255, 255, 255, 0.85) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2ddf5 !important;
 }
 
 .export-mode .disclaimer-card {
-    background: rgba(255, 255, 255, 0.85) !important;
+    background: #f8f6ff !important;
+    border: 1px solid #e2ddf5 !important;
+}
+
+/* 导出模式下加深文字颜色，提高可读性 */
+.export-mode .ai-content,
+.export-mode .block-content {
+    color: #333340 !important;
+}
+
+.export-mode .block-content .label-text {
+    color: #1a1a2e !important;
+    font-weight: 600 !important;
+}
+
+.export-mode .block-content .value-text {
+    color: #333340 !important;
+}
+
+.export-mode .block-title {
+    color: #1a1a2e !important;
+}
+
+.export-mode .person-info .person-name {
+    color: #1a1a2e !important;
+}
+
+.export-mode .person-info .person-birth {
+    color: #555566 !important;
+}
+
+.export-mode .heading-2,
+.export-mode .heading-3 {
+    color: #1a1a2e !important;
+}
+
+.export-mode .ai-intro-text {
+    color: #555566 !important;
+}
+
+.export-mode .block-content strong {
+    color: #6B5B95 !important;
+}
+
+/* 导出模式下 navbar 也用纯白背景 */
+.export-mode .navbar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2ddf5 !important;
 }
 
 /* ==================== 直觉卡牌问题选择页样式 ==================== */

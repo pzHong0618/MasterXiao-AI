@@ -7,7 +7,7 @@ import { getMatchTypeById } from '../data/matchTypes.js';
 import { getThreePillars, analyzeCompatibility, WUXING } from '../data/bazi.js';
 import { Navbar, MessageBubble, BottomActionBar } from '../components/Common.js';
 import { typewriter } from '../scripts/utils.js';
-import { analysisApi, testApi } from '../services/api.js';
+import { analysisApi, testApi, matchRecordApi } from '../services/api.js';
 
 export class ResultPage {
   constructor(params) {
@@ -368,14 +368,14 @@ export class ResultPage {
       <div class="bottom-action-bar safe-area-bottom">
         <div class="action-bar__buttons">
           <div class="btn-group-left">
-            <button class="btn btn--secondary" data-action="share">
+            <button class="btn btn--secondary btn--sm" data-action="share">
               <span>📤</span> 分享
             </button>
-            <button class="btn btn--secondary" data-action="export-png">
-              <span>🖼️</span> 导出匹配结果
+            <button class="btn btn--secondary btn--sm" data-action="export-png">
+              <span>🖼️</span> 导出结果
             </button>
           </div>
-          <button class="btn btn--primary" data-action="new-test">
+          <button class="btn btn--primary btn--sm" data-action="new-test">
             再测一次
           </button>
         </div>
@@ -706,6 +706,10 @@ export class ResultPage {
             this.streamContent = fullContent;
             this.isAnalyzing = false;
             this.isStreamComplete = true;
+            // 更新匹配记录状态为成功
+            this.updateMatchRecordStatus(1, { content: fullContent });
+            // 分析成功后才消耗兑换码
+            this.consumeRedeemCode();
             // 更新内容，显示完成提示
             const contentEl = document.getElementById('ai-stream-content');
             if (contentEl) {
@@ -733,6 +737,8 @@ export class ResultPage {
             this.streamContent = '分析失败，请稍后重试！';
             this.isAnalyzing = false;
             this.isStreamComplete = true; // 标记为完成，隐藏加载动画
+            // 更新匹配记录状态为失败
+            this.updateMatchRecordStatus(2, { error: error.message || '分析失败' });
             // 移除加载指示器
             const loadingEl = document.getElementById('stream-loading-indicator');
             if (loadingEl) loadingEl.remove();
@@ -751,6 +757,8 @@ export class ResultPage {
       this.streamContent = '分析失败，请稍后重试。';
       this.isAnalyzing = false;
       this.isStreamComplete = true; // 标记为完成，隐藏加载动画
+      // 更新匹配记录状态为失败
+      this.updateMatchRecordStatus(2, { error: error.message || '分析失败' });
       this.rerender();
     }
   }
@@ -1050,6 +1058,58 @@ export class ResultPage {
     formatted = formatted.replace(/(<br>)+(<div)/g, '$2');
     
     return `<div class="block-content">${formatted}</div>`;
+  }
+
+  /**
+   * 更新匹配记录状态
+   * @param {number} status - 1=成功, 2=失败
+   * @param {object} resultData - 结果数据
+   */
+  async updateMatchRecordStatus(status, resultData = null) {
+    const sessionId = this.testData?.sessionId;
+    if (!sessionId) {
+      console.log('无 sessionId，跳过匹配记录状态更新');
+      return;
+    }
+
+    try {
+      await matchRecordApi.updateStatus(sessionId, status, resultData);
+      console.log(`✅ 匹配记录状态已更新为 ${status === 1 ? '成功' : '失败'}`);
+    } catch (error) {
+      console.error('更新匹配记录状态失败:', error);
+      // 不影响用户体验，静默处理
+    }
+  }
+
+  /**
+   * 分析完成后消耗兑换码（更新使用次数和状态）
+   */
+  async consumeRedeemCode() {
+    const redeemCode = window.appState.get('redeemCode');
+    if (!redeemCode) {
+      console.log('无兑换码，跳过消耗');
+      return;
+    }
+
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
+      const response = await fetch(`${API_BASE}/redeem/use`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: redeemCode })
+      });
+      const result = await response.json();
+      if (result.success) {
+        console.log('✅ 兑换码已消耗:', redeemCode);
+        // 消耗成功后清除，避免重复消耗
+        window.appState.set('redeemCode', null);
+      } else {
+        console.warn('兑换码消耗失败:', result.message);
+      }
+    } catch (error) {
+      console.error('消耗兑换码失败:', error);
+      // 不影响用户体验，静默处理
+    }
   }
 
   rerender() {

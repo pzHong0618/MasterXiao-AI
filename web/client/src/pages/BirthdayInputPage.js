@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 匹配游戏 生日输入页
  * 输入双方生日进行生日特质匹配
  */
@@ -6,6 +6,8 @@
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar, BottomActionBar } from '../components/Common.js';
 import { formatLunarDate } from '../scripts/lunar.js';
+import { getSessionId, regenerateSessionId } from '../scripts/state.js';
+import { matchRecordApi } from '../services/api.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import { Mandarin } from 'flatpickr/dist/l10n/zh.js';
@@ -450,33 +452,112 @@ export class BirthdayInputPage {
                                 font-size: 13px !important;
                             }
                             
-                            /* 日期样式 */
+                            /* 日期样式 - 基础 */
                             .flatpickr-calendar .flatpickr-day {
                                 color: #2D2D3D !important;
-                                border-radius: 10px !important;
-                                font-weight: 500 !important;
-                                height: 42px !important;
-                                line-height: 42px !important;
+                                border-radius: 50% !important;
+                                font-weight: 600 !important;
+                                height: 40px !important;
+                                width: 40px !important;
+                                max-width: 40px !important;
+                                line-height: 40px !important;
+                                margin: 1px auto !important;
                             }
-                            .flatpickr-calendar .flatpickr-day.selected {
-                                background: linear-gradient(135deg, #8B7FD8, #A78BFA) !important;
+                            /* 当月日期 - 圆圈 + 淡色背景 */
+                            .flatpickr-calendar .flatpickr-day:not(.prevMonthDay):not(.nextMonthDay):not(.selected) {
+                                background: rgba(255, 255, 255, 0.55) !important;
+                                border: 1.5px solid rgba(139, 127, 216, 0.2) !important;
+                            }
+                            /* 非当月日期 - 变淡 */
+                            .flatpickr-calendar .flatpickr-day.prevMonthDay,
+                            .flatpickr-calendar .flatpickr-day.nextMonthDay {
+                                color: #c4b8e8 !important;
+                                opacity: 0.5 !important;
+                                background: transparent !important;
                                 border-color: transparent !important;
-                                color: white !important;
-                                box-shadow: 0 4px 12px rgba(139, 127, 216, 0.4) !important;
                             }
-                            .flatpickr-calendar .flatpickr-day.today {
+                            /* 选中日期 - 深色圆圈背景，提高优先级覆盖当月样式 */
+                            .flatpickr-calendar .flatpickr-day.selected,
+                            .flatpickr-calendar .flatpickr-day.flatpickr-selected {
+                                background: #5B4BB4 !important;
+                                background: linear-gradient(135deg, #5B4BB4 0%, #6B5AC4 50%, #7C4DFF 100%) !important;
+                                border: none !important;
+                                border-color: transparent !important;
+                                color: #fff !important;
+                                box-shadow: 0 4px 16px rgba(91, 75, 180, 0.6), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+                                font-weight: 700 !important;
+                                opacity: 1 !important;
+                            }
+                            /* 今天 */
+                            .flatpickr-calendar .flatpickr-day.today:not(.selected) {
                                 border: 2px solid #8B7FD8 !important;
-                                background: rgba(139, 127, 216, 0.08) !important;
+                                background: rgba(139, 127, 216, 0.12) !important;
                             }
+                            /* 禁用日期 */
                             .flatpickr-calendar .flatpickr-day.flatpickr-disabled {
                                 color: #bbb !important;
+                                opacity: 0.4 !important;
+                                background: transparent !important;
+                                border-color: transparent !important;
                             }
+                            /* 悬停 */
                             .flatpickr-calendar .flatpickr-day:hover:not(.flatpickr-disabled):not(.selected) {
-                                background: rgba(139, 127, 216, 0.12) !important;
-                                border-color: rgba(139, 127, 216, 0.3) !important;
+                                background: rgba(139, 127, 216, 0.18) !important;
+                                border-color: rgba(139, 127, 216, 0.4) !important;
                             }
                         `;
                         document.head.appendChild(style);
+                    }
+                    
+                    // 月视图左右滑动切换月份
+                    if (calendar) {
+                        let touchStartX = 0;
+                        let touchStartY = 0;
+                        let isSwiping = false;
+                        
+                        const daysContainer = calendar.querySelector('.flatpickr-innerContainer') || calendar;
+                        
+                        daysContainer.addEventListener('touchstart', (e) => {
+                            touchStartX = e.touches[0].clientX;
+                            touchStartY = e.touches[0].clientY;
+                            isSwiping = true;
+                        }, { passive: true });
+                        
+                        daysContainer.addEventListener('touchend', (e) => {
+                            if (!isSwiping) return;
+                            isSwiping = false;
+                            
+                            const touchEndX = e.changedTouches[0].clientX;
+                            const touchEndY = e.changedTouches[0].clientY;
+                            const deltaX = touchEndX - touchStartX;
+                            const deltaY = touchEndY - touchStartY;
+                            const absDX = Math.abs(deltaX);
+                            const absDY = Math.abs(deltaY);
+                            
+                            if (absDX > 50 && absDX > absDY * 1.5) {
+                                // 水平滑动 → 切换月份
+                                if (deltaX < 0) {
+                                    instance.changeMonth(1);   // 左滑 → 下一月
+                                } else {
+                                    instance.changeMonth(-1);  // 右滑 → 上一月
+                                }
+                            } else if (absDY > 60 && absDY > absDX * 1.5) {
+                                // 垂直滑动 → 切换年份
+                                const newYear = deltaY < 0
+                                    ? instance.currentYear + 1   // 上滑 → 下一年
+                                    : instance.currentYear - 1;  // 下滑 → 上一年
+                                // 限制在 1920 ~ 当前年范围内
+                                const currentYear = new Date().getFullYear();
+                                if (newYear >= 1920 && newYear <= currentYear) {
+                                    instance.changeYear(newYear);
+                                    // 同步年份下拉框
+                                    const yearSelect = document.querySelector('.flatpickr-yearDropdown');
+                                    if (yearSelect) {
+                                        yearSelect.value = newYear;
+                                    }
+                                }
+                            }
+                        }, { passive: true });
                     }
                     
                     // 移动端优化：确保点击输入框能打开选择器
@@ -855,7 +936,7 @@ export class BirthdayInputPage {
         }, 150); // 150ms 过渡时间
     }
 
-    submitTest() {
+    async submitTest() {
         console.log('submitTest 被调用');
         
         // 保存测试数据到状态
@@ -876,6 +957,33 @@ export class BirthdayInputPage {
         };
         
         console.log('测试数据:', JSON.stringify(testData));
+
+        // 创建匹配记录
+        let sessionId = getSessionId();
+        try {
+            const result = await matchRecordApi.create(sessionId, testData);
+            console.log('匹配记录创建成功:', result);
+            // 将 recordId 和 sessionId 存入测试数据
+            testData.recordId = result.data?.recordId;
+            testData.sessionId = sessionId;
+        } catch (error) {
+            console.error('创建匹配记录失败:', error);
+            // 如果是 SessionId 冲突（409），重新生成并重试
+            if (error.status === 409) {
+                console.log('SessionId 冲突，重新生成...');
+                sessionId = regenerateSessionId();
+                try {
+                    const retryResult = await matchRecordApi.create(sessionId, testData);
+                    console.log('重试成功:', retryResult);
+                    testData.recordId = retryResult.data?.recordId;
+                    testData.sessionId = sessionId;
+                } catch (retryError) {
+                    console.error('重试也失败:', retryError);
+                    // 不阻塞用户流程，继续跳转
+                }
+            }
+            // 其他错误不阻塞用户流程
+        }
         
         window.appState.set('currentTest', testData);
 

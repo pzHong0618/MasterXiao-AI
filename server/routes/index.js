@@ -14,6 +14,7 @@ import userRoutes from './user.js';
 import paymentRoutes from './payment.js';
 import redeemRoutes from './redeem.js';
 
+import matchRecordRoutes from './matchRecord.js';
 import tarotRoutes from './tarot.js';
 import divinationRoutes from './divination.js';
 
@@ -51,6 +52,9 @@ router.use('/payment', paymentRoutes);
 
 // 兑换码路由
 router.use('/redeem', redeemRoutes);
+
+// 匹配记录路由（核销码兑换匹配流程）
+router.use('/match/record', matchRecordRoutes);
 
 // 塔罗牌路由
 // router.use('/tarot', tarotRoutes);

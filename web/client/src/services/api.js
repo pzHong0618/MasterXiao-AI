@@ -351,6 +351,56 @@ export const paymentApi = {
     }
 };
 
+// ==================== 匹配记录 API ====================
+
+export const matchRecordApi = {
+    /**
+     * 创建匹配记录
+     * @param {string} sessionId - 会话ID
+     * @param {object} reqData - 用户提交的表单数据
+     * @param {string} userId - 用户ID（可选）
+     * @returns {Promise<{code, message, data: {recordId, sessionId}}>}
+     */
+    async create(sessionId, reqData, userId = null) {
+        return request('/match/record/create', {
+            method: 'POST',
+            body: JSON.stringify({ sessionId, reqData, userId })
+        });
+    },
+
+    /**
+     * 更新匹配记录状态
+     * @param {string} sessionId - 会话ID
+     * @param {number} status - 状态（1=成功, 2=失败）
+     * @param {object} resultData - 结果数据（可选）
+     * @returns {Promise<{code, message, data}>}
+     */
+    async updateStatus(sessionId, status, resultData = null) {
+        return request('/match/record/update-status', {
+            method: 'PUT',
+            body: JSON.stringify({ sessionId, status, resultData })
+        });
+    },
+
+    /**
+     * 查询匹配记录状态
+     * @param {string} sessionId - 会话ID
+     * @returns {Promise<{code, message, data: {sessionId, status, updateDate}}>}
+     */
+    async getStatus(sessionId) {
+        return request(`/match/record/status?sessionId=${encodeURIComponent(sessionId)}`);
+    },
+
+    /**
+     * 查询匹配记录详情
+     * @param {string} sessionId - 会话ID
+     * @returns {Promise<{code, message, data}>}
+     */
+    async getDetail(sessionId) {
+        return request(`/match/record/detail?sessionId=${encodeURIComponent(sessionId)}`);
+    }
+};
+
 // 导出默认对象
 export default {
     auth: authApi,
@@ -358,6 +408,7 @@ export default {
     analysis: analysisApi,
     user: userApi,
     verification: verificationApi,
-    payment: paymentApi
+    payment: paymentApi,
+    matchRecord: matchRecordApi
 };
 

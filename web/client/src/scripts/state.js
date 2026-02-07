@@ -131,7 +131,68 @@ const state = new State();
 state.set('currentTest', null);
 state.set('testProgress', { step: 0, total: 0 });
 
+// ==================== SessionId 管理 ====================
+
+/**
+ * 生成 UUID v4 格式的唯一 sessionId
+ * @returns {string} UUID 格式的字符串
+ */
+function generateSessionId() {
+    // 使用 crypto.randomUUID (现代浏览器支持)
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    // 回退方案：手动生成 UUID v4
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+/**
+ * 初始化会话 - 确保 localStorage 中存在唯一的 sessionId
+ * 在应用启动时调用
+ */
+function initSession() {
+    if (!localStorage.getItem('sessionId')) {
+        const sessionId = generateSessionId();
+        localStorage.setItem('sessionId', sessionId);
+        console.log('✅ 新会话已创建, sessionId:', sessionId);
+    } else {
+        console.log('✅ 已有会话, sessionId:', localStorage.getItem('sessionId'));
+    }
+}
+
+/**
+ * 获取当前 sessionId
+ * @returns {string}
+ */
+function getSessionId() {
+    let sessionId = localStorage.getItem('sessionId');
+    if (!sessionId) {
+        sessionId = generateSessionId();
+        localStorage.setItem('sessionId', sessionId);
+    }
+    return sessionId;
+}
+
+/**
+ * 重新生成 sessionId（冲突时调用）
+ * @returns {string} 新的 sessionId
+ */
+function regenerateSessionId() {
+    const newSessionId = generateSessionId();
+    localStorage.setItem('sessionId', newSessionId);
+    console.log('🔄 SessionId 已重新生成:', newSessionId);
+    return newSessionId;
+}
+
+// 初始化会话
+initSession();
+
 // 暴露到全局
 window.appState = state;
 
+export { getSessionId, regenerateSessionId, generateSessionId };
 export default state;

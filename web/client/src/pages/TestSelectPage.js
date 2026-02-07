@@ -276,8 +276,8 @@ export class TestSelectPage {
                 return;
             }
 
-            // 验证通过，标记为已使用
-            await this.useRedeemCode();
+            // 验证通过，将兑换码存入全局状态（分析完成后再消耗）
+            window.appState.set('redeemCode', this.redeemCode);
             this.codeVerified = true;
         }
 

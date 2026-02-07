@@ -9,14 +9,14 @@ export const RedeemCode = {
      */
     create(codeData) {
         const {
-            code,
+            code, //兑换码
             type = 'single',  // single: 单次使用, multi: 多次使用
-            max_uses = 1,
-            used_count = 0,
-            expires_at = null,
-            status = 'active',  // active, used, expired, disabled
+            max_uses = 1, //最大使用次数
+            used_count = 0, //已使用次数
+            expires_at = null, //过期时间
+            status = 'active',  // active(可使用), busy(使用中)， used(已使用)， expired(已过期)， disabled(已禁用)
             source = 'admin',   // admin: 后台创建, xhs: 小红书
-            remark = ''
+            remark = '' //备注
         } = codeData;
 
         const result = execute(
