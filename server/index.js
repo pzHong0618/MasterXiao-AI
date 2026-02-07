@@ -45,6 +45,9 @@ import { requestLogger } from './middleware/logger.js';
 // 数据库导入
 import { initDatabase, closeDatabase } from './database/index.js';
 
+// 配置导入（用于检查 serverState）
+import config from './config/index.js';
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -61,6 +64,11 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
+        // 测试模式：允许所有请求（方便调试）
+        if (config.serverState === 'test') {
+            return callback(null, true);
+        }
+        
         // 开发环境：允许所有请求
         if (process.env.NODE_ENV === 'development') {
             return callback(null, true);
