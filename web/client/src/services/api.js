@@ -3,7 +3,25 @@
  * 封装所有后端 API 调用
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// 动态获取 API 基础地址（自动适配当前访问域名）
+const getApiBaseUrl = () => {
+    // 优先使用环境变量配置
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    
+    // 自动检测：如果是通过 IP/域名访问，使用当前域名
+    const currentHost = window.location.host; // 包含端口的完整host
+    if (currentHost && !currentHost.includes('localhost') && !currentHost.includes('127.0.0.1')) {
+        // 云服务器或域名访问，使用当前协议和host
+        return `${window.location.protocol}//${currentHost}/api`;
+    }
+    
+    // 本地开发默认
+    return 'http://localhost:3000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * 通用请求方法
