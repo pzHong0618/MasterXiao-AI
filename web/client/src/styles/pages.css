@@ -485,6 +485,112 @@
     color: #E91E63;
 }
 
+/* ==================== 认证页面样式 ==================== */
+
+.auth-page .page-content {
+    padding-top: 16px;
+}
+
+.auth-logo-section {
+    text-align: center;
+    padding: var(--spacing-8) 0 var(--spacing-6);
+}
+
+.auth-logo {
+    font-size: 48px;
+    margin-bottom: var(--spacing-3);
+}
+
+.auth-title {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-2);
+}
+
+.auth-subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.auth-form-section .glass-card {
+    padding: var(--spacing-6);
+}
+
+/* 验证码输入行 */
+.sms-code-row {
+    display: flex;
+    gap: var(--spacing-3);
+    align-items: stretch;
+}
+
+.sms-code-input {
+    flex: 1;
+}
+
+.sms-code-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: var(--font-size-sm);
+    padding: 12px 16px;
+    min-width: 110px;
+}
+
+.sms-code-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 开发环境验证码提示 */
+.dev-code-hint {
+    background: rgba(74, 222, 128, 0.15);
+    color: #16a34a;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    margin-top: -8px;
+    margin-bottom: 8px;
+}
+
+/* 可选标签 */
+.input-helper-inline {
+    color: var(--color-text-tertiary);
+    font-weight: normal;
+    font-size: var(--font-size-xs);
+}
+
+/* 底部切换链接 */
+.auth-footer {
+    text-align: center;
+    padding: var(--spacing-6) 0;
+}
+
+.auth-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.auth-link {
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.auth-link:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+.auth-link-divider {
+    color: var(--color-text-tertiary);
+    font-size: var(--font-size-xs);
+}
+
 /* ==================== 生日输入页样式 ==================== */
 
 /* 生日输入页顶部间距优化 */

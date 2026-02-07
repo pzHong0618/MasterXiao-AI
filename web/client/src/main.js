@@ -26,6 +26,7 @@ import state from './scripts/state.js';
 import {
   HomePage,
   XHSLandingPage,
+  AuthPage,
   TestSelectPage,
   BirthdayInputPage,
   TarotPage,
@@ -47,6 +48,9 @@ import {
 function initApp() {
   console.log(`[${getTimestamp()}] ✨ 匹配游戏启动中...`);
 
+  // 初始化 Session
+  initializeSession();
+
   // 注册路由
   registerRoutes();
 
@@ -60,12 +64,36 @@ function initApp() {
 }
 
 /**
+ * 初始化 Session - 确保有 sessionId
+ */
+function initializeSession() {
+  let sessionId = localStorage.getItem('app_session_id');
+
+  if (!sessionId) {
+    sessionId = crypto.randomUUID ? crypto.randomUUID() :
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      });
+    localStorage.setItem('app_session_id', sessionId);
+  }
+
+  window.appSession = {
+    id: sessionId,
+    createdAt: new Date().toISOString()
+  };
+
+  console.log(`[${getTimestamp()}] 📋 SessionId: ${sessionId.slice(0, 8)}...`);
+}
+
+/**
  * 注册路由
  */
 function registerRoutes() {
   router
     .register('/', HomePage)
     .register('/xhs', XHSLandingPage)
+    .register('/auth', AuthPage)
     .register('/test/:type', TestSelectPage)
     .register('/test/:type/birthday', BirthdayInputPage)
     .register('/test/:type/tarot', TarotPage)

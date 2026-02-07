@@ -9,6 +9,7 @@
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar } from '../components/Common.js';
 import { FeatureCardDetail } from '../components/FeatureCard.js';
+import { authApi, userApi } from '../services/api.js';
 
 // API 配置
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
@@ -249,11 +250,52 @@ export class TestSelectPage {
         
         const typeId = this.matchType.id;
 
-        // 如果有兑换码参数，先验证
+        // === 权限校验流程 ===
+        // 1. 检查登录状态
+        if (!authApi.isLoggedIn()) {
+            // 未登录，保存当前页面状态，跳转登录
+            sessionStorage.setItem('redirect_after_login', JSON.stringify({
+                path: `/test/${typeId}`,
+                page: 'detail',
+                testTypeId: typeId,
+                timestamp: Date.now()
+            }));
+            window.showToast('请先登录', 'default');
+            window.router.navigate('/auth?action=login');
+            return;
+        }
+
+        // 2. 检查服务权限（已登录的情况下）
+        try {
+            const sessionId = localStorage.getItem('app_session_id') || '';
+            const permResult = await userApi.checkPermission(typeId, sessionId);
+            
+            if (permResult.data && !permResult.data.hasAccess) {
+                if (permResult.data.needsLogin) {
+                    sessionStorage.setItem('redirect_after_login', JSON.stringify({
+                        path: `/test/${typeId}`,
+                        page: 'detail',
+                        testTypeId: typeId,
+                        timestamp: Date.now()
+                    }));
+                    window.router.navigate('/auth?action=login');
+                    return;
+                }
+                if (permResult.data.needsPurchase) {
+                    // 跳转支付页面
+                    window.router.navigate(`/pay/${typeId}`);
+                    return;
+                }
+            }
+        } catch (err) {
+            // 权限检查失败时不阻塞流程，继续执行
+            console.warn('权限检查失败，继续流程:', err.message);
+        }
+
+        // === 兑换码验证流程 ===
         if (this.redeemCode && !this.codeVerified) {
             this.isVerifying = true;
 
-            // 显示加载状态
             const clickedCard = document.querySelector(`.method-card[data-method="${method}"]`);
             if (clickedCard) {
                 clickedCard.style.opacity = '0.7';
@@ -262,7 +304,6 @@ export class TestSelectPage {
 
             const verifyResult = await this.verifyRedeemCode();
             
-            // 恢复卡片状态
             if (clickedCard) {
                 clickedCard.style.opacity = '';
                 clickedCard.style.pointerEvents = '';
@@ -271,22 +312,18 @@ export class TestSelectPage {
             this.isVerifying = false;
 
             if (!verifyResult.valid && !verifyResult.success) {
-                // 兑换码无效
                 this.showToast(verifyResult.message || '兑换码无效', 'error');
                 return;
             }
 
-            // 验证通过，将兑换码存入全局状态（分析完成后再消耗）
             window.appState.set('redeemCode', this.redeemCode);
             this.codeVerified = true;
         }
 
         // 导航到下一页
         if (method === 'birthday') {
-            // 跳转到生日输入页
             window.router.navigate(`/test/${typeId}/birthday`);
         } else if (method === 'tarot') {
-            // 跳转到卡牌测试页
             window.router.navigate(`/test/${typeId}/tarot`);
         }
     }

@@ -4,6 +4,7 @@
 
 export { HomePage } from './HomePage.js';
 export { XHSLandingPage } from './XHSLandingPage.js';
+export { AuthPage } from './AuthPage.js';
 export { TestSelectPage } from './TestSelectPage.js';
 export { BirthdayInputPage } from './BirthdayInputPage.js';
 export { TarotPage } from './TarotPage.js';

@@ -4,10 +4,81 @@
 
 import express from 'express';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import { authenticate } from '../middleware/auth.js';
-import { users } from '../services/dataStore.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { users, userPurchases } from '../services/dataStore.js';
 
 const router = express.Router();
+
+/**
+ * POST /api/user/check-permission
+ * 用户权限验证（登录状态 + 服务购买状态）
+ * 文档 3.1
+ */
+router.post('/check-permission', optionalAuth, asyncHandler(async (req, res) => {
+    const { sessionId, testTypeId } = req.body;
+
+    if (!testTypeId) {
+        throw new AppError('缺少测试类型参数', 400, 'MISSING_TEST_TYPE');
+    }
+
+    // 未登录
+    if (!req.user) {
+        return res.json({
+            code: 200,
+            message: 'success',
+            data: {
+                hasAccess: false,
+                needsLogin: true,
+                needsPurchase: false,
+                testTypeId,
+                userId: null,
+                userInfo: null
+            }
+        });
+    }
+
+    const user = users.get(req.user.phone);
+    if (!user) {
+        return res.json({
+            code: 200,
+            message: 'success',
+            data: {
+                hasAccess: false,
+                needsLogin: true,
+                needsPurchase: false,
+                testTypeId,
+                userId: null,
+                userInfo: null
+            }
+        });
+    }
+
+    // 检查是否有免费次数（credits > 0 也算有权限）
+    const hasCredits = (user.credits || 0) > 0;
+
+    // 检查购买记录
+    const purchaseKey = `${user.id}_${testTypeId}`;
+    const purchase = userPurchases.get(purchaseKey);
+    const hasPurchase = purchase && purchase.isActive && purchase.paymentStatus === 1;
+
+    const hasAccess = hasCredits || hasPurchase;
+
+    res.json({
+        code: 200,
+        message: 'success',
+        data: {
+            hasAccess,
+            needsLogin: false,
+            needsPurchase: !hasAccess,
+            testTypeId,
+            userId: user.id,
+            userInfo: {
+                phone: user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+                nickname: user.nickname
+            }
+        }
+    });
+}));
 
 /**
  * PUT /api/user/profile

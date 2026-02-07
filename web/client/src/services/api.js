@@ -61,13 +61,40 @@ export class ApiError extends Error {
 
 export const authApi = {
     /**
-     * 发送验证码
+     * 发送验证码（新接口，支持类型）
+     */
+    async sendSms(phone, type = 'login') {
+        return request('/auth/send-sms', {
+            method: 'POST',
+            body: JSON.stringify({ phone, type })
+        });
+    },
+
+    /**
+     * 发送验证码（兼容旧接口）
      */
     async sendCode(phone) {
         return request('/auth/send-code', {
             method: 'POST',
             body: JSON.stringify({ phone })
         });
+    },
+
+    /**
+     * 用户注册
+     */
+    async register(data) {
+        const result = await request('/auth/register', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+
+        if (result.success && result.data?.token) {
+            localStorage.setItem('auth_token', result.data.token);
+            localStorage.setItem('user', JSON.stringify(result.data.user));
+        }
+
+        return result;
     },
 
     /**
@@ -85,6 +112,33 @@ export const authApi = {
         }
 
         return result;
+    },
+
+    /**
+     * 密码登录
+     */
+    async loginWithPassword(phone, password, rememberMe = false) {
+        const result = await request('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ phone, password, rememberMe })
+        });
+
+        if (result.success && result.data?.token) {
+            localStorage.setItem('auth_token', result.data.token);
+            localStorage.setItem('user', JSON.stringify(result.data.user));
+        }
+
+        return result;
+    },
+
+    /**
+     * 重置密码
+     */
+    async resetPassword(data) {
+        return request('/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
     },
 
     /**
@@ -247,6 +301,16 @@ export const analysisApi = {
 // ==================== 用户 API ====================
 
 export const userApi = {
+    /**
+     * 检查用户权限（登录状态 + 购买状态）
+     */
+    async checkPermission(testTypeId, sessionId) {
+        return request('/user/check-permission', {
+            method: 'POST',
+            body: JSON.stringify({ testTypeId, sessionId })
+        });
+    },
+
     /**
      * 更新用户资料
      */
