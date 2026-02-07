@@ -13,7 +13,9 @@ export default defineConfig({
     strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.NODE_ENV === 'development' 
+          ? 'http://localhost:3000' 
+          : 'http://43.143.84.132:3000',
         changeOrigin: true,
       }
     }
