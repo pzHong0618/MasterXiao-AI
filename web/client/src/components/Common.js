@@ -84,8 +84,8 @@ export function ProgressBar(current, total, options = {}) {
 
     const percentage = Math.min((current / total) * 100, 100);
 
-    // 步骤描述在横线中间显示
-    const labelHtml = stepLabel ? `<span class="progress-bar__label">${stepLabel}</span>` : '';
+    // 步骤描述在进度条下方显示
+    const labelHtml = stepLabel ? `<div class="progress-bar__label">${stepLabel}</div>` : '';
 
     const textHtml = showText
         ? `<div class="progress-bar__text">${current} / ${total}</div>`
@@ -97,11 +97,8 @@ export function ProgressBar(current, total, options = {}) {
         <div class="progress-bar__track">
           <div class="progress-bar__fill" style="width: ${percentage}%"></div>
         </div>
-        ${labelHtml}
-        <div class="progress-bar__track">
-          <div class="progress-bar__fill" style="width: ${percentage}%"></div>
-        </div>
       </div>
+      ${labelHtml}
       ${textHtml}
     </div>
   `;

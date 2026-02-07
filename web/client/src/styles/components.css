@@ -675,12 +675,11 @@
 .progress-bar__label {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
-    white-space: normal;
+    white-space: nowrap;
     text-align: center;
-    flex-shrink: 1;
-    min-width: 0;
-    padding: 0 8px;
+    padding: 6px 0 0;
     word-break: keep-all;
+    display: block;
 }
 
 .progress-bar__text {

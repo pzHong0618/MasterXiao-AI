@@ -5,13 +5,13 @@
 import { Navbar } from '../components/Common.js';
 import { getMatchTypeById } from '../data/matchTypes.js';
 
-// 加载提示语列表（与小程序保持一致）
+// 加载提示语列表
 const LOADING_TIPS = [
-    '正在分析卦象...',
-    '正在推算用神...',
-    '正在分析六亲关系...',
-    '正在查看动爻变化...',
-    '正在综合分析结果...',
+    '正在解读牌面信息...',
+    '正在分析能量走向...',
+    '正在综合牌阵含义...',
+    '正在梳理核心脉络...',
+    '正在整合深层指引...',
     '肖大师正在认真解读...',
     '即将完成，请稍候...'
 ];
@@ -55,35 +55,9 @@ export class TarotResultLoadingPage {
           <div class="app-container">
             <!-- 问题卡片 -->
             <section class="result-question-card animate-fade-in-up">
-              <div class="result-question-title">所问事项</div>
+              <div class="result-question-title">匹配事项</div>
               <div class="result-question-main">${this.question}</div>
             </section>
-            
-            <!-- 卦象信息卡片 -->
-            ${benGuaInfo.name ? `
-            <section class="result-gua-card animate-fade-in-up animate-delay-50">
-              <div class="gua-info-row">
-                <div class="gua-info-item">
-                  <span class="gua-label">本卦</span>
-                  <span class="gua-name">${benGuaInfo.name || ''}</span>
-                  <span class="gua-palace">${benGuaInfo.palace || ''}宫</span>
-                </div>
-                ${hasMovingYao && bianGuaInfo.name ? `
-                <div class="gua-arrow">→</div>
-                <div class="gua-info-item">
-                  <span class="gua-label">变卦</span>
-                  <span class="gua-name">${bianGuaInfo.name || ''}</span>
-                  <span class="gua-palace">${bianGuaInfo.palace || ''}宫</span>
-                </div>
-                ` : ''}
-              </div>
-              ${hasMovingYao ? `
-              <div class="gua-moving-info">
-                动爻：${movingPositions.map(p => ['初爻','二爻','三爻','四爻','五爻','上爻'][p-1]).join('、')}
-              </div>
-              ` : ''}
-            </section>
-            ` : ''}
             
             <!-- 加载动画卡片 -->
             <section class="result-loading-card animate-fade-in-up animate-delay-100">
@@ -152,7 +126,7 @@ export class TarotResultLoadingPage {
             const guaData = window.appState?.get?.('guaData');
             
             if (!guaData) {
-                window.showToast('卦象数据异常', 'error');
+            window.showToast('数据异常，请重试', 'error');
                 setTimeout(() => window.router.back(), 1500);
                 return;
             }
@@ -264,7 +238,7 @@ export class TarotResultLoadingPage {
             // 停止进度条
             this.stopProgress();
 
-            window.showToast && window.showToast(error.message || '解卦失败，请稍后重试', 'error');
+            window.showToast && window.showToast(error.message || '解读失败，请稍后重试', 'error');
             
             // 延迟返回
             setTimeout(() => {
@@ -308,7 +282,7 @@ export class TarotResultLoadingPage {
             } else if (elapsed > 90) {
                 tip = '正在等待响应，请耐心等待...';
             } else if (elapsed > 60) {
-                tip = '还在努力解读中，请稍候...';
+                tip = '大师正在深度分析，请稍候...';
             }
             this.currentTip = tip;
             
@@ -334,7 +308,7 @@ export class TarotResultLoadingPage {
         // 设置完成状态
         this.progress = 1;
         this.estimateSeconds = 0;
-        this.currentTip = '解卦完成！';
+        this.currentTip = '解读完成！';
         
         const secEl = document.querySelector('.result-loading-sec');
         const barInner = document.querySelector('.result-loading-bar-inner');
@@ -344,7 +318,7 @@ export class TarotResultLoadingPage {
         if (secEl) secEl.textContent = '0';
         if (barInner) barInner.style.width = '100%';
         if (spinner) spinner.setAttribute('stroke-dashoffset', '0');
-        if (tipEl) tipEl.textContent = '解卦完成！';
+        if (tipEl) tipEl.textContent = '解读完成！';
     }
 }
 

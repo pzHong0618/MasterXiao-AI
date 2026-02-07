@@ -42,7 +42,7 @@ export class BirthdayInputPage {
           <div class="app-container">
             
             <!-- 进度指示 -->
-            <section class="progress-section mt-4 mb-6">
+            <section class="progress-section">
               ${ProgressBar(this.currentStep, 2, { 
                 showText: false, 
                 showSteps: false,

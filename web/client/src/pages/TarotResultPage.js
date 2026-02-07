@@ -1,15 +1,15 @@
 /**
  * 塔罗解读结果页
- * 展示完整的六爻解读结果
+ * 展示通俗解读结果，支持保存为长图
  */
 import { Navbar } from '../components/Common.js';
 import { getMatchTypeById } from '../data/matchTypes.js';
+import html2canvas from 'html2canvas';
 
 export class TarotResultPage {
     constructor(params) {
         this.matchType = getMatchTypeById(params.type);
         this.resultData = window.appState.tarotInterpretResult || null;
-        this.showVersion = 'simple'; // 'simple' 或 'professional'
         
         if (!this.matchType || !this.resultData) {
             window.router.navigate('/');
@@ -20,9 +20,7 @@ export class TarotResultPage {
     render() {
         if (!this.resultData) return '';
 
-        const { question, simpleVersion, professionalVersion, benGuaInfo, bianGuaInfo, movingPositions, lunarDate } = this.resultData;
-        const currentVersion = this.showVersion === 'simple' ? simpleVersion : professionalVersion;
-        const hasMovingYao = movingPositions && movingPositions.length > 0;
+        const { question, simpleVersion, lunarDate } = this.resultData;
 
         return `
       <div class="page tarot-result-page">
@@ -36,39 +34,42 @@ export class TarotResultPage {
         <main class="page-content">
           <div class="app-container">
             
-            <!-- 问题卡片 -->
-            <section class="result-question-card animate-fade-in-up">
-              <div class="result-question-label">所问事项</div>
-              <div class="result-question-title">${question}</div>
-              ${lunarDate ? `<div class="result-question-date">${lunarDate}</div>` : ''}
-            </section>
+            <!-- 可截图区域 -->
+            <div id="resultCaptureArea">
+              <!-- 问题卡片 -->
+              <section class="result-question-card animate-fade-in-up">
+                <div class="result-question-label">匹配事项</div>
+                <div class="result-question-title">${question}</div>
+                ${lunarDate ? `<div class="result-question-date">${lunarDate}</div>` : ''}
+              </section>
 
-            <!-- 解读内容卡片 -->
-            <section class="result-interpretation-card animate-fade-in-up animate-delay-50">
-              <div class="result-interpretation-header">
-                <span class="result-interpretation-icon">💡</span>
-                <span class="result-interpretation-title">解读</span>
+              <!-- 解读内容卡片 -->
+              <section class="result-interpretation-card animate-fade-in-up animate-delay-50">
+                <div class="result-interpretation-header">
+                  <span class="result-interpretation-icon">💡</span>
+                  <span class="result-interpretation-title">解读</span>
+                </div>
+                
+                <div class="result-interpretation-content" id="resultContent">
+                  ${this.formatContent(simpleVersion)}
+                </div>
+              </section>
+
+              <div class="result-disclaimer">
+                本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据
               </div>
-              
-              <div class="result-interpretation-content" id="resultContent">
-                ${this.formatContent(currentVersion)}
-              </div>
-            </section>
+            </div>
 
-            <!-- 版本切换 -->
-            <section class="result-version-switch animate-fade-in-up animate-delay-100">
-              <button class="version-btn ${this.showVersion === 'simple' ? 'version-btn--active' : ''}" 
-                      data-version="simple">
-                通俗版
+            <!-- 按钮栏（内嵌在内容区） -->
+            <div class="result-bottom-bar">
+              <button class="result-bottom-btn result-bottom-btn--restart" id="btnRestart">
+                <span class="result-bottom-btn-icon">🔄</span>
+                <span>重新开始</span>
               </button>
-              <button class="version-btn ${this.showVersion === 'professional' ? 'version-btn--active' : ''}" 
-                      data-version="professional">
-                专业版
+              <button class="result-bottom-btn result-bottom-btn--save" id="btnSave">
+                <span class="result-bottom-btn-icon">💾</span>
+                <span>保存</span>
               </button>
-            </section>
-
-            <div class="result-disclaimer">
-              本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据
             </div>
 
             <div class="safe-area-bottom"></div>
@@ -97,15 +98,6 @@ export class TarotResultPage {
             });
         }
 
-        // 版本切换按钮
-        const versionBtns = document.querySelectorAll('.version-btn');
-        versionBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const version = e.target.dataset.version;
-                this.switchVersion(version);
-            });
-        });
-
         // 重新开始按钮
         const btnRestart = document.getElementById('btnRestart');
         if (btnRestart) {
@@ -120,97 +112,67 @@ export class TarotResultPage {
             });
         }
 
-        // 分享按钮
-        const btnShare = document.getElementById('btnShare');
-        if (btnShare) {
-            btnShare.addEventListener('click', () => {
-                this.handleShare();
+        // 保存按钮
+        const btnSave = document.getElementById('btnSave');
+        if (btnSave) {
+            btnSave.addEventListener('click', () => {
+                this.handleSaveImage();
             });
         }
     }
 
-    switchVersion(version) {
-        if (version === this.showVersion) return;
-        
-        this.showVersion = version;
-        
-        // 更新按钮状态
-        document.querySelectorAll('.version-btn').forEach(btn => {
-            if (btn.dataset.version === version) {
-                btn.classList.add('version-btn--active');
-            } else {
-                btn.classList.remove('version-btn--active');
-            }
-        });
-
-        // 更新内容
-        const contentEl = document.getElementById('resultContent');
-        if (contentEl) {
-            const newContent = version === 'simple' 
-                ? this.resultData.simpleVersion 
-                : this.resultData.professionalVersion;
-            
-            contentEl.classList.add('fade-out');
-            setTimeout(() => {
-                contentEl.innerHTML = this.formatContent(newContent);
-                contentEl.classList.remove('fade-out');
-                contentEl.classList.add('fade-in');
-                setTimeout(() => {
-                    contentEl.classList.remove('fade-in');
-                }, 300);
-            }, 150);
+    async handleSaveImage() {
+        const captureArea = document.getElementById('resultCaptureArea');
+        if (!captureArea) {
+            window.showToast('保存失败', 'error');
+            return;
         }
-    }
 
-    handleShare() {
-        // 构建分享文本
-        const { question, benGuaInfo, bianGuaInfo, movingPositions, simpleVersion } = this.resultData;
-        const hasMovingYao = movingPositions && movingPositions.length > 0;
-        
-        let shareText = `【六爻解卦】\n\n`;
-        shareText += `问题：${question}\n\n`;
-        
-        if (benGuaInfo && benGuaInfo.name) {
-            shareText += `本卦：${benGuaInfo.name}（${benGuaInfo.palace}宫）\n`;
-            if (hasMovingYao && bianGuaInfo && bianGuaInfo.name) {
-                shareText += `变卦：${bianGuaInfo.name}（${bianGuaInfo.palace}宫）\n`;
-                shareText += `动爻：${movingPositions.map(p => ['初爻','二爻','三爻','四爻','五爻','上爻'][p-1]).join('、')}\n`;
-            }
-            shareText += '\n';
+        const btnSave = document.getElementById('btnSave');
+        if (btnSave) {
+            btnSave.disabled = true;
+            btnSave.querySelector('span:last-child').textContent = '保存中...';
         }
-        
-        shareText += `${simpleVersion}\n\n`;
-        shareText += `来自小肖AI - 直觉塔罗`;
-        
-        // 尝试使用 Clipboard API
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(shareText).then(() => {
-                window.showToast('结果已复制到剪贴板', 'success');
-            }).catch(() => {
-                this.fallbackCopyText(shareText);
-            });
-        } else {
-            this.fallbackCopyText(shareText);
-        }
-    }
 
-    fallbackCopyText(text) {
-        // 降级方案：创建临时 textarea
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        
         try {
-            document.execCommand('copy');
-            window.showToast('结果已复制到剪贴板', 'success');
+            // 添加简化样式类（只保留结构、背景色、字体、卡片框）
+            captureArea.classList.add('capture-mode');
+            
+            // 等待样式应用
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const canvas = await html2canvas(captureArea, {
+                backgroundColor: null,
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                windowWidth: captureArea.scrollWidth,
+                windowHeight: captureArea.scrollHeight,
+            });
+
+            // 移除简化样式类
+            captureArea.classList.remove('capture-mode');
+
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.download = `塔罗解读_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            window.showToast('图片已保存', 'success');
         } catch (err) {
-            window.showToast('复制失败，请手动复制', 'error');
+            console.error('保存图片失败:', err);
+            window.showToast('保存失败，请重试', 'error');
+            // 确保出错时也移除样式类
+            captureArea.classList.remove('capture-mode');
+        } finally {
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.querySelector('span:last-child').textContent = '保存';
+            }
         }
-        
-        document.body.removeChild(textarea);
     }
 }
 

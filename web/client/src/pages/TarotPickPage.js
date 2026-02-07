@@ -1,26 +1,25 @@
 /**
  * 直觉塔罗 抽牌页
  * 圆环牌轮排列，手指上下滑动旋转牌轮
- * 点击单张牌可放大预览，点击摇牌抽6张并播放飞牌动画
+ * 每次点击一张牌 → 悬浮放大显示 → 重选/确定 → 确定后翻开放入顶部槽框
+ * 抽满6张后点击下一步进入摇牌页
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar } from '../components/Common.js';
-import { drawFromFullDeck } from '../data/tarot.js';
+import { drawFromFullDeck, FULL_DECK } from '../data/tarot.js';
 
 const TOTAL_CARDS = 72;
 const CARDS_TO_DRAW = 6;
 const SLOT_LABELS = ['目标', '动力', '障碍', '资源', '支持', '结果'];
 
-// 响应式半径：与 CSS --wheel-size 的一半对应
+// 响应式半径
 function getWheelRadius() {
     const vw = window.innerWidth;
-    // CSS: max(140vw, 600px) / 2，再稍微缩进一点留内边距
     const size = Math.max(vw * 1.4, 600);
-    // 手机端用 160vw
     const mobileSize = vw * 1.6;
     const wheelSize = vw <= 500 ? mobileSize : size;
-    return wheelSize / 2 - 20; // 半径 = 半径 - 一点内边距
+    return wheelSize / 2 - 20;
 }
 
 export class TarotPickPage {
@@ -38,6 +37,15 @@ export class TarotPickPage {
         this.lastMoveY = 0;
         this.animFrameId = null;
         this._cleanups = [];
+
+        // 已选的牌：数组长度6，null=空槽
+        this.pickedCards = new Array(CARDS_TO_DRAW).fill(null);
+        this.usedCardIds = new Set(); // 已抽过的牌ID，避免重复
+        this.isShowingPreview = false;
+    }
+
+    get pickedCount() {
+        return this.pickedCards.filter(c => c !== null).length;
     }
 
     render() {
@@ -55,18 +63,37 @@ export class TarotPickPage {
                 </div>`;
         }
 
+        // 顶部6个槽框
+        const slotsHtml = SLOT_LABELS.map((label, i) => `
+          <div class="pick-slot" id="pickSlot${i}" data-slot="${i}">
+            <div class="pick-slot__empty">
+              <span class="pick-slot__label">${label}</span>
+            </div>
+          </div>
+        `).join('');
+
         return `
       <div class="page tarot-pick-page">
         ${Navbar({ title: '抽牌', showBack: true, showHistory: false, showProfile: false })}
         <main class="page-content">
           <div class="pick-page-wrap">
+            <!-- 顶部槽框 -->
+            <div class="pick-slots-bar" id="pickSlotsBar">
+              ${slotsHtml}
+            </div>
             <div class="pick-hint-bar">
-              <span class="pick-hint-text">手指可放大牌轮，滑动牌轮，点击选牌</span>
+              <span class="pick-hint-text">点击牌轮中的牌抽取，共需抽 ${CARDS_TO_DRAW} 张</span>
             </div>
             <div class="pick-wheel-viewport" id="wheelViewport">
               <div class="pick-wheel" id="pickWheel">
                 ${cardsHtml}
               </div>
+            </div>
+            <!-- 底部下一步 -->
+            <div class="pick-bottom-bar">
+              <button class="btn btn--primary btn--full btn--lg pick-next-btn" id="pickNextBtn">
+                下一步
+              </button>
             </div>
           </div>
         </main>
@@ -74,15 +101,17 @@ export class TarotPickPage {
     }
 
     attachEvents() {
-        const backBtn = document.querySelector('.navbar__back-btn');
-        if (backBtn) backBtn.addEventListener('click', () => window.router.back());
+        document.querySelector('.navbar__back-btn')?.addEventListener('click', () => window.router.back());
 
-        // 卡牌点击直接抽牌
+        // 卡牌点击抽牌
         document.getElementById('pickWheel')?.addEventListener('click', (e) => {
-            if (this.hasMoved) return;
+            if (this.hasMoved || this.isShowingPreview) return;
             const card = e.target.closest('.wheel-card');
-            if (card) this.handleDraw();
+            if (card) this.handleDrawOne();
         });
+
+        // 下一步
+        document.getElementById('pickNextBtn')?.addEventListener('click', () => this.handleNext());
 
         const vp = document.getElementById('wheelViewport');
         if (!vp) return;
@@ -156,103 +185,125 @@ export class TarotPickPage {
         if (el) el.style.transform = `rotate(${this.currentRotation}deg)`;
     }
 
-    /* ---- 摇牌 ---- */
-    handleDraw() {
+    /* ---- 抽一张牌 ---- */
+    handleDrawOne() {
+        if (this.pickedCount >= CARDS_TO_DRAW) {
+            window.showToast && window.showToast('已抽满6张牌，请点击下一步', 'default');
+            return;
+        }
         this.stopInertia();
 
-        // 从78张塔罗牌中随机抽6张
-        const drawnCards = drawFromFullDeck(CARDS_TO_DRAW);
-        const selected = drawnCards.map(c => c.id);
+        // 从78张牌中随机抽一张（排除已选的）
+        const available = FULL_DECK.filter(c => !this.usedCardIds.has(c.id));
+        const card = { ...available[Math.floor(Math.random() * available.length)] };
 
-        // 保存完整牌面数据
+        // 显示悬浮预览
+        this.showCardPreview(card);
+    }
+
+    /* ---- 悬浮预览 ---- */
+    showCardPreview(card) {
+        this.isShowingPreview = true;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'pick-preview-overlay';
+        overlay.innerHTML = `
+          <div class="pick-preview-wrap">
+            <div class="pick-preview-card">
+              <div class="pick-preview-card__inner">
+                <div class="pick-preview-card__back">
+                  <span class="pick-preview-star">✦</span>
+                </div>
+                <div class="pick-preview-card__front">
+                  <span class="pick-preview-symbol">${card.symbol || '✦'}</span>
+                  <span class="pick-preview-name">${card.name || ''}</span>
+                </div>
+              </div>
+            </div>
+            <div class="pick-preview-btns">
+              <button class="btn btn--secondary pick-preview-btn" id="previewReselect">重选</button>
+              <button class="btn btn--primary pick-preview-btn" id="previewConfirm">确定</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // 重选
+        overlay.querySelector('#previewReselect').addEventListener('click', () => {
+            overlay.remove();
+            this.isShowingPreview = false;
+        });
+
+        // 确定 → 翻开 → 飞入槽框
+        overlay.querySelector('#previewConfirm').addEventListener('click', () => {
+            // 翻开牌
+            const cardInner = overlay.querySelector('.pick-preview-card__inner');
+            cardInner.classList.add('flipped');
+
+            // 找到第一个空槽
+            const slotIdx = this.pickedCards.findIndex(c => c === null);
+            this.pickedCards[slotIdx] = card;
+            this.usedCardIds.add(card.id);
+
+            // 翻开动画完成后飞入槽
+            setTimeout(() => {
+                overlay.remove();
+                this.isShowingPreview = false;
+                this.fillSlot(slotIdx, card);
+            }, 500);
+        });
+    }
+
+    /* ---- 填充槽框 ---- */
+    fillSlot(slotIdx, card) {
+        const slotEl = document.getElementById(`pickSlot${slotIdx}`);
+        if (!slotEl) return;
+
+        slotEl.innerHTML = `
+          <div class="pick-slot__filled">
+            <span class="pick-slot__symbol">${card.symbol || '✦'}</span>
+            <span class="pick-slot__name">${card.name || ''}</span>
+          </div>
+        `;
+        slotEl.classList.add('pick-slot--filled');
+
+        // 更新提示文字
+        const remaining = CARDS_TO_DRAW - this.pickedCount;
+        const hint = document.querySelector('.pick-hint-text');
+        if (hint) {
+            if (remaining > 0) {
+                hint.textContent = `还需抽 ${remaining} 张牌`;
+            } else {
+                hint.textContent = '已抽满 6 张牌，点击下一步继续';
+            }
+        }
+    }
+
+    /* ---- 下一步 ---- */
+    handleNext() {
+        const remaining = CARDS_TO_DRAW - this.pickedCount;
+        if (remaining > 0) {
+            window.showToast && window.showToast(`请再抽 ${remaining} 张牌`, 'error');
+            return;
+        }
+
+        // 保存牌面数据
         if (window.appState) {
+            const selected = this.pickedCards.map(c => c.id);
             window.appState.set('selectedCards', selected);
-            window.appState.set('drawnTarotCards', drawnCards);
-            window.appState.selectedTarotCards = drawnCards.map((card, i) => ({
+            window.appState.set('drawnTarotCards', this.pickedCards);
+            window.appState.selectedTarotCards = this.pickedCards.map((card, i) => ({
                 ...card, slot: i, label: SLOT_LABELS[i]
             }));
         }
 
-        // 创建浮层
-        this.showDrawOverlay(selected);
-    }
-
-    showDrawOverlay(selected) {
-        const overlay = document.createElement('div');
-        overlay.className = 'draw-overlay';
-
-        // 标题
-        const title = document.createElement('div');
-        title.className = 'draw-overlay-title';
-        title.textContent = '命运之牌';
-        overlay.appendChild(title);
-
-        // 6个槽框
-        const grid = document.createElement('div');
-        grid.className = 'draw-slots';
-        const slotEls = [];
-        for (let i = 0; i < CARDS_TO_DRAW; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'draw-slot';
-            slot.innerHTML = `<span class="draw-slot__label">${SLOT_LABELS[i]}</span>`;
-            grid.appendChild(slot);
-            slotEls.push(slot);
-        }
-        overlay.appendChild(grid);
-
-        // 下一步按钮（先隐藏）
-        const btnWrap = document.createElement('div');
-        btnWrap.className = 'draw-overlay-btn';
-        btnWrap.innerHTML = `<button class="btn btn--primary btn--full btn--lg" id="drawNextBtn">下一步</button>`;
-        overlay.appendChild(btnWrap);
-
-        document.body.appendChild(overlay);
-
-        // 创建飞牌并依次飞入
-        const screenCX = window.innerWidth / 2;
-        const screenCY = window.innerHeight / 2;
-
-        selected.forEach((cardId, i) => {
-            const flyCard = document.createElement('div');
-            flyCard.className = 'draw-flying-card';
-            // 初始位置：屏幕中央偏上
-            flyCard.style.left = `${screenCX - 40}px`;
-            flyCard.style.top = `${screenCY - 200}px`;
-            flyCard.style.opacity = '0';
-            flyCard.style.transform = 'scale(0.4) rotate(' + (Math.random() * 40 - 20) + 'deg)';
-            document.body.appendChild(flyCard);
-
-            // 延迟依次飞入
-            setTimeout(() => {
-                flyCard.style.opacity = '1';
-                const slotRect = slotEls[i].getBoundingClientRect();
-                flyCard.style.left = `${slotRect.left}px`;
-                flyCard.style.top = `${slotRect.top}px`;
-                flyCard.style.width = `${slotRect.width}px`;
-                flyCard.style.height = `${slotRect.height}px`;
-                flyCard.style.transform = 'scale(1) rotate(0deg)';
-                flyCard.classList.add('landed');
-            }, 300 + i * 250);
-        });
-
-        // 全部飞完后显示按钮
-        setTimeout(() => {
-            btnWrap.classList.add('show');
-        }, 300 + CARDS_TO_DRAW * 250 + 400);
-
-        // 点击下一步
-        btnWrap.addEventListener('click', () => {
-            // 清理飞牌和浮层
-            overlay.remove();
-            document.querySelectorAll('.draw-flying-card').forEach(el => el.remove());
-            window.router.navigate(`/test/${this.matchType.id}/tarot/card-selection`);
-        });
+        window.router.navigate(`/test/${this.matchType.id}/tarot/card-selection`);
     }
 
     destroy() {
         this.stopInertia();
         this._cleanups.forEach(fn => fn());
-        document.querySelectorAll('.card-zoom-overlay, .draw-overlay, .draw-flying-card').forEach(el => el.remove());
+        document.querySelectorAll('.pick-preview-overlay').forEach(el => el.remove());
     }
 }
 

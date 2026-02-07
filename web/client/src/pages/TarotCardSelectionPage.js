@@ -82,17 +82,28 @@ export class TarotCardSelectionPage {
         if (this.isShaking || this.shakeCount >= TOTAL_SHAKES) return;
         this.isShaking = true;
 
-        const cards = document.querySelectorAll('.cs-card');
+        const btn = document.getElementById('csShakeBtn');
+        if (btn) { btn.disabled = true; btn.classList.add('disabled'); }
 
-        // 1. 重置所有牌
+        const cards = document.querySelectorAll('.cs-card');
+        const grid = document.getElementById('csCardGrid');
+
+        // 1. 重置所有牌状态
         cards.forEach(c => {
-            c.classList.remove('cs-card--face-up', 'cs-card--face-down', 'cs-card--picked', 'cs-card--shake', 'cs-card--not-picked');
+            c.classList.remove(
+                'cs-card--face-up', 'cs-card--face-down',
+                'cs-card--picked', 'cs-card--not-picked',
+                'cs-card--phase-float', 'cs-card--phase-scatter', 'cs-card--phase-glow',
+                'cs-card--shuffle-swap', 'cs-card--energy-pulse'
+            );
+            c.style.setProperty('--sx', '0px');
+            c.style.setProperty('--sy', '0px');
+            c.style.setProperty('--sr', '0deg');
+            c.style.removeProperty('--swap-x');
+            c.style.removeProperty('--swap-y');
         });
 
-        // 2. 晃动动画
-        cards.forEach(c => c.classList.add('cs-card--shake'));
-
-        // 3. 随机选3张（= 3枚铜钱）
+        // 2. 随机选3张（= 3枚铜钱）
         const indices = [0, 1, 2, 3, 4, 5];
         const picked = [];
         for (let i = 0; i < COINS_PER_SHAKE; i++) {
@@ -101,16 +112,67 @@ export class TarotCardSelectionPage {
             indices.splice(ri, 1);
         }
 
-        // 4. 每张牌随机正面（字）或反面（背）
+        // 3. 每张牌随机正面（字）或反面（背）
         const coins = picked.map(() => Math.random() > 0.5 ? '字' : '背');
         const backCount = coins.filter(c => c === '背').length;
 
-        // 5. 根据背面数量计算爻（与小程序铜钱规则完全一致）
+        // 4. 根据背面数量计算爻
         const yao = this.calculateYao(backCount, this.shakeCount + 1, coins);
 
-        // 6. 晃动结束后翻牌
+        // =========== 炫酷洗牌动画 ===========
+        // 添加网格震动
+        if (grid) grid.classList.add('cs-grid--shaking');
+
+        // === Phase 0: 卡片聚拢到中心 (0 ~ 400ms) ===
+        cards.forEach((c, i) => {
+            c.classList.add('cs-card--gather');
+        });
+
+        // === Phase 0.5: 粒子爆发 + 全部牌随机重排 (400ms ~ 1200ms) ===
         setTimeout(() => {
-            cards.forEach(c => c.classList.remove('cs-card--shake'));
+            cards.forEach(c => c.classList.remove('cs-card--gather'));
+
+            // 创建粒子爆发效果
+            this.spawnParticles(grid);
+
+            // 所有牌一次性随机重排并飞行到新位置
+            this.shuffleAllCards(grid);
+        }, 400);
+
+        // === Phase 1: 浮空 (1200ms ~ 1650ms) ===
+        setTimeout(() => {
+            if (grid) grid.classList.remove('cs-grid--shaking');
+            cards.forEach(c => c.classList.add('cs-card--phase-float'));
+        }, 1200);
+
+        // === Phase 2: 零重力散开 (1650ms ~ 2150ms) ===
+        setTimeout(() => {
+            cards.forEach(c => c.classList.remove('cs-card--phase-float'));
+            cards.forEach((c, i) => {
+                const angle = (i / 6) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+                const dist = 12 + Math.random() * 10;
+                c.style.setProperty('--sx', `${Math.cos(angle) * dist}px`);
+                c.style.setProperty('--sy', `${Math.sin(angle) * dist}px`);
+                c.style.setProperty('--sr', `${(Math.random() - 0.5) * 24}deg`);
+                c.classList.add('cs-card--phase-scatter');
+            });
+        }, 1650);
+
+        // === Phase 3: 能量收束发光 (2150ms ~ 2600ms) ===
+        setTimeout(() => {
+            cards.forEach(c => {
+                c.classList.remove('cs-card--phase-scatter');
+                c.classList.add('cs-card--phase-glow');
+                c.classList.add('cs-card--energy-pulse');
+            });
+        }, 2150);
+
+        // === Phase 4: 揭牌 (2600ms+) ===
+        setTimeout(() => {
+            cards.forEach(c => {
+                c.classList.remove('cs-card--phase-glow');
+                c.classList.remove('cs-card--energy-pulse');
+            });
 
             // 未被选中的牌暗化
             cards.forEach((c, i) => {
@@ -119,6 +181,7 @@ export class TarotCardSelectionPage {
                 }
             });
 
+            // 依次翻开被选中的牌
             picked.forEach((idx, pi) => {
                 const isFaceUp = coins[pi] === '字';
                 const cardEl = document.getElementById(`csCard${idx}`);
@@ -128,6 +191,9 @@ export class TarotCardSelectionPage {
                     cardEl.classList.add('cs-card--picked');
                     cardEl.classList.add(isFaceUp ? 'cs-card--face-up' : 'cs-card--face-down');
 
+                    // 翻牌时的光圈特效
+                    this.spawnFlipGlow(cardEl);
+
                     if (isFaceUp) {
                         this.collectedCards.push({
                             cardIndex: idx,
@@ -135,23 +201,207 @@ export class TarotCardSelectionPage {
                             cardData: this.selectedCards[idx]
                         });
                     }
-                }, pi * 200);
+                }, pi * 280);
             });
 
-            // 7. 翻完后更新
+            // 翻完后更新状态
             setTimeout(() => {
                 this.yaos.push(yao);
                 this.shakeCount++;
                 this.updateCollectSlots();
                 this.updateStatus();
                 this.isShaking = false;
+                if (btn) { btn.disabled = false; btn.classList.remove('disabled'); }
 
                 if (this.shakeCount >= TOTAL_SHAKES) {
                     this.onAllShakesDone();
                 }
-            }, COINS_PER_SHAKE * 200 + 400);
+            }, COINS_PER_SHAKE * 280 + 500);
 
-        }, 600);
+        }, 2600);
+    }
+
+    /**
+     * 所有牌一次性随机重排（炫酷飞行动画）
+     */
+    shuffleAllCards(grid) {
+        if (!grid) return;
+        const cardEls = Array.from(grid.querySelectorAll('.cs-card'));
+        if (cardEls.length === 0) return;
+
+        // 1. 记录每张牌当前的位置
+        const positions = cardEls.map(card => {
+            const rect = card.getBoundingClientRect();
+            return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+        });
+
+        // 2. 生成随机新顺序（洗牌算法）
+        const newOrder = Array.from({ length: cardEls.length }, (_, i) => i);
+        for (let i = newOrder.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newOrder[i], newOrder[j]] = [newOrder[j], newOrder[i]];
+        }
+
+        // 3. 为每张牌计算飞行目标偏移量并添加飞行动画
+        cardEls.forEach((card, oldIndex) => {
+            const newIndex = newOrder.indexOf(oldIndex);
+            if (newIndex === oldIndex) return; // 位置不变则跳过
+
+            const oldPos = positions[oldIndex];
+            const newPos = positions[newIndex];
+            const dx = newPos.left - oldPos.left;
+            const dy = newPos.top - oldPos.top;
+
+            // 设置飞行参数（带随机弧线和旋转）
+            const curvature = (Math.random() - 0.5) * 60; // 弧线弯曲度
+            const rotation = (Math.random() - 0.5) * 360; // 旋转角度
+            const delay = Math.random() * 120; // 随机延迟
+
+            card.style.setProperty('--swap-x', `${dx}px`);
+            card.style.setProperty('--swap-y', `${dy}px`);
+            card.style.setProperty('--curve', `${curvature}px`);
+            card.style.setProperty('--rotate', `${rotation}deg`);
+            card.style.setProperty('--delay', `${delay}ms`);
+            
+            card.classList.add('cs-card--shuffle-all');
+
+            // 生成飞行轨迹粒子
+            this.spawnTrailParticle(grid, oldPos, newPos);
+        });
+
+        // 4. 动画结束后真正重排 DOM 顺序
+        setTimeout(() => {
+            // 按新顺序重排 DOM
+            const fragment = document.createDocumentFragment();
+            newOrder.forEach(oldIndex => {
+                fragment.appendChild(cardEls[oldIndex]);
+            });
+            grid.innerHTML = '';
+            grid.appendChild(fragment);
+
+            // 清理样式
+            grid.querySelectorAll('.cs-card').forEach(c => {
+                c.classList.remove('cs-card--shuffle-all');
+                c.style.removeProperty('--swap-x');
+                c.style.removeProperty('--swap-y');
+                c.style.removeProperty('--curve');
+                c.style.removeProperty('--rotate');
+                c.style.removeProperty('--delay');
+            });
+        }, 800);
+    }
+
+    /**
+     * 随机交换两张牌的 DOM 位置（炫酷飞行动画）
+     */
+    swapRandomCards(grid) {
+        if (!grid) return;
+        const cardEls = Array.from(grid.querySelectorAll('.cs-card'));
+        if (cardEls.length < 2) return;
+
+        // 随机选两张不同的牌
+        const a = Math.floor(Math.random() * cardEls.length);
+        let b = Math.floor(Math.random() * cardEls.length);
+        while (b === a) b = Math.floor(Math.random() * cardEls.length);
+
+        const cardA = cardEls[a];
+        const cardB = cardEls[b];
+
+        // 计算两张牌的位置差
+        const rectA = cardA.getBoundingClientRect();
+        const rectB = cardB.getBoundingClientRect();
+        const dx = rectB.left - rectA.left;
+        const dy = rectB.top - rectA.top;
+
+        // 给 A 和 B 设置飞行目标
+        cardA.style.setProperty('--swap-x', `${dx}px`);
+        cardA.style.setProperty('--swap-y', `${dy}px`);
+        cardB.style.setProperty('--swap-x', `${-dx}px`);
+        cardB.style.setProperty('--swap-y', `${-dy}px`);
+
+        cardA.classList.add('cs-card--shuffle-swap');
+        cardB.classList.add('cs-card--shuffle-swap');
+
+        // 生成交换轨迹上的小粒子
+        this.spawnTrailParticle(grid, rectA, rectB);
+
+        // 动画结束后真正交换 DOM 顺序
+        setTimeout(() => {
+            cardA.classList.remove('cs-card--shuffle-swap');
+            cardB.classList.remove('cs-card--shuffle-swap');
+            cardA.style.removeProperty('--swap-x');
+            cardA.style.removeProperty('--swap-y');
+            cardB.style.removeProperty('--swap-x');
+            cardB.style.removeProperty('--swap-y');
+
+            // 真正交换 DOM 位置
+            const parent = cardA.parentNode;
+            const siblingA = cardA.nextSibling === cardB ? cardA : cardA.nextSibling;
+            parent.insertBefore(cardA, cardB);
+            parent.insertBefore(cardB, siblingA);
+        }, 350);
+    }
+
+    /**
+     * 在网格区域生成粒子爆发
+     */
+    spawnParticles(container) {
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'cs-particle';
+            const angle = (Math.PI * 2 * i) / 20 + (Math.random() - 0.5) * 0.5;
+            const dist = 40 + Math.random() * 80;
+            const tx = Math.cos(angle) * dist;
+            const ty = Math.sin(angle) * dist;
+            const size = 3 + Math.random() * 5;
+            const hue = 250 + Math.random() * 60; // 紫-粉色系
+            const delay = Math.random() * 200;
+
+            particle.style.cssText = `
+                left: ${centerX}px; top: ${centerY}px;
+                width: ${size}px; height: ${size}px;
+                --tx: ${tx}px; --ty: ${ty}px;
+                background: hsl(${hue}, 80%, 65%);
+                animation-delay: ${delay}ms;
+            `;
+            container.appendChild(particle);
+            setTimeout(() => particle.remove(), 900);
+        }
+    }
+
+    /**
+     * 在两张牌交换路径上生成拖尾粒子
+     */
+    spawnTrailParticle(container, rectA, rectB) {
+        if (!container) return;
+        const gridRect = container.getBoundingClientRect();
+        const midX = ((rectA.left + rectB.left) / 2) - gridRect.left + (rectA.width / 2);
+        const midY = ((rectA.top + rectB.top) / 2) - gridRect.top + (rectA.height / 2);
+
+        for (let i = 0; i < 6; i++) {
+            const p = document.createElement('div');
+            p.className = 'cs-trail-particle';
+            const ox = (Math.random() - 0.5) * 40;
+            const oy = (Math.random() - 0.5) * 30;
+            p.style.cssText = `left:${midX + ox}px;top:${midY + oy}px;animation-delay:${i * 30}ms;`;
+            container.appendChild(p);
+            setTimeout(() => p.remove(), 600);
+        }
+    }
+
+    /**
+     * 翻牌时的光圈特效
+     */
+    spawnFlipGlow(cardEl) {
+        const glow = document.createElement('div');
+        glow.className = 'cs-flip-glow';
+        cardEl.appendChild(glow);
+        setTimeout(() => glow.remove(), 800);
     }
 
     /**
