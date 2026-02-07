@@ -672,7 +672,7 @@ export class ResultPage {
     const texts = [
       '正在收集信息...',
       '正在进行特质计算...',
-      '正在请求 AI 分析...'
+      '正在请求进行匹配分析...'
     ];
 
     for (let i = 0; i < steps.length; i++) {

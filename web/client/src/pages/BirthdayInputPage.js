@@ -6,7 +6,7 @@
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar, BottomActionBar } from '../components/Common.js';
 import { formatLunarDate } from '../scripts/lunar.js';
-import { getSessionId, regenerateSessionId } from '../scripts/state.js';
+import { getSessionId } from '../scripts/state.js';
 import { matchRecordApi } from '../services/api.js';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
@@ -958,31 +958,17 @@ export class BirthdayInputPage {
         
         console.log('测试数据:', JSON.stringify(testData));
 
-        // 创建匹配记录
-        let sessionId = getSessionId();
+        // 创建匹配记录（sessionId 已存在则复用）
+        const sessionId = getSessionId();
         try {
             const result = await matchRecordApi.create(sessionId, testData);
-            console.log('匹配记录创建成功:', result);
-            // 将 recordId 和 sessionId 存入测试数据
+            console.log('匹配记录创建/复用成功:', result);
             testData.recordId = result.data?.recordId;
             testData.sessionId = sessionId;
         } catch (error) {
             console.error('创建匹配记录失败:', error);
-            // 如果是 SessionId 冲突（409），重新生成并重试
-            if (error.status === 409) {
-                console.log('SessionId 冲突，重新生成...');
-                sessionId = regenerateSessionId();
-                try {
-                    const retryResult = await matchRecordApi.create(sessionId, testData);
-                    console.log('重试成功:', retryResult);
-                    testData.recordId = retryResult.data?.recordId;
-                    testData.sessionId = sessionId;
-                } catch (retryError) {
-                    console.error('重试也失败:', retryError);
-                    // 不阻塞用户流程，继续跳转
-                }
-            }
-            // 其他错误不阻塞用户流程
+            // 不阻塞用户流程，继续跳转
+            testData.sessionId = sessionId;
         }
         
         window.appState.set('currentTest', testData);

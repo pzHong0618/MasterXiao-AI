@@ -45,17 +45,20 @@ router.post('/create', (req, res) => {
             });
         }
 
-        // 检查 sessionId 是否已存在
-        // const existing = SessionMatchRecord.findBySessionId(sessionId);
-        // if (existing) {
-        //     return res.status(409).json({
-        //         code: 40901,
-        //         message: 'SessionId 已存在，请重新生成',
-        //         data: null
-        //     });
-        // }
+        // 检查 sessionId 是否已存在，已存在则直接复用
+        const existing = SessionMatchRecord.findBySessionId(sessionId);
+        if (existing) {
+            return res.json({
+                code: 200,
+                message: 'success',
+                data: {
+                    recordId: existing.id,
+                    sessionId: sessionId
+                }
+            });
+        }
 
-        // 创建记录
+        // 创建新记录
         const record = SessionMatchRecord.create({
             sessionId,
             reqData,
