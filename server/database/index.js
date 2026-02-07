@@ -43,6 +43,9 @@ export async function initDatabase() {
         // 初始化数据库表
         await initTables();
 
+        // 初始化基础数据
+        await initInitialData();
+
         // 定期保存数据库到文件
         setInterval(() => {
             saveDatabase();
@@ -150,12 +153,211 @@ async function initTables() {
         )
     `);
 
+    // 管理员表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            email TEXT,
+            phone TEXT,
+            is_super_admin INTEGER DEFAULT 0,
+            status INTEGER DEFAULT 1,
+            failed_login_count INTEGER DEFAULT 0,
+            last_login_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 权限表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS permissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            parent_id INTEGER,
+            route_path TEXT,
+            component_path TEXT,
+            icon TEXT,
+            is_visible INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (parent_id) REFERENCES permissions(id)
+        )
+    `);
+
+    // 角色表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT,
+            data_scope TEXT DEFAULT 'all',
+            is_system_role INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 操作记录表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS operation_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            admin_id INTEGER,
+            module TEXT,
+            action TEXT,
+            request_data TEXT,
+            response_data TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            status TEXT DEFAULT 'success',
+            error_message TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (admin_id) REFERENCES admins(id)
+        )
+    `);
+
+    // 管理员角色关联表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS admin_roles (
+            admin_id INTEGER NOT NULL,
+            role_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (admin_id, role_id),
+            FOREIGN KEY (admin_id) REFERENCES admins(id),
+            FOREIGN KEY (role_id) REFERENCES roles(id)
+        )
+    `);
+
+    // 角色权限关联表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS role_permissions (
+            role_id INTEGER NOT NULL,
+            permission_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (role_id, permission_id),
+            FOREIGN KEY (role_id) REFERENCES roles(id),
+            FOREIGN KEY (permission_id) REFERENCES permissions(id)
+        )
+    `);
+
     // 为 session_match_records 创建索引
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_session_id ON session_match_records(session_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_status ON session_match_records(status)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_create_date ON session_match_records(create_date)`);
 
+    // 为 admins 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_admins_status ON admins(status)`);
+
+    // 为 permissions 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_permissions_code ON permissions(code)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_permissions_type ON permissions(type)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_permissions_parent_id ON permissions(parent_id)`);
+
+    // 为 roles 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_roles_code ON roles(code)`);
+
+    // 为 operation_logs 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_operation_logs_admin_id ON operation_logs(admin_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_operation_logs_module ON operation_logs(module)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_operation_logs_created_at ON operation_logs(created_at)`);
+
     console.log('✅ 数据库表初始化完成');
+}
+
+/**
+ * 初始化基础数据
+ */
+async function initInitialData() {
+    try {
+        // 检查是否已有超级管理员
+        const existingAdmin = queryOne('SELECT id FROM admins WHERE username = ?', ['admin']);
+        if (!existingAdmin) {
+            // 创建超级管理员 (密码: admin123, 临时明文)
+            execute(
+                'INSERT INTO admins (username, password, is_super_admin, status) VALUES (?, ?, 1, 1)',
+                ['admin', 'admin123']
+            );
+            console.log('✅ 已创建超级管理员账户: admin');
+        }
+
+        // 检查是否已有基础权限
+        const existingPermissions = queryAll('SELECT id FROM permissions');
+        if (existingPermissions.length === 0) {
+            // 插入基础权限
+            const permissions = [
+                { code: 'dashboard', name: '仪表盘', type: 'menu', route_path: '/admin/dashboard', component_path: 'Dashboard', icon: 'dashboard' },
+                { code: 'system', name: '系统管理', type: 'menu', route_path: '/admin/system', component_path: 'System', icon: 'setting' },
+                { code: 'system:admin', name: '管理员管理', type: 'menu', route_path: '/admin/system/admin', component_path: 'AdminManage', icon: 'user' },
+                { code: 'system:role', name: '角色管理', type: 'menu', route_path: '/admin/system/role', component_path: 'RoleManage', icon: 'team' },
+                { code: 'system:permission', name: '权限管理', type: 'menu', route_path: '/admin/system/permission', component_path: 'PermissionManage', icon: 'lock' },
+                { code: 'system:log', name: '操作日志', type: 'menu', route_path: '/admin/system/log', component_path: 'OperationLog', icon: 'file-text' },
+                { code: 'user', name: '用户管理', type: 'menu', route_path: '/admin/user', component_path: 'UserManage', icon: 'user' },
+                { code: 'user:list', name: '用户列表', type: 'operation', parent_id: null },
+                { code: 'user:view', name: '查看用户', type: 'operation', parent_id: null },
+                { code: 'user:edit', name: '编辑用户', type: 'operation', parent_id: null },
+                { code: 'user:delete', name: '删除用户', type: 'operation', parent_id: null }
+            ];
+
+            for (const perm of permissions) {
+                const parentId = perm.parent_id || null;
+                execute(
+                    'INSERT INTO permissions (code, name, type, parent_id, route_path, component_path, icon, is_visible) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                    [perm.code, perm.name, perm.type, parentId, perm.route_path, perm.component_path, perm.icon, 1]
+                );
+            }
+            console.log('✅ 已创建基础权限');
+        }
+
+        // 检查是否已有基础角色
+        const existingRoles = queryAll('SELECT id FROM roles');
+        if (existingRoles.length === 0) {
+            // 插入基础角色
+            const roles = [
+                { code: 'super_admin', name: '超级管理员', description: '系统最高权限管理员', data_scope: 'all', is_system_role: 1 },
+                { code: 'admin', name: '普通管理员', description: '普通管理员权限', data_scope: 'department', is_system_role: 0 },
+                { code: 'operator', name: '操作员', description: '基础操作权限', data_scope: 'personal', is_system_role: 0 }
+            ];
+
+            for (const role of roles) {
+                execute(
+                    'INSERT INTO roles (code, name, description, data_scope, is_system_role) VALUES (?, ?, ?, ?, ?)',
+                    [role.code, role.name, role.description, role.data_scope, role.is_system_role]
+                );
+            }
+            console.log('✅ 已创建基础角色');
+        }
+
+        // 为超级管理员分配超级管理员角色
+        const superAdmin = queryOne('SELECT id FROM admins WHERE username = ?', ['admin']);
+        const superAdminRole = queryOne('SELECT id FROM roles WHERE code = ?', ['super_admin']);
+        if (superAdmin && superAdminRole) {
+            const existingRelation = queryOne('SELECT * FROM admin_roles WHERE admin_id = ? AND role_id = ?', [superAdmin.id, superAdminRole.id]);
+            if (!existingRelation) {
+                execute('INSERT INTO admin_roles (admin_id, role_id) VALUES (?, ?)', [superAdmin.id, superAdminRole.id]);
+                console.log('✅ 已为超级管理员分配角色');
+            }
+        }
+
+        // 为超级管理员角色分配所有权限
+        if (superAdminRole) {
+            const allPermissions = queryAll('SELECT id FROM permissions');
+            for (const perm of allPermissions) {
+                const existingRelation = queryOne('SELECT * FROM role_permissions WHERE role_id = ? AND permission_id = ?', [superAdminRole.id, perm.id]);
+                if (!existingRelation) {
+                    execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [superAdminRole.id, perm.id]);
+                }
+            }
+            console.log('✅ 已为超级管理员角色分配权限');
+        }
+
+    } catch (error) {
+        console.error('❌ 初始化基础数据失败:', error);
+    }
 }
 
 /**
@@ -206,11 +408,26 @@ export function queryOne(sql, params = []) {
     return results.length > 0 ? results[0] : null;
 }
 
-/**
- * 执行更新/插入/删除操作
- */
 export function execute(sql, params = []) {
-    db.run(sql, params);
+    // 手动替换参数，因为sql.js的run不支持参数化查询
+    let processedSql = sql;
+    params.forEach((param) => {
+        const placeholderIndex = processedSql.indexOf('?');
+        if (placeholderIndex !== -1) {
+            // 处理不同类型的参数
+            let escapedParam;
+            if (param === null || param === undefined) {
+                escapedParam = 'NULL';
+            } else if (typeof param === 'string') {
+                escapedParam = `'${param.replace(/'/g, "''")}'`;
+            } else {
+                escapedParam = param;
+            }
+            processedSql = processedSql.substring(0, placeholderIndex) + escapedParam + processedSql.substring(placeholderIndex + 1);
+        }
+    });
+
+    db.run(processedSql);
     return {
         lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0],
         changes: db.getRowsModified()

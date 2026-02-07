@@ -7,8 +7,12 @@ import { Payment } from './Payment.js';
 import { Setting } from './Setting.js';
 import { RedeemCode } from './RedeemCode.js';
 import { SessionMatchRecord } from './SessionMatchRecord.js';
+import { Admin } from './Admin.js';
+import { Permission } from './Permission.js';
+import { Role } from './Role.js';
+import { OperationLog } from './OperationLog.js';
 
-export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord };
+export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog };
 
 export default {
     User,
@@ -16,5 +20,9 @@ export default {
     Payment,
     Setting,
     RedeemCode,
-    SessionMatchRecord
+    SessionMatchRecord,
+    Admin,
+    Permission,
+    Role,
+    OperationLog
 };

@@ -17,6 +17,7 @@ import redeemRoutes from './redeem.js';
 import matchRecordRoutes from './matchRecord.js';
 import tarotRoutes from './tarot.js';
 import divinationRoutes from './divination.js';
+import adminRoutes from './admin.js';
 
 const router = express.Router();
 
@@ -61,5 +62,8 @@ router.use('/match/record', matchRecordRoutes);
 
 // 六爻/卦象解读路由
 router.use('/divination', divinationRoutes);
+
+// 后台管理路由
+router.use('/admin', adminRoutes);
 
 export default router;

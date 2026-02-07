@@ -17,30 +17,115 @@ document.addEventListener('DOMContentLoaded', () => {
 function initAdmin() {
     // 加载管理员信息
     loadAdminInfo();
-    
+
+    // 加载菜单
+    loadMenu();
+
     // 启动时钟
     startClock();
-    
+
     // 初始化导航
     initNavigation();
-    
+
     // 初始化菜单切换
     initMenuToggle();
-    
+
     // 初始化退出登录
     initLogout();
-    
+
     // 加载默认页面
     loadPage('dashboard');
 }
 
 // 加载管理员信息
-function loadAdminInfo() {
-    const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
-    const adminName = document.getElementById('adminName');
-    if (adminName && adminInfo.name) {
-        adminName.textContent = adminInfo.name;
+async function loadAdminInfo() {
+    try {
+        const response = await fetch('/api/admin/profile', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+        });
+
+        const result = await response.json();
+        if (result.code === 200) {
+            const adminData = result.data;
+            localStorage.setItem('adminInfo', JSON.stringify(adminData));
+
+            const adminName = document.getElementById('adminName');
+            if (adminName) {
+                adminName.textContent = adminData.username;
+            }
+        } else {
+            console.error('加载管理员信息失败:', result.message);
+        }
+    } catch (error) {
+        console.error('加载管理员信息出错:', error);
     }
+}
+
+// 加载菜单
+async function loadMenu() {
+    try {
+        const response = await fetch('/api/admin/menu', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+        });
+
+        const result = await response.json();
+        if (result.code === 200) {
+            renderMenu(result.data);
+        } else {
+            console.error('加载菜单失败:', result.message);
+        }
+    } catch (error) {
+        console.error('加载菜单出错:', error);
+    }
+}
+
+// 渲染菜单
+function renderMenu(menuData) {
+    const navMenu = document.getElementById('navMenu');
+    navMenu.innerHTML = '';
+
+    function createMenuItem(item) {
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+
+        if (item.children && item.children.length > 0) {
+            li.classList.add('has-submenu');
+            li.innerHTML = `
+                <a href="#" class="nav-link" data-page="${item.code}">
+                    <span class="nav-icon">${item.icon || '📁'}</span>
+                    <span class="nav-text">${item.name}</span>
+                    <span class="submenu-arrow">▼</span>
+                </a>
+                <ul class="submenu">
+                    ${item.children.map(child => `
+                        <li>
+                            <a href="#" class="nav-link" data-page="${child.code}">
+                                <span class="nav-icon">${child.icon || '📄'}</span>
+                                <span class="nav-text">${child.name}</span>
+                            </a>
+                        </li>
+                    `).join('')}
+                </ul>
+            `;
+        } else {
+            li.innerHTML = `
+                <a href="#" class="nav-link" data-page="${item.code}">
+                    <span class="nav-icon">${item.icon || '📄'}</span>
+                    <span class="nav-text">${item.name}</span>
+                </a>
+            `;
+        }
+
+        return li;
+    }
+
+    menuData.forEach(item => {
+        navMenu.appendChild(createMenuItem(item));
+    });
 }
 
 // 启动时钟
@@ -139,6 +224,12 @@ function loadPage(page) {
     
     const titles = {
         'dashboard': '仪表盘',
+        'system': '系统管理',
+        'system:admin': '管理员管理',
+        'system:role': '角色管理',
+        'system:permission': '权限管理',
+        'system:log': '操作日志',
+        'user': '用户管理',
         'users': '人员管理',
         'orders': '订单管理',
         'info': '信息管理',
@@ -154,6 +245,21 @@ function loadPage(page) {
     switch (page) {
         case 'dashboard':
             content.innerHTML = renderDashboard();
+            break;
+        case 'system:admin':
+            content.innerHTML = renderAdminManage();
+            break;
+        case 'system:role':
+            content.innerHTML = renderRoleManage();
+            break;
+        case 'system:permission':
+            content.innerHTML = renderPermissionManage();
+            break;
+        case 'system:log':
+            content.innerHTML = renderOperationLog();
+            break;
+        case 'user':
+            content.innerHTML = renderUserManage();
             break;
         case 'users':
             content.innerHTML = renderUsers();
@@ -176,6 +282,119 @@ function loadPage(page) {
         default:
             content.innerHTML = renderDashboard();
     }
+}
+
+// 渲染管理员管理页面
+async function renderAdminManage() {
+    try {
+        const response = await fetch('/api/admin/admins', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+            }
+        });
+
+        const result = await response.json();
+        if (result.code !== 200) {
+            return `<div class="error">加载管理员列表失败: ${result.message}</div>`;
+        }
+
+        const admins = result.data.list;
+
+        return `
+            <div class="admin-manage">
+                <div class="page-header">
+                    <h2>管理员管理</h2>
+                    <button class="btn btn-primary" onclick="showCreateAdminModal()">添加管理员</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>用户名</th>
+                                <th>邮箱</th>
+                                <th>手机</th>
+                                <th>超级管理员</th>
+                                <th>状态</th>
+                                <th>最后登录</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${admins.map(admin => `
+                                <tr>
+                                    <td>${admin.id}</td>
+                                    <td>${admin.username}</td>
+                                    <td>${admin.email || '-'}</td>
+                                    <td>${admin.phone || '-'}</td>
+                                    <td>${admin.is_super_admin ? '是' : '否'}</td>
+                                    <td><span class="status ${admin.status ? 'active' : 'inactive'}">${admin.status ? '正常' : '禁用'}</span></td>
+                                    <td>${admin.last_login_at ? new Date(admin.last_login_at).toLocaleString() : '从未登录'}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-edit" onclick="editAdmin(${admin.id})">编辑</button>
+                                        ${!admin.is_super_admin ? `<button class="btn btn-sm btn-danger" onclick="deleteAdmin(${admin.id})">删除</button>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        return `<div class="error">加载管理员列表出错: ${error.message}</div>`;
+    }
+}
+
+// 渲染角色管理页面
+function renderRoleManage() {
+    return `
+        <div class="role-manage">
+            <div class="page-header">
+                <h2>角色管理</h2>
+                <button class="btn btn-primary" onclick="showCreateRoleModal()">添加角色</button>
+            </div>
+            <div class="coming-soon">角色管理功能开发中...</div>
+        </div>
+    `;
+}
+
+// 渲染权限管理页面
+function renderPermissionManage() {
+    return `
+        <div class="permission-manage">
+            <div class="page-header">
+                <h2>权限管理</h2>
+                <button class="btn btn-primary" onclick="showCreatePermissionModal()">添加权限</button>
+            </div>
+            <div class="coming-soon">权限管理功能开发中...</div>
+        </div>
+    `;
+}
+
+// 渲染操作日志页面
+function renderOperationLog() {
+    return `
+        <div class="operation-log">
+            <div class="page-header">
+                <h2>操作日志</h2>
+            </div>
+            <div class="coming-soon">操作日志功能开发中...</div>
+        </div>
+    `;
+}
+
+// 渲染用户管理页面
+function renderUserManage() {
+    return `
+        <div class="user-manage">
+            <div class="page-header">
+                <h2>用户管理</h2>
+            </div>
+            <div class="coming-soon">用户管理功能开发中...</div>
+        </div>
+    `;
 }
 
 // 渲染仪表盘

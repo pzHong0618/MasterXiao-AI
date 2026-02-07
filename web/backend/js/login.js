@@ -40,8 +40,23 @@ document.addEventListener('DOMContentLoaded', () => {
         loginBtn.disabled = true;
 
         try {
-            // 模拟登录验证（实际项目中应调用后端API）
-            await simulateLogin(username, password);
+            // 调用后端登录API
+            const response = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    password
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.code !== 200) {
+                throw new Error(result.message || '登录失败');
+            }
 
             // 记住用户名
             if (rememberCheckbox.checked) {
@@ -51,13 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 保存登录状态
-            localStorage.setItem('adminToken', 'mock-token-' + Date.now());
-            localStorage.setItem('adminInfo', JSON.stringify({
-                username: username,
-                name: username === 'admin' ? '超级管理员' : username,
-                role: 'admin',
-                loginTime: new Date().toISOString()
-            }));
+            localStorage.setItem('adminToken', result.data.token);
+            localStorage.setItem('adminInfo', JSON.stringify(result.data.admin));
 
             // 跳转到管理页面
             window.location.href = 'index.html';
@@ -68,20 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loginBtn.disabled = false;
         }
     });
-
-    // 模拟登录
-    function simulateLogin(username, password) {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                // 模拟验证：用户名 admin，密码 123456
-                if (username === 'admin' && password === '123456') {
-                    resolve({ success: true });
-                } else {
-                    reject(new Error('用户名或密码错误'));
-                }
-            }, 800);
-        });
-    }
 
     // 显示错误信息
     function showError(message) {
