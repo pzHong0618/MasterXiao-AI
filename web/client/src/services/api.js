@@ -4,7 +4,7 @@
  */
 
 // 动态获取 API 基础地址（自动适配当前访问域名）
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
     // 优先使用环境变量配置
     if (import.meta.env.VITE_API_URL) {
         return import.meta.env.VITE_API_URL;

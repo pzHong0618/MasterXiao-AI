@@ -7,7 +7,7 @@ import { getMatchTypeById } from '../data/matchTypes.js';
 import { getThreePillars, analyzeCompatibility, WUXING } from '../data/bazi.js';
 import { Navbar, MessageBubble, BottomActionBar } from '../components/Common.js';
 import { typewriter } from '../scripts/utils.js';
-import { analysisApi, testApi, matchRecordApi } from '../services/api.js';
+import { analysisApi, testApi, matchRecordApi, getApiBaseUrl } from '../services/api.js';
 
 export class ResultPage {
   constructor(params) {
@@ -1092,8 +1092,8 @@ export class ResultPage {
     }
 
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
-      const response = await fetch(`${API_BASE}/redeem/use`, {
+      const apiBase = getApiBaseUrl();
+      const response = await fetch(`${apiBase}/redeem/use`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: redeemCode })

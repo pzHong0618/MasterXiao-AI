@@ -9,10 +9,10 @@
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar, ProgressBar } from '../components/Common.js';
 import { FeatureCardDetail } from '../components/FeatureCard.js';
-import { authApi, userApi } from '../services/api.js';
+import { authApi, userApi, getApiBaseUrl } from '../services/api.js';
 
-// API 配置
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
+// API 配置（动态获取）
+const API_BASE = getApiBaseUrl();
 
 export class TestSelectPage {
     constructor(params) {
