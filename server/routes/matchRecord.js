@@ -45,19 +45,6 @@ router.post('/create', (req, res) => {
             });
         }
 
-        // 检查 sessionId 是否已存在，已存在则直接复用
-        const existing = SessionMatchRecord.findBySessionId(sessionId);
-        if (existing) {
-            return res.json({
-                code: 200,
-                message: 'success',
-                data: {
-                    recordId: existing.id,
-                    sessionId: sessionId
-                }
-            });
-        }
-
         // 创建新记录
         const record = SessionMatchRecord.create({
             sessionId,
@@ -111,8 +98,12 @@ router.put('/update-status', (req, res) => {
             });
         }
 
+        const { id: recordId } = req.body;
+
         // 检查记录是否存在
-        const existing = SessionMatchRecord.findBySessionId(sessionId);
+        const existing = recordId
+            ? SessionMatchRecord.findById(parseInt(recordId))
+            : SessionMatchRecord.findBySessionId(sessionId);
         if (!existing) {
             return res.status(404).json({
                 code: 404,
@@ -122,7 +113,7 @@ router.put('/update-status', (req, res) => {
         }
 
         // 更新状态
-        const updated = SessionMatchRecord.updateStatus(sessionId, status, resultData || null);
+        const updated = SessionMatchRecord.updateStatus(sessionId, status, resultData || null, recordId ? parseInt(recordId) : null);
 
         if (updated) {
             saveDatabase();
@@ -202,7 +193,7 @@ router.get('/status', (req, res) => {
  */
 router.get('/detail', (req, res) => {
     try {
-        const { sessionId } = req.query;
+        const { sessionId, id } = req.query;
 
         if (!sessionId) {
             return res.status(400).json({
@@ -212,7 +203,7 @@ router.get('/detail', (req, res) => {
             });
         }
 
-        const record = SessionMatchRecord.getDetail(sessionId);
+        const record = SessionMatchRecord.getDetail(sessionId, id ? parseInt(id) : null);
 
         if (!record) {
             return res.status(404).json({

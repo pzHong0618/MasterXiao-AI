@@ -18,3 +18,5 @@ export { TarotResultPage } from './TarotResultPage.js';
 export { ResultPage } from './ResultPage.js';
 export { PaymentPage } from './PaymentPage.js';
 export { DivinationResultPage } from './DivinationResultPage.js';
+export { HistoryPage } from './HistoryPage.js';
+export { HistoryDetailPage } from './HistoryDetailPage.js';

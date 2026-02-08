@@ -88,15 +88,23 @@ export const SessionMatchRecord = {
      * @param {string} sessionId - 会话ID
      * @param {number} status - 新状态（1=成功, 2=失败）
      * @param {object} resultData - 匹配结果数据（可选）
+     * @param {number} id - 记录ID（可选，配合sessionId精确更新）
      * @returns {boolean}
      */
-    updateStatus(sessionId, status, resultData = null) {
+    updateStatus(sessionId, status, resultData = null, id = null) {
         // 校验状态值
         if (![1, 2].includes(status)) {
             throw new Error('无效的状态值，只能为 1（成功）或 2（失败）');
         }
 
-        const record = this.findBySessionId(sessionId);
+        // 先确认记录存在
+        let checkSql = 'SELECT * FROM session_match_records WHERE session_id = ?';
+        const checkParams = [sessionId];
+        if (id) {
+            checkSql += ' AND id = ?';
+            checkParams.push(id);
+        }
+        const record = queryOne(checkSql, checkParams);
         if (!record) {
             return false;
         }
@@ -112,6 +120,10 @@ export const SessionMatchRecord = {
 
         sql += ' WHERE session_id = ?';
         params.push(sessionId);
+        if (id) {
+            sql += ' AND id = ?';
+            params.push(id);
+        }
 
         const result = execute(sql, params);
         return result.changes > 0;
@@ -132,13 +144,17 @@ export const SessionMatchRecord = {
     /**
      * 获取记录详情
      * @param {string} sessionId
+     * @param {number} id - 记录ID（可选，配合sessionId精确查询）
      * @returns {object|null}
      */
-    getDetail(sessionId) {
-        const record = queryOne(
-            'SELECT * FROM session_match_records WHERE session_id = ?',
-            [sessionId]
-        );
+    getDetail(sessionId, id) {
+        let sql = 'SELECT * FROM session_match_records WHERE session_id = ?';
+        const params = [sessionId];
+        if (id !== undefined && id !== null) {
+            sql += ' AND id = ?';
+            params.push(id);
+        }
+        const record = queryOne(sql, params);
         if (record) {
             try {
                 if (record.req_data) record.req_data = JSON.parse(record.req_data);
@@ -195,6 +211,117 @@ export const SessionMatchRecord = {
         }
 
         return queryOne(sql, params)?.count || 0;
+    },
+
+    /**
+     * 根据 userId 查询记录列表（分页）
+     * @param {string} userId
+     * @param {object} options - { limit, offset }
+     * @returns {{ records: Array, total: number }}
+     */
+    findByUserId(userId, options = {}) {
+        const { limit = 20, offset = 0 } = options;
+
+        const total = queryOne(
+            'SELECT COUNT(*) as count FROM session_match_records WHERE user_id = ? AND status = 1',
+            [userId]
+        )?.count || 0;
+
+        const records = queryAll(
+            'SELECT * FROM session_match_records WHERE user_id = ? AND status = 1 ORDER BY create_date DESC LIMIT ? OFFSET ?',
+            [userId, limit, offset]
+        ).map(record => {
+            try {
+                if (record.req_data) record.req_data = JSON.parse(record.req_data);
+            } catch (e) { /* ignore */ }
+            try {
+                if (record.result_data) record.result_data = JSON.parse(record.result_data);
+            } catch (e) { /* ignore */ }
+            return record;
+        });
+
+        return { records, total };
+    },
+
+    /**
+     * 根据 sessionId 前缀模糊查询记录（用于同一设备的记录）
+     * @param {string} sessionIdPrefix
+     * @param {object} options - { limit, offset }
+     * @returns {{ records: Array, total: number }}
+     */
+    findBySessionPrefix(sessionIdPrefix, options = {}) {
+        const { limit = 20, offset = 0 } = options;
+
+        // 使用 OR 条件查询，支持 sessionId 或 userId 维度
+        const total = queryOne(
+            'SELECT COUNT(*) as count FROM session_match_records WHERE user_id = ? AND status = 1',
+            [sessionIdPrefix]
+        )?.count || 0;
+
+        const records = queryAll(
+            'SELECT * FROM session_match_records WHERE user_id = ? AND status = 1 ORDER BY create_date DESC LIMIT ? OFFSET ?',
+            [sessionIdPrefix, limit, offset]
+        ).map(record => {
+            try {
+                if (record.req_data) record.req_data = JSON.parse(record.req_data);
+            } catch (e) { /* ignore */ }
+            try {
+                if (record.result_data) record.result_data = JSON.parse(record.result_data);
+            } catch (e) { /* ignore */ }
+            return record;
+        });
+
+        return { records, total };
+    },
+
+    /**
+     * 根据多条件查询历史记录
+     * @param {object} query - { sessionId, userId }
+     * @param {object} options - { limit, offset }
+     * @returns {{ records: Array, total: number }}
+     */
+    findHistory(query = {}, options = {}) {
+        const { sessionId, userId } = query;
+        const { limit = 20, offset = 0 } = options;
+
+        let whereClauses = ['status = 1'];
+        const params = [];
+
+        if (userId && sessionId) {
+            // 同时有 userId 和 sessionId，用 OR 查询尽可能多的记录
+            whereClauses.push('(user_id = ? OR session_id = ?)');
+            params.push(userId, sessionId);
+        } else if (userId) {
+            whereClauses.push('user_id = ?');
+            params.push(userId);
+        } else if (sessionId) {
+            whereClauses.push('session_id = ?');
+            params.push(sessionId);
+        } else {
+            return { records: [], total: 0 };
+        }
+
+        const whereSQL = whereClauses.join(' AND ');
+
+        const total = queryOne(
+            `SELECT COUNT(*) as count FROM session_match_records WHERE ${whereSQL}`,
+            params
+        )?.count || 0;
+
+        const records = queryAll(
+            `SELECT * FROM session_match_records WHERE ${whereSQL} ORDER BY create_date DESC LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
+        ).map(record => {
+            try {
+                if (record.req_data) record.req_data = JSON.parse(record.req_data);
+            } catch (e) { /* ignore */ }
+            try {
+                if (record.result_data) record.result_data = JSON.parse(record.result_data);
+            } catch (e) { /* ignore */ }
+            return record;
+        });
+
+        return { records, total };
     },
 
     /**

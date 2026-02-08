@@ -18,7 +18,7 @@ export class HomePage {
         ${Navbar({
             title: '匹配游戏',
             showBack: false,
-            showHistory: false,
+            showHistory: true,
             showProfile: true
         })}
         
@@ -118,12 +118,42 @@ export class HomePage {
     handleNavAction(action) {
         switch (action) {
             case 'history':
-                window.showToast('历史记录功能开发中...');
+                this.goToHistory();
                 break;
             case 'profile':
                 window.router.navigate('/profile');
                 break;
         }
+    }
+
+    /**
+     * 跳转到历史记录页面
+     * 先从本地存储获取 userId 或 sessionId
+     */
+    goToHistory() {
+        // 从本地存储获取 userId
+        const userStr = localStorage.getItem('user');
+        let userId = null;
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                userId = user.id || user.userId || null;
+            } catch (e) { /* ignore */ }
+        }
+
+        // 从本地存储获取 sessionId
+        const sessionId = localStorage.getItem('sessionId');
+
+        console.log(`[历史记录] userId: ${userId}, sessionId: ${sessionId ? sessionId.slice(0, 8) + '...' : 'null'}`);
+
+        // 至少需要一个标识才能查询
+        if (!userId && !sessionId) {
+            window.showToast('请先完成一次测试', 'error');
+            return;
+        }
+
+        // 跳转到历史记录页面
+        window.router.navigate('/history');
     }
 }
 

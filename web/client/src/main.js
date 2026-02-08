@@ -40,7 +40,9 @@ import {
   TarotResultPage,
   ResultPage,
   PaymentPage,
-  DivinationResultPage
+  DivinationResultPage,
+  HistoryPage,
+  HistoryDetailPage
 } from './pages/index.js';
 
 /**
@@ -71,7 +73,7 @@ function initApp() {
  * 初始化 Session - 确保有 sessionId
  */
 function initializeSession() {
-  let sessionId = localStorage.getItem('app_session_id');
+  let sessionId = localStorage.getItem('sessionId');
 
   if (!sessionId) {
     sessionId = crypto.randomUUID ? crypto.randomUUID() :
@@ -79,7 +81,7 @@ function initializeSession() {
         const r = (Math.random() * 16) | 0;
         return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
       });
-    localStorage.setItem('app_session_id', sessionId);
+    localStorage.setItem('sessionId', sessionId);
   }
 
   window.appSession = {
@@ -110,7 +112,9 @@ function registerRoutes() {
     .register('/test/:type/tarot/result', TarotResultPage)
     .register('/pay/:type', PaymentPage)
     .register('/result/:id', ResultPage)
-    .register('/divination/result', DivinationResultPage);
+    .register('/divination/result', DivinationResultPage)
+    .register('/history', HistoryPage)
+    .register('/history/detail/:id', HistoryDetailPage);
 }
 
 /**

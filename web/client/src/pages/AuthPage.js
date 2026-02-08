@@ -20,7 +20,7 @@ export class AuthPage {
         this.countdown = 0;
         this.countdownTimer = null;
         this.isSubmitting = false;
-        this.sessionId = localStorage.getItem('app_session_id') || '';
+        this.sessionId = localStorage.getItem('sessionId') || '';
         this.devCode = ''; // 开发环境返回的验证码
     }
 

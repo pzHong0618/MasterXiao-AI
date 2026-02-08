@@ -270,7 +270,7 @@ export class TestSelectPage {
 
             // 2. 检查服务权限（已登录的情况下）
             try {
-                const sessionId = localStorage.getItem('app_session_id') || '';
+                const sessionId = localStorage.getItem('sessionId') || '';
                 const permResult = await userApi.checkPermission(typeId, sessionId);
                 
                 if (permResult.data && !permResult.data.hasAccess) {

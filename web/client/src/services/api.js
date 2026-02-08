@@ -483,6 +483,37 @@ export const matchRecordApi = {
     }
 };
 
+// ==================== 历史记录 API ====================
+
+export const historyApi = {
+    /**
+     * 获取历史记录列表
+     * @param {object} params - { sessionId, userId, page, pageSize }
+     * @returns {Promise<{success, data: {records, total, page, pageSize}}>}
+     */
+    async getRecords(params = {}) {
+        const query = new URLSearchParams();
+        if (params.sessionId) query.append('sessionId', params.sessionId);
+        if (params.userId) query.append('userId', params.userId);
+        if (params.page) query.append('page', params.page);
+        if (params.pageSize) query.append('pageSize', params.pageSize);
+        return request(`/history/records?${query.toString()}`);
+    },
+
+    /**
+     * 获取单条记录详情
+     * @param {number|string} recordId - 记录ID
+     * @param {object} params - { sessionId, userId }
+     * @returns {Promise<{success, data}>}
+     */
+    async getRecordDetail(recordId, params = {}) {
+        const query = new URLSearchParams();
+        if (params.sessionId) query.append('sessionId', params.sessionId);
+        if (params.userId) query.append('userId', params.userId);
+        return request(`/history/record/${recordId}?${query.toString()}`);
+    }
+};
+
 // ==================== 配置 API ====================
 
 export const configApi = {
@@ -503,6 +534,7 @@ export default {
     verification: verificationApi,
     payment: paymentApi,
     matchRecord: matchRecordApi,
+    history: historyApi,
     config: configApi
 };
 

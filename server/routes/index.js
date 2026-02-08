@@ -18,6 +18,7 @@ import matchRecordRoutes from './matchRecord.js';
 import tarotRoutes from './tarot.js';
 import divinationRoutes from './divination.js';
 import adminRoutes from './admin.js';
+import historyRoutes from './history.js';
 import config from '../config/index.js';
 
 const router = express.Router();
@@ -67,6 +68,9 @@ router.use('/redeem', redeemRoutes);
 
 // 匹配记录路由（核销码兑换匹配流程）
 router.use('/match/record', matchRecordRoutes);
+
+// 历史记录路由
+router.use('/history', historyRoutes);
 
 // 塔罗牌路由
 // router.use('/tarot', tarotRoutes);

@@ -143,7 +143,7 @@ async function initTables() {
     db.run(`
         CREATE TABLE IF NOT EXISTS session_match_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT UNIQUE NOT NULL,
+            session_id TEXT NOT NULL,
             user_id TEXT DEFAULT NULL,
             status INTEGER NOT NULL DEFAULT 0,
             req_data TEXT,
@@ -243,6 +243,35 @@ async function initTables() {
             FOREIGN KEY (permission_id) REFERENCES permissions(id)
         )
     `);
+
+    // 迁移：去掉 session_match_records 表 session_id 的 UNIQUE 约束
+    try {
+        const tableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='session_match_records'");
+        if (tableInfo.length > 0 && tableInfo[0].values[0][0].includes('UNIQUE')) {
+            console.log('🔄 迁移：去掉 session_match_records.session_id 的 UNIQUE 约束...');
+            db.run(`DROP INDEX IF EXISTS idx_smr_session_id`);
+            db.run(`DROP INDEX IF EXISTS idx_smr_status`);
+            db.run(`DROP INDEX IF EXISTS idx_smr_create_date`);
+            db.run(`ALTER TABLE session_match_records RENAME TO session_match_records_old`);
+            db.run(`
+                CREATE TABLE session_match_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    user_id TEXT DEFAULT NULL,
+                    status INTEGER NOT NULL DEFAULT 0,
+                    req_data TEXT,
+                    result_data TEXT,
+                    create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    update_date DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            db.run(`INSERT INTO session_match_records SELECT * FROM session_match_records_old`);
+            db.run(`DROP TABLE session_match_records_old`);
+            console.log('✅ 迁移完成：session_id UNIQUE 约束已移除');
+        }
+    } catch (e) {
+        console.warn('迁移检查跳过:', e.message);
+    }
 
     // 为 session_match_records 创建索引
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_session_id ON session_match_records(session_id)`);
