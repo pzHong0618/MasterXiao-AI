@@ -556,7 +556,17 @@ export class TarotCardSelectionPage {
                 };
 
                 try {
-                    const result = await matchRecordApi.create(sessionId, testData);
+                    // 获取本地 userId，没有则传 null
+                    let userId = null;
+                    try {
+                        const userStr = localStorage.getItem('user');
+                        if (userStr) {
+                            const user = JSON.parse(userStr);
+                            userId = user.id || user.userId || null;
+                        }
+                    } catch (e) { /* ignore */ }
+
+                    const result = await matchRecordApi.create(sessionId, testData, userId);
                     console.log('匹配记录创建成功:', result);
                     testData.recordId = result.data?.recordId;
                     testData.sessionId = sessionId;

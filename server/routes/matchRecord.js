@@ -79,7 +79,7 @@ router.post('/create', (req, res) => {
  */
 router.put('/update-status', (req, res) => {
     try {
-        const { sessionId, status, resultData } = req.body;
+        const { sessionId, status, userId, resultData } = req.body;
 
         // 参数校验
         if (!sessionId) {
@@ -111,9 +111,20 @@ router.put('/update-status', (req, res) => {
                 data: null
             });
         }
+        //检查用户ID是否存在
+        if (userId) {
+            const userIdExists = SessionMatchRecord.findByUserId(userId);
+            if (!userIdExists) {
+                return res.status(404).json({
+                    code: 404,
+                    message: '用户ID不存在',
+                    data: null
+                });
+            }
+        }
 
         // 更新状态
-        const updated = SessionMatchRecord.updateStatus(sessionId, status, resultData || null, recordId ? parseInt(recordId) : null);
+        const updated = SessionMatchRecord.updateStatus(sessionId, status, userId || null, resultData || null, recordId ? parseInt(recordId) : null);
 
         if (updated) {
             saveDatabase();
@@ -122,7 +133,8 @@ router.put('/update-status', (req, res) => {
                 message: 'success',
                 data: {
                     sessionId,
-                    status
+                    status,
+                    userId
                 }
             });
         } else {

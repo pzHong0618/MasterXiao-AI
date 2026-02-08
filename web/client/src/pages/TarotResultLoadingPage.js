@@ -341,8 +341,18 @@ export class TarotResultLoadingPage {
             return;
         }
 
+        // 获取本地 userId，没有则传 null
+        let userId = null;
         try {
-            await matchRecordApi.updateStatus(sessionId, status, resultData);
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                userId = user.id || user.userId || null;
+            }
+        } catch (e) { /* ignore */ }
+
+        try {
+            await matchRecordApi.updateStatus(sessionId, userId, status, resultData);
             console.log(`✅ 匹配记录状态已更新为 ${status === 1 ? '成功' : '失败'}`);
         } catch (error) {
             console.error('更新匹配记录状态失败:', error);

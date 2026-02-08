@@ -91,7 +91,7 @@ export const SessionMatchRecord = {
      * @param {number} id - 记录ID（可选，配合sessionId精确更新）
      * @returns {boolean}
      */
-    updateStatus(sessionId, status, resultData = null, id = null) {
+    updateStatus(sessionId, status, userId = null, resultData = null, id = null) {
         // 校验状态值
         if (![1, 2].includes(status)) {
             throw new Error('无效的状态值，只能为 1（成功）或 2（失败）');
@@ -117,14 +117,21 @@ export const SessionMatchRecord = {
             sql += ', result_data = ?';
             params.push(resultDataStr);
         }
-
+        if (userId) {
+            sql += ', user_id = ?';
+            params.push(userId);
+            //更新未注册之前同一sessionId的其他userId为null的记录
+            execute(
+                'UPDATE session_match_records SET user_id = ? WHERE session_id = ? AND user_id IS NULL',
+                [userId, sessionId]
+            );
+        }
         sql += ' WHERE session_id = ?';
         params.push(sessionId);
         if (id) {
             sql += ' AND id = ?';
             params.push(id);
         }
-
         const result = execute(sql, params);
         return result.changes > 0;
     },
