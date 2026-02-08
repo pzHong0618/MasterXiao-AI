@@ -467,10 +467,10 @@ export const matchRecordApi = {
      * @param {object} resultData - 结果数据（可选）
      * @returns {Promise<{code, message, data}>}
      */
-    async updateStatus(sessionId, status, resultData = null) {
+    async updateStatus(sessionId, userId, status, resultData = null) {
         return request('/match/record/update-status', {
             method: 'PUT',
-            body: JSON.stringify({ sessionId, status, resultData })
+            body: JSON.stringify({ sessionId, userId, status, resultData })
         });
     },
 
