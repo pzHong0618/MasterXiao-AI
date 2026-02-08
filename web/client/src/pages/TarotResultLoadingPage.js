@@ -81,7 +81,7 @@ export class TarotResultLoadingPage {
             <section class="result-btns animate-fade-in-up animate-delay-200">
               <button class="btn btn--outline btn--lg result-btn-restart" id="btnRestart">重新开始</button>
             </section>
-            <div class="result-tip">本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据</div>
+            <div class="result-tip">仅供娱乐参考，不作为任何决策依据</div>
           </div>
         </main>
       </div>

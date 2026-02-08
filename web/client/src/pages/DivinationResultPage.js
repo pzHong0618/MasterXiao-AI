@@ -95,7 +95,7 @@ export function render(container, params = {}) {
 
             <!-- 免责声明 -->
             <div class="disclaimer">
-                本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据
+                仅供娱乐参考，不作为任何决策依据
             </div>
 
             <!-- 底部按钮 -->

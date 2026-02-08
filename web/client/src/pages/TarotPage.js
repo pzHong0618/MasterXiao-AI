@@ -286,7 +286,7 @@ export class TarotPage {
                       id="submitBtn">
                 ${this.getSubmitButtonText()}
               </button>
-              <p class="disclaimer">本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据</p>
+              <p class="disclaimer">仅供娱乐参考，不作为任何决策依据</p>
             </section>
 
             <div class="safe-area-bottom"></div>
