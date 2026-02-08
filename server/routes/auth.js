@@ -55,8 +55,8 @@ router.post('/send-sms', asyncHandler(async (req, res) => {
         throw new AppError('该手机号已注册，请直接登录', 400, 'PHONE_EXISTS');
     }
 
-    // 生成6位验证码
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    // 生成6位验证码（固定为 123456，接入短信服务商后改回随机）
+    const code = '123456';
 
     // 存储验证码（5分钟有效）
     verificationCodes.set(`${phone}_${type}`, {
@@ -78,8 +78,7 @@ router.post('/send-sms', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         message: '验证码已发送',
-        // 开发环境返回验证码方便测试
-        ...(process.env.NODE_ENV !== 'production' && { code })
+        code
     });
 }));
 
@@ -91,7 +90,7 @@ router.post('/send-code', asyncHandler(async (req, res) => {
         throw new AppError('请输入有效的手机号', 400, 'INVALID_PHONE');
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = '123456';
 
     verificationCodes.set(`${phone}_login`, {
         code,
@@ -106,7 +105,7 @@ router.post('/send-code', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         message: '验证码已发送',
-        ...(process.env.NODE_ENV !== 'production' && { code })
+        code
     });
 }));
 
