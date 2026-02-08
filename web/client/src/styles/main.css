@@ -26,3 +26,6 @@
 
 /* 8. 历史记录页样式 */
 @import './history.css';
+
+/* 9. 个人中心页样式 */
+@import './profile.css';

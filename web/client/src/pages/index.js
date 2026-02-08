@@ -20,3 +20,4 @@ export { PaymentPage } from './PaymentPage.js';
 export { DivinationResultPage } from './DivinationResultPage.js';
 export { HistoryPage } from './HistoryPage.js';
 export { HistoryDetailPage } from './HistoryDetailPage.js';
+export { ProfilePage } from './ProfilePage.js';

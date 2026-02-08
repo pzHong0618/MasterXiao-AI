@@ -42,7 +42,8 @@ import {
   PaymentPage,
   DivinationResultPage,
   HistoryPage,
-  HistoryDetailPage
+  HistoryDetailPage,
+  ProfilePage
 } from './pages/index.js';
 
 /**
@@ -114,7 +115,8 @@ function registerRoutes() {
     .register('/result/:id', ResultPage)
     .register('/divination/result', DivinationResultPage)
     .register('/history', HistoryPage)
-    .register('/history/detail/:id', HistoryDetailPage);
+    .register('/history/detail/:id', HistoryDetailPage)
+    .register('/profile', ProfilePage);
 }
 
 /**

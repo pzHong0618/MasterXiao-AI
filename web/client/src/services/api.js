@@ -110,6 +110,9 @@ export const authApi = {
         if (result.success && result.data?.token) {
             localStorage.setItem('auth_token', result.data.token);
             localStorage.setItem('user', JSON.stringify(result.data.user));
+            if (result.data.user?.id) {
+                localStorage.setItem('userId', result.data.user.id);
+            }
         }
 
         return result;
@@ -127,6 +130,9 @@ export const authApi = {
         if (result.success && result.data?.token) {
             localStorage.setItem('auth_token', result.data.token);
             localStorage.setItem('user', JSON.stringify(result.data.user));
+            if (result.data.user?.id) {
+                localStorage.setItem('userId', result.data.user.id);
+            }
         }
 
         return result;
@@ -144,6 +150,9 @@ export const authApi = {
         if (result.success && result.data?.token) {
             localStorage.setItem('auth_token', result.data.token);
             localStorage.setItem('user', JSON.stringify(result.data.user));
+            if (result.data.user?.id) {
+                localStorage.setItem('userId', result.data.user.id);
+            }
         }
 
         return result;
@@ -172,6 +181,7 @@ export const authApi = {
     logout() {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
+        localStorage.removeItem('userId');
     },
 
     /**

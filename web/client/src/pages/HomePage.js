@@ -121,8 +121,21 @@ export class HomePage {
                 this.goToHistory();
                 break;
             case 'profile':
-                window.router.navigate('/profile');
+                this.goToProfile();
                 break;
+        }
+    }
+
+    /**
+     * 跳转到个人中心
+     * 已登录 → 个人详情页，未登录 → 登录注册页
+     */
+    goToProfile() {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            window.router.navigate('/profile');
+        } else {
+            window.router.navigate('/auth?action=login');
         }
     }
 
