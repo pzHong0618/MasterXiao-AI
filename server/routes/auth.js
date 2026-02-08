@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { generateToken, authenticate } from '../middleware/auth.js';
 import { users, verificationCodes, smsRateLimit } from '../services/dataStore.js';
+import { SessionMatchRecord } from '../database/models/index.js';
 
 const router = express.Router();
 
@@ -214,6 +215,16 @@ router.post('/register', asyncHandler(async (req, res) => {
 
     users.set(phone, user);
     console.log(`[${global.getTimestamp()}] 🎉 新用户注册: ${phone}`);
+
+    // 用 sessionId 批量更新匹配记录表中 user_id 为空的记录，关联到新用户
+    if (sessionId) {
+        try {
+            SessionMatchRecord.batchUpdateUserIdBySession(sessionId, userId);
+            console.log(`[${global.getTimestamp()}] 📝 已将 sessionId=${sessionId} 的匹配记录关联到用户 ${userId}`);
+        } catch (err) {
+            console.error(`[${global.getTimestamp()}] 批量更新匹配记录 userId 失败:`, err.message);
+        }
+    }
 
     // 生成 JWT
     const token = generateToken({
