@@ -10,8 +10,8 @@ import { getGuaInfo, generateGuaCode, generateBianGuaCode, getMovingYaoPositions
 
 // 卡牌总数
 const TOTAL_CARDS = 80;
-// 每次抽牌显示的数量
-const CARDS_TO_SHOW = 6;
+// 每次摇牌显示的数量（即摇中的牌数）
+const CARDS_TO_SHOW = 3;
 // 每次需要选择的数量
 const CARDS_TO_SELECT = 3;
 // 需要抽牌的次数
@@ -257,19 +257,18 @@ export class TarotShufflePage {
             return '<div class="draw-modal" id="drawModal"></div>';
         }
 
-        const selectedCount = this.modalSelectedCards.length;
-        const canConfirm = selectedCount === CARDS_TO_SELECT;
+        // 摇中的3张牌直接全部展示，无需手动选择
+        const allSelected = this.modalCards.length === CARDS_TO_SELECT;
 
         return `
             <div class="draw-modal show" id="drawModal">
                 <div class="draw-modal__overlay"></div>
                 <div class="draw-modal__content">
-                    <h3 class="draw-modal__title">抽牌</h3>
+                    <h3 class="draw-modal__title">摇牌结果</h3>
                     <div class="draw-modal__cards">
                         ${this.modalCards.map((cardId, index) => {
-                            const isSelected = this.modalSelectedCards.includes(cardId);
                             return `
-                                <div class="draw-modal__card ${isSelected ? 'selected' : ''}" 
+                                <div class="draw-modal__card selected" 
                                      data-modal-card-id="${cardId}" data-modal-index="${index}">
                                     <div class="shuffle-card__inner">
                                         <div class="shuffle-card__pattern">
@@ -277,14 +276,14 @@ export class TarotShufflePage {
                                             <div class="card-lines"></div>
                                         </div>
                                     </div>
-                                    ${isSelected ? '<div class="draw-modal__card-check">✓</div>' : ''}
+                                    <div class="draw-modal__card-check">✓</div>
                                 </div>
                             `;
                         }).join('')}
                     </div>
-                    <p class="draw-modal__hint">请随机选取三张 (${selectedCount}/${CARDS_TO_SELECT})</p>
-                    <button class="btn btn--primary draw-modal__confirm ${canConfirm ? '' : 'disabled'}" 
-                            id="confirmDrawBtn" ${canConfirm ? '' : 'disabled'}>
+                    <p class="draw-modal__hint">已摇出 ${CARDS_TO_SELECT} 张牌</p>
+                    <button class="btn btn--primary draw-modal__confirm" 
+                            id="confirmDrawBtn">
                         确定
                     </button>
                 </div>
@@ -331,13 +330,7 @@ export class TarotShufflePage {
     }
 
     attachModalEvents() {
-        // 弹框中的卡牌点击
-        document.querySelectorAll('.draw-modal__card').forEach(card => {
-            card.addEventListener('click', () => {
-                const cardId = parseInt(card.dataset.modalCardId);
-                this.handleModalCardSelect(cardId);
-            });
-        });
+        // 摇牌结果已自动选中，不需要卡牌点击事件
 
         // 确定按钮
         const confirmBtn = document.getElementById('confirmDrawBtn');
@@ -347,7 +340,7 @@ export class TarotShufflePage {
             });
         }
 
-        // 点击遮罩不关闭（强制选择）
+        // 点击遮罩不关闭（强制确认）
     }
 
     handleButtonClick() {
@@ -487,9 +480,9 @@ export class TarotShufflePage {
     }
 
     openDrawModal() {
-        // 从可用卡牌池中随机选取6张
-        this.modalCards = this.getRandomCards(CARDS_TO_SHOW);
-        this.modalSelectedCards = [];
+        // 从可用卡牌池中随机摇出3张（直接作为摇中的牌）
+        this.modalCards = this.getRandomCards(CARDS_TO_SELECT);
+        this.modalSelectedCards = [...this.modalCards]; // 全部自动选中
         this.showDrawModal = true;
         this.drawRound++;
 
@@ -508,54 +501,6 @@ export class TarotShufflePage {
         if (modalContainer) {
             modalContainer.outerHTML = this.renderDrawModal();
             this.attachModalEvents();
-        }
-    }
-
-    handleModalCardSelect(cardId) {
-        const index = this.modalSelectedCards.indexOf(cardId);
-        
-        if (index > -1) {
-            // 已选中，取消选择
-            this.modalSelectedCards.splice(index, 1);
-        } else if (this.modalSelectedCards.length < CARDS_TO_SELECT) {
-            // 未选中且未满，添加选择
-            this.modalSelectedCards.push(cardId);
-        }
-
-        // 更新弹框UI
-        this.updateModalUI();
-    }
-
-    updateModalUI() {
-        // 更新卡牌选中状态
-        document.querySelectorAll('.draw-modal__card').forEach(card => {
-            const cardId = parseInt(card.dataset.modalCardId);
-            const isSelected = this.modalSelectedCards.includes(cardId);
-            card.classList.toggle('selected', isSelected);
-            
-            let checkMark = card.querySelector('.draw-modal__card-check');
-            if (isSelected && !checkMark) {
-                checkMark = document.createElement('div');
-                checkMark.className = 'draw-modal__card-check';
-                checkMark.textContent = '✓';
-                card.appendChild(checkMark);
-            } else if (!isSelected && checkMark) {
-                checkMark.remove();
-            }
-        });
-
-        // 更新提示文字
-        const hint = document.querySelector('.draw-modal__hint');
-        if (hint) {
-            hint.textContent = `请随机选取三张 (${this.modalSelectedCards.length}/${CARDS_TO_SELECT})`;
-        }
-
-        // 更新确定按钮状态
-        const confirmBtn = document.getElementById('confirmDrawBtn');
-        if (confirmBtn) {
-            const canConfirm = this.modalSelectedCards.length === CARDS_TO_SELECT;
-            confirmBtn.disabled = !canConfirm;
-            confirmBtn.classList.toggle('disabled', !canConfirm);
         }
     }
 

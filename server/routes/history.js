@@ -139,9 +139,12 @@ router.get('/records', (req, res) => {
         const size = Math.min(100, Math.max(1, parseInt(pageSize) || 20));
         const offset = (pageNum - 1) * size;
 
+        // 优先使用 userId 查询，userId 不存在时才使用 sessionId
+        const queryCondition = userId ? { userId } : { sessionId };
+
         // 使用 findHistory 方法查询
         const { records, total } = SessionMatchRecord.findHistory(
-            { sessionId, userId },
+            queryCondition,
             { limit: size, offset }
         );
 

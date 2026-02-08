@@ -91,12 +91,15 @@ export class HistoryPage {
                 return;
             }
 
-            const result = await historyApi.getRecords({
-                sessionId,
-                userId,
-                page: this.page,
-                pageSize: this.pageSize
-            });
+            // 优先使用 userId 查询，userId 不存在时才使用 sessionId
+            const queryParams = { page: this.page, pageSize: this.pageSize };
+            if (userId) {
+                queryParams.userId = userId;
+            } else {
+                queryParams.sessionId = sessionId;
+            }
+
+            const result = await historyApi.getRecords(queryParams);
 
             if (result.success && result.data) {
                 this.records = result.data.records || [];
@@ -229,12 +232,15 @@ export class HistoryPage {
             // 从本地存储获取 userId 或 sessionId
             const { userId, sessionId } = this.getLocalIdentity();
 
-            const result = await historyApi.getRecords({
-                sessionId,
-                userId,
-                page: this.page,
-                pageSize: this.pageSize
-            });
+            // 优先使用 userId 查询，userId 不存在时才使用 sessionId
+            const queryParams = { page: this.page, pageSize: this.pageSize };
+            if (userId) {
+                queryParams.userId = userId;
+            } else {
+                queryParams.sessionId = sessionId;
+            }
+
+            const result = await historyApi.getRecords(queryParams);
 
             if (result.success && result.data) {
                 this.records = [...this.records, ...(result.data.records || [])];

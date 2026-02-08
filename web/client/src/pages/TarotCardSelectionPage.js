@@ -94,7 +94,7 @@ export class TarotCardSelectionPage {
         cards.forEach(c => {
             c.classList.remove(
                 'cs-card--face-up', 'cs-card--face-down',
-                'cs-card--picked', 'cs-card--not-picked',
+                'cs-card--picked', 'cs-card--not-picked', 'cs-card--hidden',
                 'cs-card--phase-float', 'cs-card--phase-scatter', 'cs-card--phase-glow',
                 'cs-card--shuffle-swap', 'cs-card--energy-pulse'
             );
@@ -104,6 +104,11 @@ export class TarotCardSelectionPage {
             c.style.removeProperty('--swap-x');
             c.style.removeProperty('--swap-y');
         });
+
+        // 恢复网格为完整6张牌布局
+        if (grid) {
+            grid.classList.remove('cs-card-grid--picked-only');
+        }
 
         // 2. 随机选3张（= 3枚铜钱）
         const indices = [0, 1, 2, 3, 4, 5];
@@ -176,12 +181,30 @@ export class TarotCardSelectionPage {
                 c.classList.remove('cs-card--energy-pulse');
             });
 
-            // 未被选中的牌暗化
-            cards.forEach((c, i) => {
-                if (!picked.includes(i)) {
+            // 获取当前最新的DOM中的卡牌元素（shuffleAllCards可能重排了DOM）
+            const currentCards = document.querySelectorAll('.cs-card');
+
+            // 隐藏未被选中的牌（淡出动画）
+            currentCards.forEach(c => {
+                const idx = parseInt(c.dataset.idx);
+                if (!picked.includes(idx)) {
                     c.classList.add('cs-card--not-picked');
                 }
             });
+
+            // 等淡出动画完成后，彻底隐藏未选中的牌并收缩网格为一行
+            setTimeout(() => {
+                currentCards.forEach(c => {
+                    const idx = parseInt(c.dataset.idx);
+                    if (!picked.includes(idx)) {
+                        c.classList.add('cs-card--hidden');
+                    }
+                });
+                // 网格收缩为一行3列居中
+                if (grid) {
+                    grid.classList.add('cs-card-grid--picked-only');
+                }
+            }, 420);
 
             // 依次翻开被选中的牌
             picked.forEach((idx, pi) => {
@@ -559,8 +582,10 @@ export class TarotCardSelectionPage {
                 this.updateStatus();
                 this.updateCollectSlots();
                 document.querySelectorAll('.cs-card').forEach(c => {
-                    c.classList.remove('cs-card--face-up', 'cs-card--face-down', 'cs-card--picked', 'cs-card--not-picked');
+                    c.classList.remove('cs-card--face-up', 'cs-card--face-down', 'cs-card--picked', 'cs-card--not-picked', 'cs-card--hidden');
                 });
+                // 恢复网格布局
+                document.getElementById('csCardGrid')?.classList.remove('cs-card-grid--picked-only');
                 btn.textContent = '摇牌';
                 btn.onclick = () => this.doShake();
             };

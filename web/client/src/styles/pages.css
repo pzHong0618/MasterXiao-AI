@@ -4469,12 +4469,34 @@
     filter: saturate(0.3);
 }
 
-/* 未被选中的牌 - 淡出并缩小 */
+/* 未被选中的牌 - 先淡出再隐藏 */
 .cs-card--not-picked {
-    opacity: 0.25;
-    filter: grayscale(0.6) blur(1px);
-    transform: scale(0.92);
-    transition: opacity 0.4s, filter 0.4s, transform 0.4s;
+    animation: csCardFadeOut 0.4s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes csCardFadeOut {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.6); }
+}
+
+/* 淡出动画结束后彻底隐藏(通过JS延迟添加) */
+.cs-card--hidden {
+    display: none !important;
+}
+
+/* 网格收缩为一行3列居中显示摇中牌 */
+.cs-card-grid--picked-only {
+    display: flex !important;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.cs-card-grid--picked-only .cs-card {
+    flex: 0 0 28%;
+    max-width: 120px;
 }
 
 /* --- 爻结果提示 --- */

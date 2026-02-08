@@ -56,7 +56,7 @@ export class TarotResultPage {
               </section>
 
               <div class="result-disclaimer">
-                本应用基于传统文化体验，仅供娱乐参考，不作为任何决策依据
+                仅供娱乐参考，不作为任何决策依据
               </div>
             </div>
 
