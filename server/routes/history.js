@@ -150,14 +150,21 @@ router.get('/records', (req, res) => {
 
         // 格式化返回数据
         const formattedRecords = records.map((record, index) => {
-            // 从 req_data 中提取问题描述
+            // 优先使用独立的 type 字段，兼容从 req_data 中提取
             let question = '未知问题';
-            if (record.req_data) {
+            let recordType = record.type;
+            let recordMethod = record.method;
+            
+            if (!recordType && record.req_data) {
                 const reqData = typeof record.req_data === 'string'
                     ? JSON.parse(record.req_data)
                     : record.req_data;
+                recordType = reqData.type;
+                recordMethod = recordMethod || reqData.method;
+            }
 
-                let typeRes = matchTypes.find(t => t.id === reqData.type);
+            if (recordType) {
+                let typeRes = matchTypes.find(t => t.id === recordType);
                 question = typeRes ? typeRes.title : `未知匹配`;
             }
 
@@ -166,6 +173,8 @@ router.get('/records', (req, res) => {
                 sessionId: record.session_id,
                 serialNumber: offset + index + 1,
                 question: question,
+                type: recordType || null,
+                method: recordMethod || null,
                 createTime: record.create_date,
                 status: record.status === 1 ? '匹配成功' : (record.status === 2 ? '匹配失败' : '匹配中'),
                 result_data: record.result_data ? '有结果' : null

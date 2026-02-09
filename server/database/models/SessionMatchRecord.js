@@ -12,14 +12,16 @@ import { queryAll, queryOne, execute } from '../index.js';
 export const SessionMatchRecord = {
     /**
      * 创建匹配记录
-     * @param {object} recordData - { sessionId, reqData, userId }
+     * @param {object} recordData - { sessionId, reqData, userId, method, type }
      * @returns {object} - { id, sessionId }
      */
     create(recordData) {
         const {
             sessionId,
             reqData,
-            userId = null
+            userId = null,
+            method = null,
+            type = null
         } = recordData;
 
         // 校验 sessionId 格式（UUID v4 格式）
@@ -30,16 +32,29 @@ export const SessionMatchRecord = {
         // 序列化 reqData
         const reqDataStr = typeof reqData === 'string' ? reqData : JSON.stringify(reqData);
 
+        // 自动从 reqData 中提取 method 和 type（如果未显式传入）
+        let finalMethod = method;
+        let finalType = type;
+        if (!finalMethod || !finalType) {
+            try {
+                const parsed = typeof reqData === 'string' ? JSON.parse(reqData) : reqData;
+                if (!finalMethod && parsed?.method) finalMethod = parsed.method;
+                if (!finalType && parsed?.type) finalType = parsed.type;
+            } catch (e) { /* ignore */ }
+        }
+
         const result = execute(
-            `INSERT INTO session_match_records (session_id, user_id, status, req_data) 
-            VALUES (?, ?, 0, ?)`,
-            [sessionId, userId, reqDataStr]
+            `INSERT INTO session_match_records (session_id, user_id, status, req_data, method, type) 
+            VALUES (?, ?, 0, ?, ?, ?)`,
+            [sessionId, userId, reqDataStr, finalMethod, finalType]
         );
 
         return {
             id: result.lastInsertRowid,
             sessionId,
-            status: 0
+            status: 0,
+            method: finalMethod,
+            type: finalType
         };
     },
 

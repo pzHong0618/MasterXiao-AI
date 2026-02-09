@@ -6,6 +6,7 @@ import express from 'express';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import { users, userPurchases } from '../services/dataStore.js';
+import { getNowLocal } from '../database/index.js';
 
 const router = express.Router();
 
@@ -113,7 +114,7 @@ router.put('/profile', authenticate, asyncHandler(async (req, res) => {
         user.birthDate = birthDate;
     }
 
-    user.updatedAt = new Date().toISOString();
+    user.updatedAt = getNowLocal();
     users.set(req.user.phone, user);
 
     res.json({
@@ -202,6 +203,11 @@ router.post('/invite/apply', authenticate, asyncHandler(async (req, res) => {
 
     // 给邀请人增加奖励
     inviter.credits = (inviter.credits || 0) + 1;
+    users.set(inviter.phone, inviter);
+
+    // 给当前用户也加奖励
+    user.credits = (user.credits || 0) + 1;
+    users.set(req.user.phone, user);
 
     res.json({
         success: true,

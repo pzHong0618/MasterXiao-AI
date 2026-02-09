@@ -9,6 +9,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { optionalAuth, authenticate } from '../middleware/auth.js';
 import { orders, users } from '../services/dataStore.js';
 import { generateQRCode, generateRedeemCode } from '../services/paymentService.js';
+import { getNowLocal } from '../database/index.js';
 
 const router = express.Router();
 
@@ -54,9 +55,9 @@ router.post('/create-order', optionalAuth, asyncHandler(async (req, res) => {
         testType: testType || null,
         status: 'pending', // pending, paid, redeemed, expired, cancelled
         redeemCode: null,
-        createdAt: new Date().toISOString(),
+        createdAt: getNowLocal(),
         paidAt: null,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30分钟过期
+        expiresAt: (() => { const d = new Date(Date.now() + 30 * 60 * 1000 + 8 * 60 * 60 * 1000); return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ''); })() // 30分钟过期（北京时间）
     };
 
     orders.set(orderId, order);
@@ -131,7 +132,7 @@ router.post('/notify', asyncHandler(async (req, res) => {
     if (status === 'success') {
         // 更新订单状态
         order.status = 'paid';
-        order.paidAt = new Date().toISOString();
+        order.paidAt = getNowLocal();
         order.paymentId = paymentId;
 
         // 生成核销码
@@ -141,9 +142,11 @@ router.post('/notify', asyncHandler(async (req, res) => {
 
         // 如果有关联用户，增加积分
         if (order.userId) {
-            const user = Array.from(users.values()).find(u => u.id === order.userId);
+            const allUsers = users.values();
+            const user = allUsers.find(u => u.id === order.userId);
             if (user) {
                 user.credits = (user.credits || 0) + order.credits;
+                users.set(user.phone, user);
                 console.log(`[${global.getTimestamp()}] ✅ 用户 ${user.phone} 增加 ${order.credits} 次测试机会`);
             }
         }
@@ -177,7 +180,7 @@ router.post('/simulate-pay', asyncHandler(async (req, res) => {
 
     // 更新订单状态
     order.status = 'paid';
-    order.paidAt = new Date().toISOString();
+    order.paidAt = getNowLocal();
     order.paymentId = 'SIM_' + Date.now();
 
     // 生成核销码
@@ -187,9 +190,11 @@ router.post('/simulate-pay', asyncHandler(async (req, res) => {
 
     // 如果有关联用户，增加积分
     if (order.userId) {
-        const user = Array.from(users.values()).find(u => u.id === order.userId);
+        const allUsers = users.values();
+        const user = allUsers.find(u => u.id === order.userId);
         if (user) {
             user.credits = (user.credits || 0) + order.credits;
+            users.set(user.phone, user);
         }
     }
 
@@ -231,7 +236,7 @@ router.post('/redeem', optionalAuth, asyncHandler(async (req, res) => {
 
     // 标记为已核销
     targetOrder.status = 'redeemed';
-    targetOrder.redeemedAt = new Date().toISOString();
+    targetOrder.redeemedAt = getNowLocal();
     orders.set(targetOrder.id, targetOrder);
 
     res.json({

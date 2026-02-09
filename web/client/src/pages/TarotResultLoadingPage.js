@@ -4,7 +4,7 @@
  */
 import { Navbar } from '../components/Common.js';
 import { getMatchTypeById } from '../data/matchTypes.js';
-import { matchRecordApi } from '../services/api.js';
+import { matchRecordApi, getApiBaseUrl } from '../services/api.js';
 import { getSessionId } from '../scripts/state.js';
 
 // 加载提示语列表
@@ -136,7 +136,8 @@ export class TarotResultLoadingPage {
             console.log('[六爻解卦] 开始请求，卦象数据:', guaData);
 
             // 调用后端六爻API进行解读
-            const response = await fetch('/api/divination', {
+            const apiBase = getApiBaseUrl();
+            const response = await fetch(`${apiBase}/divination`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

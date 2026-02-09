@@ -3,22 +3,21 @@
  * 封装所有后端 API 调用
  */
 
-// 动态获取 API 基础地址（自动适配当前访问域名）
+// 动态获取 API 基础地址（自动适配当前访问域名和端口）
 export const getApiBaseUrl = () => {
-    // 优先使用环境变量配置
+    // 优先使用环境变量配置（构建时注入）
     if (import.meta.env.VITE_API_URL) {
         return import.meta.env.VITE_API_URL;
     }
     
-    // 自动检测：如果是通过 IP/域名访问，使用当前域名
-    const currentHost = window.location.host; // 包含端口的完整host
-    if (currentHost && !currentHost.includes('localhost') && !currentHost.includes('127.0.0.1')) {
-        // 云服务器或域名访问，使用当前协议和host
-        return `${window.location.protocol}//${currentHost}/api`;
-    }
-    
-    // 本地开发默认
-    return 'http://localhost:3000/api';
+    // 通用策略：使用当前页面的协议和域名（host 包含端口）
+    // 在以下场景均可正确工作：
+    //   1. 生产环境：前端由 Express 同端口(3000)静态托管，Vite 已构建 → /api 路径直接转到后端
+    //   2. 开发环境(Vite dev server)：Vite proxy 将 /api 代理到后端 → /api 路径通过 proxy 转发
+    //   3. 云服务器 / 域名访问：同端口静态托管 → /api 直接转到后端
+    //   4. 局域网 IP 访问 Vite dev server：Vite proxy 同样生效
+    // 因此统一使用相对路径 /api 即可
+    return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -113,6 +112,39 @@ export const authApi = {
             if (result.data.user?.id) {
                 localStorage.setItem('userId', result.data.user.id);
             }
+            // 注册后更新本地 sessionId
+            if (result.data.sessionId) {
+                localStorage.setItem('sessionId', result.data.sessionId);
+                console.log('🔄 注册成功，sessionId 已更新:', result.data.sessionId);
+            }
+        }
+
+        return result;
+    },
+
+    /**
+     * 手机号快速登录（未注册自动注册）
+     */
+    async quickLogin(phone, smsCode) {
+        const body = { phone, sessionId: localStorage.getItem('sessionId') || '' };
+        if (smsCode) body.smsCode = smsCode;
+
+        const result = await request('/auth/quick-login', {
+            method: 'POST',
+            body: JSON.stringify(body)
+        });
+
+        if (result.success && result.data?.token) {
+            localStorage.setItem('auth_token', result.data.token);
+            localStorage.setItem('user', JSON.stringify(result.data.user));
+            if (result.data.user?.id) {
+                localStorage.setItem('userId', result.data.user.id);
+            }
+            // 新用户注册后更新本地 sessionId
+            if (result.data.sessionId) {
+                localStorage.setItem('sessionId', result.data.sessionId);
+                console.log('🔄 快速登录注册成功，sessionId 已更新:', result.data.sessionId);
+            }
         }
 
         return result;
@@ -124,7 +156,7 @@ export const authApi = {
     async login(phone, code) {
         const result = await request('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ phone, code })
+            body: JSON.stringify({ phone, code, sessionId: localStorage.getItem('sessionId') || '' })
         });
 
         if (result.success && result.data?.token) {
@@ -132,6 +164,11 @@ export const authApi = {
             localStorage.setItem('user', JSON.stringify(result.data.user));
             if (result.data.user?.id) {
                 localStorage.setItem('userId', result.data.user.id);
+            }
+            // 新用户自动注册后更新本地 sessionId
+            if (result.data.sessionId) {
+                localStorage.setItem('sessionId', result.data.sessionId);
+                console.log('🔄 登录注册成功，sessionId 已更新:', result.data.sessionId);
             }
         }
 
@@ -144,7 +181,7 @@ export const authApi = {
     async loginWithPassword(phone, password, rememberMe = false) {
         const result = await request('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ phone, password, rememberMe })
+            body: JSON.stringify({ phone, password, rememberMe, sessionId: localStorage.getItem('sessionId') || '' })
         });
 
         if (result.success && result.data?.token) {
@@ -152,6 +189,11 @@ export const authApi = {
             localStorage.setItem('user', JSON.stringify(result.data.user));
             if (result.data.user?.id) {
                 localStorage.setItem('userId', result.data.user.id);
+            }
+            // 新用户自动注册后更新本地 sessionId
+            if (result.data.sessionId) {
+                localStorage.setItem('sessionId', result.data.sessionId);
+                console.log('🔄 登录注册成功，sessionId 已更新:', result.data.sessionId);
             }
         }
 
@@ -449,14 +491,17 @@ export const matchRecordApi = {
     /**
      * 创建匹配记录
      * @param {string} sessionId - 会话ID
-     * @param {object} reqData - 用户提交的表单数据
+     * @param {object} reqData - 用户提交的表单数据（包含 type、method 等）
      * @param {string} userId - 用户ID（可选）
      * @returns {Promise<{code, message, data: {recordId, sessionId}}>}
      */
     async create(sessionId, reqData, userId = null) {
+        // 从 reqData 中自动提取 method 和 type 作为顶层字段
+        const method = reqData?.method || null;
+        const type = reqData?.type || null;
         return request('/match/record/create', {
             method: 'POST',
-            body: JSON.stringify({ sessionId, reqData, userId })
+            body: JSON.stringify({ sessionId, reqData, userId, method, type })
         });
     },
 

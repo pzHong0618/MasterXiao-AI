@@ -10,6 +10,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { generateToken, authenticate } from '../middleware/auth.js';
 import { users, verificationCodes, smsRateLimit } from '../services/dataStore.js';
 import { SessionMatchRecord } from '../database/models/index.js';
+import { getNowLocal } from '../database/index.js';
 
 const router = express.Router();
 
@@ -143,11 +144,13 @@ function verifySmsCode(phone, code, type) {
     }
 
     if (stored.code !== code) {
+        // 回写 attempts 增加
+        stored.used = false;
+        verificationCodes.set(key, stored);
         throw new AppError('验证码错误', 400, 'INVALID_CODE');
     }
 
-    // 标记已使用
-    stored.used = true;
+    // 标记已使用并删除
     verificationCodes.delete(key);
     return true;
 }
@@ -189,9 +192,9 @@ router.post('/register', asyncHandler(async (req, res) => {
         status: 1,
         registerSource: 'web',
         registerSessionId: sessionId || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        lastLoginTime: new Date().toISOString(),
+        createdAt: getNowLocal(),
+        updatedAt: getNowLocal(),
+        lastLoginTime: getNowLocal(),
         testCount: 0,
         inviteCode: generateInviteCode(),
         invitedBy: null,
@@ -210,6 +213,8 @@ router.post('/register', asyncHandler(async (req, res) => {
             user.invitedBy = inviteCode.toUpperCase();
             inviter.credits = (inviter.credits || 0) + 1;
             user.credits = (user.credits || 0) + 1;
+            // 回写邀请人的积分变更
+            users.set(inviter.phone, inviter);
         }
     }
 
@@ -234,6 +239,9 @@ router.post('/register', asyncHandler(async (req, res) => {
 
     const expiresIn = 7 * 24 * 60 * 60; // 7天
 
+    // 注册后生成新的 sessionId 返回给前端
+    const newSessionId = uuidv4();
+
     res.json({
         code: 200,
         message: '注册成功',
@@ -242,6 +250,7 @@ router.post('/register', asyncHandler(async (req, res) => {
             userId: user.id,
             token,
             expiresIn,
+            sessionId: newSessionId,
             userInfo: {
                 phone: phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
                 nickname: user.nickname,
@@ -259,12 +268,117 @@ router.post('/register', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * POST /api/auth/quick-login
+ * 手机号快速登录（未注册自动注册）
+ * 用户输入手机号，验证码可选，直接登录
+ */
+router.post('/quick-login', asyncHandler(async (req, res) => {
+    const { phone, smsCode, sessionId } = req.body;
+
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+        throw new AppError('请输入有效的手机号', 400, 'INVALID_PHONE');
+    }
+
+    // 如果传了验证码则验证（可选）
+    if (smsCode) {
+        try {
+            verifySmsCode(phone, smsCode, 'login');
+        } catch (e) {
+            // 也尝试兼容 register 类型
+            try {
+                verifySmsCode(phone, smsCode, 'register');
+            } catch (e2) {
+                throw new AppError('验证码错误', 400, 'INVALID_CODE');
+            }
+        }
+    }
+
+    let user = users.get(phone);
+    let isNewUser = false;
+
+    if (!user) {
+        // 未注册 -> 自动注册
+        isNewUser = true;
+        user = {
+            id: uuidv4(),
+            phone,
+            passwordHash: null,
+            nickname: `用户${phone.slice(-4)}`,
+            avatar: null,
+            status: 1,
+            registerSource: 'web',
+            registerSessionId: sessionId || null,
+            createdAt: getNowLocal(),
+            updatedAt: getNowLocal(),
+            lastLoginTime: getNowLocal(),
+            testCount: 0,
+            inviteCode: generateInviteCode(),
+            invitedBy: null,
+            credits: 1 // 新用户赠送1次免费测试
+        };
+        users.set(phone, user);
+        console.log(`[${global.getTimestamp()}] 🎉 新用户快速登录注册: ${phone}`);
+
+        // 关联 sessionId 的匹配记录
+        if (sessionId) {
+            try {
+                SessionMatchRecord.batchUpdateUserIdBySession(sessionId, user.id);
+                console.log(`[${global.getTimestamp()}] 📝 已将 sessionId=${sessionId} 的匹配记录关联到用户 ${user.id}`);
+            } catch (err) {
+                console.error(`[${global.getTimestamp()}] 批量更新匹配记录 userId 失败:`, err.message);
+            }
+        }
+    } else {
+        // 已注册用户检查状态
+        if (user.status === 0) {
+            throw new AppError('该账号已被禁用', 403, 'ACCOUNT_DISABLED');
+        }
+        user.lastLoginTime = getNowLocal();
+        users.set(phone, user);
+    }
+
+    // 生成 JWT
+    const token = generateToken({
+        userId: user.id,
+        phone: user.phone
+    });
+
+    const expiresIn = 7 * 24 * 60 * 60; // 7天
+
+    // 新用户注册后生成新的 sessionId 返回给前端更新本地会话
+    const newSessionId = isNewUser ? uuidv4() : undefined;
+
+    res.json({
+        success: true,
+        code: 200,
+        message: isNewUser ? '注册并登录成功' : '登录成功',
+        data: {
+            token,
+            expiresIn,
+            isNewUser,
+            ...(newSessionId && { sessionId: newSessionId }),
+            user: {
+                id: user.id,
+                phone: user.phone,
+                nickname: user.nickname,
+                avatar: user.avatar,
+                credits: user.credits
+            },
+            userInfo: {
+                phone: phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+                nickname: user.nickname
+            }
+        }
+    });
+}));
+
+/**
  * POST /api/auth/login
  * 用户登录（验证码或密码）
  * 文档 3.3
  */
 router.post('/login', asyncHandler(async (req, res) => {
-    const { phone, code, smsCode, password, rememberMe } = req.body;
+    const { phone, code, smsCode, password, rememberMe, sessionId } = req.body;
 
     if (!phone) {
         throw new AppError('请输入手机号', 400, 'MISSING_PHONE');
@@ -297,9 +411,11 @@ router.post('/login', asyncHandler(async (req, res) => {
 
     // 查找或创建用户（验证码登录时自动注册）
     let user = users.get(phone);
+    let isNewUser = false;
 
     if (!user) {
         // 新用户 - 自动注册
+        isNewUser = true;
         user = {
             id: uuidv4(),
             phone,
@@ -308,9 +424,10 @@ router.post('/login', asyncHandler(async (req, res) => {
             avatar: null,
             status: 1,
             registerSource: 'web',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            lastLoginTime: new Date().toISOString(),
+            registerSessionId: sessionId || null,
+            createdAt: getNowLocal(),
+            updatedAt: getNowLocal(),
+            lastLoginTime: getNowLocal(),
             testCount: 0,
             inviteCode: generateInviteCode(),
             invitedBy: null,
@@ -318,9 +435,23 @@ router.post('/login', asyncHandler(async (req, res) => {
         };
         users.set(phone, user);
         console.log(`[${global.getTimestamp()}] 🎉 新用户注册(登录自动创建): ${phone}`);
+
+        // 关联旧 sessionId 的匹配记录到新用户
+        if (sessionId) {
+            try {
+                SessionMatchRecord.batchUpdateUserIdBySession(sessionId, user.id);
+                console.log(`[${global.getTimestamp()}] 📝 已将 sessionId=${sessionId} 的匹配记录关联到用户 ${user.id}`);
+            } catch (err) {
+                console.error(`[${global.getTimestamp()}] 批量更新匹配记录 userId 失败:`, err.message);
+            }
+        }
     } else {
-        user.lastLoginTime = new Date().toISOString();
+        user.lastLoginTime = getNowLocal();
+        users.set(phone, user);
     }
+
+    // 新用户注册后生成新的 sessionId 返回给前端
+    const newSessionId = isNewUser ? uuidv4() : undefined;
 
     // 生成 JWT
     const expiresIn = rememberMe ? '30d' : '7d';
@@ -332,10 +463,12 @@ router.post('/login', asyncHandler(async (req, res) => {
     res.json({
         success: true,
         code: 200,
-        message: '登录成功',
+        message: isNewUser ? '注册并登录成功' : '登录成功',
         data: {
             token,
             expiresIn: rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60,
+            isNewUser,
+            ...(newSessionId && { sessionId: newSessionId }),
             user: {
                 id: user.id,
                 phone: user.phone,
@@ -381,7 +514,7 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
 
     // 更新密码
     user.passwordHash = await bcrypt.hash(newPassword, 10);
-    user.updatedAt = new Date().toISOString();
+    user.updatedAt = getNowLocal();
     users.set(phone, user);
 
     res.json({

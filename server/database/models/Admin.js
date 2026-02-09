@@ -2,6 +2,7 @@
  * 管理员模型
  */
 import { queryAll, queryOne, execute } from '../index.js';
+import { getNowLocal } from '../index.js';
 import bcrypt from 'bcryptjs';
 
 export const Admin = {
@@ -98,7 +99,7 @@ export const Admin = {
      * 更新最后登录时间
      */
     updateLastLogin(id) {
-        return this.update(id, { last_login_at: new Date().toISOString() });
+        return this.update(id, { last_login_at: getNowLocal() });
     },
 
     /**

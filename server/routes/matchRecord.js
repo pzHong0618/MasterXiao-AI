@@ -17,7 +17,7 @@ const router = express.Router();
  */
 router.post('/create', (req, res) => {
     try {
-        const { sessionId, reqData, userId } = req.body;
+        const { sessionId, reqData, userId, method, type } = req.body;
 
         // 参数校验
         if (!sessionId) {
@@ -49,7 +49,9 @@ router.post('/create', (req, res) => {
         const record = SessionMatchRecord.create({
             sessionId,
             reqData,
-            userId: userId || null
+            userId: userId || null,
+            method: method || null,
+            type: type || null
         });
 
         saveDatabase();
@@ -233,6 +235,8 @@ router.get('/detail', (req, res) => {
                 sessionId: record.session_id,
                 userId: record.user_id,
                 status: record.status,
+                method: record.method,
+                type: record.type,
                 reqData: record.req_data,
                 resultData: record.result_data,
                 createDate: record.create_date,

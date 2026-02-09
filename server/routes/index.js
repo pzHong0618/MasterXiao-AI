@@ -20,6 +20,7 @@ import divinationRoutes from './divination.js';
 import adminRoutes from './admin.js';
 import historyRoutes from './history.js';
 import config from '../config/index.js';
+import { getNowLocal } from '../database/index.js';
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ const router = express.Router();
 router.get('/health', (req, res) => {
     res.json({
         status: 'ok',
-        timestamp: new Date().toISOString(),
+        timestamp: getNowLocal(),
         version: '1.0.0'
     });
 });

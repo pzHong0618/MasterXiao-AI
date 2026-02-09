@@ -7,6 +7,7 @@ import express from 'express';
 import aiService from '../services/aiService.js';
 import MatchRecord from '../database/models/MatchRecord.js';
 import logger from '../utils/logger.js';
+import { getNowLocal } from '../database/index.js';
 
 const router = express.Router();
 
@@ -83,7 +84,7 @@ router.post('/interpret', async (req, res) => {
             aiPrompt: interpretResult.aiPrompt,
             userInfo: userInfo || {},
             status: 'completed',
-            createdAt: new Date()
+            createdAt: getNowLocal()
         });
 
         logger.info(`[塔罗解读] 解读完成，记录ID: ${record._id}`);
@@ -227,7 +228,7 @@ router.post('/retry', async (req, res) => {
             aiPrompt: interpretResult.aiPrompt,
             userInfo: oldRecord.userInfo,
             status: 'completed',
-            createdAt: new Date(),
+            createdAt: getNowLocal(),
             isRetry: true,
             originalRecordId: recordId
         });

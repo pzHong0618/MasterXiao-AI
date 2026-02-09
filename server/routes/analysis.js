@@ -7,6 +7,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { tests } from '../services/dataStore.js';
 import { analyzeBirthday, analyzeHexagram } from '../services/aiService.js';
+import { getNowLocal } from '../database/index.js';
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.post('/birthday', optionalAuth, asyncHandler(async (req, res) => {
         if (test) {
             test.status = 'completed';
             test.result = result;
-            test.completedAt = new Date().toISOString();
+            test.completedAt = getNowLocal();
             tests.set(testId, test);
         }
     }
@@ -65,7 +66,7 @@ router.post('/hexagram', optionalAuth, asyncHandler(async (req, res) => {
         if (test) {
             test.status = 'completed';
             test.result = result;
-            test.completedAt = new Date().toISOString();
+            test.completedAt = getNowLocal();
             tests.set(testId, test);
         }
     }

@@ -7,6 +7,17 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+/**
+ * 获取当前本地时间字符串（北京时间 UTC+8）
+ * 格式：YYYY-MM-DD HH:mm:ss
+ */
+export function getNowLocal() {
+    const now = new Date();
+    const offset = 8 * 60; // UTC+8
+    const local = new Date(now.getTime() + offset * 60 * 1000);
+    return local.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '');
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -40,6 +51,14 @@ export async function initDatabase() {
             console.log('✅ 已创建新数据库:', DB_PATH);
         }
 
+        // 包装 db.run，使 DEFAULT CURRENT_TIMESTAMP 在 CREATE TABLE 时使用本地时间
+        const originalRun = db.run.bind(db);
+        db.run = function(sql, params) {
+            // 将建表中的 DEFAULT CURRENT_TIMESTAMP 替换为带时区的本地时间
+            const processed = sql.replace(/DEFAULT\s+CURRENT_TIMESTAMP/gi, "DEFAULT (datetime('now', '+8 hours'))");
+            return originalRun(processed, params);
+        };
+
         // 初始化数据库表
         await initTables();
 
@@ -62,17 +81,29 @@ export async function initDatabase() {
  * 初始化数据库表
  */
 async function initTables() {
-    // 用户表
+    // 用户表（扩展字段，兼容前端用户体系）
     db.run(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uid TEXT UNIQUE,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
+            password_hash TEXT,
             email TEXT,
-            phone TEXT,
+            phone TEXT UNIQUE,
             avatar TEXT,
+            nickname TEXT,
+            gender TEXT,
+            birth_date TEXT,
             role TEXT DEFAULT 'user',
             status INTEGER DEFAULT 1,
+            credits INTEGER DEFAULT 0,
+            test_count INTEGER DEFAULT 0,
+            invite_code TEXT UNIQUE,
+            invited_by TEXT,
+            register_source TEXT DEFAULT 'web',
+            register_session_id TEXT,
+            last_login_time DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -244,6 +275,112 @@ async function initTables() {
         )
     `);
 
+    // 问题管理表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT,
+            category TEXT DEFAULT 'general',
+            status INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_by INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (created_by) REFERENCES admins(id)
+        )
+    `);
+
+    // 验证码表（替代内存 verificationCodes Map）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS verification_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            phone TEXT NOT NULL,
+            code TEXT NOT NULL,
+            type TEXT DEFAULT 'login',
+            attempts INTEGER DEFAULT 0,
+            used INTEGER DEFAULT 0,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 短信频率限制表（替代内存 smsRateLimit Map）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS sms_rate_limits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            phone TEXT UNIQUE NOT NULL,
+            last_sent_at INTEGER DEFAULT 0,
+            daily_count INTEGER DEFAULT 0,
+            daily_reset_at INTEGER DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 测试记录表（替代内存 tests Map）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS tests (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            type TEXT,
+            method TEXT,
+            person_a TEXT,
+            person_b TEXT,
+            hexagram TEXT,
+            status TEXT DEFAULT 'pending',
+            result TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            completed_at DATETIME
+        )
+    `);
+
+    // 前端订单表（替代内存 orders Map）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS client_orders (
+            id TEXT PRIMARY KEY,
+            user_id TEXT,
+            product_id TEXT,
+            product_name TEXT,
+            amount REAL,
+            credits INTEGER DEFAULT 0,
+            payment_method TEXT,
+            test_type TEXT,
+            status TEXT DEFAULT 'pending',
+            redeem_code TEXT,
+            payment_id TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            paid_at DATETIME,
+            redeemed_at DATETIME,
+            expires_at DATETIME
+        )
+    `);
+
+    // 用户购买记录表（替代内存 userPurchases Map）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS user_purchases (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            test_type_id TEXT NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            payment_status INTEGER DEFAULT 0,
+            order_id TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, test_type_id)
+        )
+    `);
+
+    // 用户会话表（替代内存 userSessions Map）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            session_id TEXT PRIMARY KEY,
+            user_id TEXT,
+            token TEXT,
+            expires_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
     // 迁移：去掉 session_match_records 表 session_id 的 UNIQUE 约束
     try {
         const tableInfo = db.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='session_match_records'");
@@ -273,10 +410,61 @@ async function initTables() {
         console.warn('迁移检查跳过:', e.message);
     }
 
+    // 迁移：为 session_match_records 添加 method 和 type 字段
+    try {
+        const smrColumns = db.exec("PRAGMA table_info(session_match_records)");
+        if (smrColumns.length > 0) {
+            const columnNames = smrColumns[0].values.map(col => col[1]);
+            let migrated = false;
+            if (!columnNames.includes('method')) {
+                db.run(`ALTER TABLE session_match_records ADD COLUMN method TEXT DEFAULT NULL`);
+                console.log('✅ 迁移：session_match_records 添加 method 字段');
+                migrated = true;
+            }
+            if (!columnNames.includes('type')) {
+                db.run(`ALTER TABLE session_match_records ADD COLUMN type TEXT DEFAULT NULL`);
+                console.log('✅ 迁移：session_match_records 添加 type 字段');
+                migrated = true;
+            }
+            if (migrated) {
+                saveDatabase();
+            }
+        }
+    } catch (e) {
+        console.warn('session_match_records 字段迁移跳过:', e.message);
+    }
+
+    // 回填历史记录的 method/type 字段（从 req_data JSON 中提取）
+    try {
+        const needFill = queryAll("SELECT id, req_data FROM session_match_records WHERE req_data IS NOT NULL AND (method IS NULL OR method = '' OR type IS NULL OR type = '')");
+        if (needFill.length > 0) {
+            let filled = 0;
+            for (const record of needFill) {
+                try {
+                    const parsed = JSON.parse(record.req_data);
+                    const m = parsed.method || null;
+                    const t = parsed.type || null;
+                    if (m || t) {
+                        db.run('UPDATE session_match_records SET method = ?, type = ? WHERE id = ?', [m, t, record.id]);
+                        filled++;
+                    }
+                } catch (e) { /* ignore parse error */ }
+            }
+            if (filled > 0) {
+                console.log(`✅ 已回填 ${filled} 条历史记录的 method/type 字段`);
+                saveDatabase();
+            }
+        }
+    } catch (e) {
+        console.warn('回填 method/type 失败:', e.message);
+    }
+
     // 为 session_match_records 创建索引
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_session_id ON session_match_records(session_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_status ON session_match_records(status)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_smr_create_date ON session_match_records(create_date)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smr_type ON session_match_records(type)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_smr_method ON session_match_records(method)`);
 
     // 为 admins 创建索引
     db.run(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)`);
@@ -294,6 +482,192 @@ async function initTables() {
     db.run(`CREATE INDEX IF NOT EXISTS idx_operation_logs_admin_id ON operation_logs(admin_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_operation_logs_module ON operation_logs(module)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_operation_logs_created_at ON operation_logs(created_at)`);
+
+    // 为 questions 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status)`);
+
+    // 为 users 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_status ON users(status)`);
+
+    // 为 redeem_codes 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_redeem_codes_code ON redeem_codes(code)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_redeem_codes_status ON redeem_codes(status)`);
+
+    // 为 verification_codes 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_vc_phone ON verification_codes(phone)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_vc_phone_type ON verification_codes(phone, type)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_vc_expires_at ON verification_codes(expires_at)`);
+
+    // 为 sms_rate_limits 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_srl_phone ON sms_rate_limits(phone)`);
+
+    // 为 tests 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_tests_user_id ON tests(user_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_tests_status ON tests(status)`);
+
+    // 为 client_orders 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_co_user_id ON client_orders(user_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_co_status ON client_orders(status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_co_redeem_code ON client_orders(redeem_code)`);
+
+    // 为 user_purchases 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_up_user_id ON user_purchases(user_id)`);
+
+    // 为 user_sessions 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_us_user_id ON user_sessions(user_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_us_expires_at ON user_sessions(expires_at)`);
+
+    // 迁移 users 表：为已有表添加新字段（必须在创建新索引之前）
+    try {
+        const userColumns = db.exec("PRAGMA table_info(users)");
+        if (userColumns.length > 0) {
+            const columnNames = userColumns[0].values.map(row => row[1]);
+            const newColumns = [
+                { name: 'uid', type: 'TEXT' },
+                { name: 'password_hash', type: 'TEXT' },
+                { name: 'nickname', type: 'TEXT' },
+                { name: 'gender', type: 'TEXT' },
+                { name: 'birth_date', type: 'TEXT' },
+                { name: 'credits', type: 'INTEGER DEFAULT 0' },
+                { name: 'test_count', type: 'INTEGER DEFAULT 0' },
+                { name: 'invite_code', type: 'TEXT' },
+                { name: 'invited_by', type: 'TEXT' },
+                { name: 'register_source', type: "TEXT DEFAULT 'web'" },
+                { name: 'register_session_id', type: 'TEXT' },
+                { name: 'last_login_time', type: 'DATETIME' }
+            ];
+            for (const col of newColumns) {
+                if (!columnNames.includes(col.name)) {
+                    try {
+                        db.run(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+                        console.log(`✅ users 表新增字段: ${col.name}`);
+                    } catch (e) {
+                        // 字段已存在，忽略
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('users 表迁移检查跳过:', e.message);
+    }
+
+    // 为 users 创建扩展索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_uid ON users(uid)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_invite_code ON users(invite_code)`);
+
+    // ==================== 迁移：将已有 UTC 时间数据转换为北京时间 (UTC+8) ====================
+    try {
+        // 使用一个标记来避免重复迁移
+        const migrated = queryOne("SELECT value FROM settings WHERE key = 'time_migrated_to_beijing'");
+        if (!migrated) {
+            console.log('🔄 迁移：将所有时间字段从 UTC 转换为北京时间 (UTC+8)...');
+
+            // session_match_records
+            db.run(`UPDATE session_match_records SET 
+                create_date = datetime(create_date, '+8 hours'),
+                update_date = datetime(update_date, '+8 hours')
+                WHERE create_date IS NOT NULL AND create_date LIKE '____-__-__%'`);
+
+            // users
+            db.run(`UPDATE users SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours'),
+                last_login_time = datetime(last_login_time, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // admins
+            db.run(`UPDATE admins SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours'),
+                last_login_at = datetime(last_login_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // payments
+            db.run(`UPDATE payments SET 
+                created_at = datetime(created_at, '+8 hours'),
+                payment_time = datetime(payment_time, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // redeem_codes
+            db.run(`UPDATE redeem_codes SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // match_records
+            db.run(`UPDATE match_records SET 
+                created_at = datetime(created_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // settings
+            db.run(`UPDATE settings SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // permissions
+            db.run(`UPDATE permissions SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // roles
+            db.run(`UPDATE roles SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // operation_logs
+            db.run(`UPDATE operation_logs SET 
+                created_at = datetime(created_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // questions
+            db.run(`UPDATE questions SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // tests
+            db.run(`UPDATE tests SET 
+                created_at = datetime(created_at, '+8 hours'),
+                completed_at = datetime(completed_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // client_orders
+            db.run(`UPDATE client_orders SET 
+                created_at = datetime(created_at, '+8 hours'),
+                paid_at = datetime(paid_at, '+8 hours'),
+                redeemed_at = datetime(redeemed_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // verification_codes
+            db.run(`UPDATE verification_codes SET 
+                created_at = datetime(created_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // user_purchases
+            db.run(`UPDATE user_purchases SET 
+                created_at = datetime(created_at, '+8 hours'),
+                updated_at = datetime(updated_at, '+8 hours')
+                WHERE created_at IS NOT NULL AND created_at LIKE '____-__-__%'`);
+
+            // 标记迁移已完成
+            const existingSetting = queryOne("SELECT id FROM settings WHERE key = 'time_migrated_to_beijing'");
+            if (existingSetting) {
+                db.run("UPDATE settings SET value = '1' WHERE key = 'time_migrated_to_beijing'");
+            } else {
+                db.run("INSERT INTO settings (key, value, description) VALUES ('time_migrated_to_beijing', '1', '时间字段已从UTC迁移到北京时间')");
+            }
+
+            saveDatabase();
+            console.log('✅ 迁移完成：所有时间字段已转换为北京时间 (UTC+8)');
+        }
+    } catch (e) {
+        console.warn('时间迁移检查跳过:', e.message);
+    }
 
     console.log('✅ 数据库表初始化完成');
 }
@@ -438,8 +812,14 @@ export function queryOne(sql, params = []) {
 }
 
 export function execute(sql, params = []) {
-    // 手动替换参数，因为sql.js的run不支持参数化查询
+    // 在 INSERT/UPDATE 语句中将 CURRENT_TIMESTAMP 替换为本地时间（北京时间 UTC+8）
     let processedSql = sql;
+    const sqlUpper = sql.trim().toUpperCase();
+    if (sqlUpper.startsWith('INSERT') || sqlUpper.startsWith('UPDATE')) {
+        processedSql = processedSql.replace(/CURRENT_TIMESTAMP/gi, `'${getNowLocal()}'`);
+    }
+
+    // 手动替换参数，因为sql.js的run不支持参数化查询
     params.forEach((param) => {
         const placeholderIndex = processedSql.indexOf('?');
         if (placeholderIndex !== -1) {
@@ -482,5 +862,6 @@ export default {
     queryAll,
     queryOne,
     execute,
-    closeDatabase
+    closeDatabase,
+    getNowLocal
 };

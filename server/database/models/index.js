@@ -11,8 +11,9 @@ import { Admin } from './Admin.js';
 import { Permission } from './Permission.js';
 import { Role } from './Role.js';
 import { OperationLog } from './OperationLog.js';
+import { Question } from './Question.js';
 
-export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog };
+export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question };
 
 export default {
     User,
@@ -24,5 +25,6 @@ export default {
     Admin,
     Permission,
     Role,
-    OperationLog
+    OperationLog,
+    Question
 };

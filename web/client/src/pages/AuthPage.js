@@ -100,7 +100,7 @@ export class AuthPage {
                  maxlength="11" autocomplete="off" inputmode="numeric">
         </div>
 
-        <!-- 验证码 -->
+        <!-- 验证码（可选） -->
         <div class="input-group mb-4">
           <label class="input-label">验证码</label>
           <div class="sms-code-row">
@@ -326,7 +326,8 @@ export class AuthPage {
 
         switch (this.mode) {
             case 'login':
-                valid = phoneValid && codeValid;
+                // 登录模式：只需手机号即可提交，验证码可选
+                valid = phoneValid;
                 break;
             case 'register':
                 valid = phoneValid && codeValid;
@@ -452,10 +453,13 @@ export class AuthPage {
     }
 
     async handleLogin() {
-        const result = await authApi.login(this.form.phone, this.form.smsCode);
+        // 使用快速登录接口：手机号必填，验证码可选
+        const smsCode = this.form.smsCode || undefined;
+        const result = await authApi.quickLogin(this.form.phone, smsCode);
 
         if (result.success) {
-            window.showToast('登录成功', 'success');
+            const msg = result.data?.isNewUser ? '注册并登录成功' : '登录成功';
+            window.showToast(msg, 'success');
             this.cleanup();
             this.redirectToOriginalPage();
         }

@@ -2,6 +2,11 @@
  * 管理员登录页面逻辑
  */
 
+// 动态获取 API 基础地址
+function getAdminApiBase() {
+    return '/api/admin';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const usernameInput = document.getElementById('username');
@@ -41,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 调用后端登录API
-            const response = await fetch('/api/admin/login', {
+            const response = await fetch(`${getAdminApiBase()}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
