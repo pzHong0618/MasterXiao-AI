@@ -3,7 +3,7 @@
  * 提供用户管理、管理员管理、订单管理、数据管理、券码管理、系统管理等接口
  */
 import express from 'express';
-import { User, Admin, Payment, RedeemCode, SessionMatchRecord, OperationLog, Question } from '../database/models/index.js';
+import { User, Admin, Payment, RedeemCode, SessionMatchRecord, OperationLog, Question, TopicCategory, SystemConfig } from '../database/models/index.js';
 import { queryAll, queryOne, execute, saveDatabase, getNowLocal } from '../database/index.js';
 
 const router = express.Router();
@@ -108,7 +108,11 @@ router.get('/menu', (req, res) => {
         },
         {
             id: 7, code: 'system-manage', name: '系统管理', type: 'menu', icon: '⚙️',
-            children: [{ id: 71, code: 'system:question', name: '问题管理', type: 'menu', icon: '❓' }]
+            children: [
+                { id: 71, code: 'system:question', name: '问题管理', type: 'menu', icon: '❓' },
+                { id: 72, code: 'system:topic-category', name: '主题分类', type: 'menu', icon: '📂' },
+                { id: 73, code: 'system:config', name: '系统配置', type: 'menu', icon: '🔧' }
+            ]
         }
     ];
     res.json({ code: 200, data: menuData });
@@ -544,6 +548,127 @@ router.delete('/questions/:id', (req, res) => {
     try {
         if (!Question.findById(parseInt(req.params.id))) return res.status(404).json({ code: 404, message: '问题不存在' });
         Question.delete(parseInt(req.params.id));
+        saveDatabase();
+        res.json({ code: 200, message: '删除成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// ==================== 系统管理 - 主题分类 ====================
+
+router.get('/topic-categories', (req, res) => {
+    try {
+        const { page = 1, limit = 20, status, keyword } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const total = TopicCategory.count({ status, keyword });
+        const list = TopicCategory.findAll({ status, keyword, limit: parseInt(limit), offset });
+        res.json({
+            code: 200,
+            data: { list, pagination: { page: parseInt(page), limit: parseInt(limit), total } }
+        });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+router.post('/topic-categories', (req, res) => {
+    try {
+        const { name, sort_order } = req.body;
+        if (!name) return res.status(400).json({ code: 400, message: '分类名称不能为空' });
+        if (TopicCategory.findByName(name)) return res.status(400).json({ code: 400, message: '分类名称已存在' });
+
+        const category = TopicCategory.create({ name, sort_order: sort_order || 0 });
+        saveDatabase();
+        res.json({ code: 200, message: '创建成功', data: category });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+router.put('/topic-categories/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, status, sort_order } = req.body;
+        if (!TopicCategory.findById(parseInt(id))) return res.status(404).json({ code: 404, message: '分类不存在' });
+
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (status !== undefined) updateData.status = parseInt(status);
+        if (sort_order !== undefined) updateData.sort_order = parseInt(sort_order);
+
+        TopicCategory.update(parseInt(id), updateData);
+        saveDatabase();
+        res.json({ code: 200, message: '更新成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+router.delete('/topic-categories/:id', (req, res) => {
+    try {
+        if (!TopicCategory.findById(parseInt(req.params.id))) return res.status(404).json({ code: 404, message: '分类不存在' });
+        TopicCategory.delete(parseInt(req.params.id));
+        saveDatabase();
+        res.json({ code: 200, message: '删除成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// ==================== 系统管理 - 系统配置 ====================
+
+router.get('/system-configs', (req, res) => {
+    try {
+        const { page = 1, limit = 20, status, keyword } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const total = SystemConfig.count({ status, keyword });
+        const list = SystemConfig.findAll({ status, keyword, limit: parseInt(limit), offset });
+        res.json({
+            code: 200,
+            data: { list, pagination: { page: parseInt(page), limit: parseInt(limit), total } }
+        });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+router.post('/system-configs', (req, res) => {
+    try {
+        const { name, status } = req.body;
+        if (!name) return res.status(400).json({ code: 400, message: '配置名称不能为空' });
+        if (SystemConfig.findByName(name)) return res.status(400).json({ code: 400, message: '配置名称已存在' });
+
+        const config = SystemConfig.create({ name, status: status !== undefined ? parseInt(status) : 1 });
+        saveDatabase();
+        res.json({ code: 200, message: '创建成功', data: config });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+router.put('/system-configs/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, status } = req.body;
+        if (!SystemConfig.findById(parseInt(id))) return res.status(404).json({ code: 404, message: '配置不存在' });
+
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (status !== undefined) updateData.status = parseInt(status);
+
+        SystemConfig.update(parseInt(id), updateData);
+        saveDatabase();
+        res.json({ code: 200, message: '更新成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+router.delete('/system-configs/:id', (req, res) => {
+    try {
+        if (!SystemConfig.findById(parseInt(req.params.id))) return res.status(404).json({ code: 404, message: '配置不存在' });
+        SystemConfig.delete(parseInt(req.params.id));
         saveDatabase();
         res.json({ code: 200, message: '删除成功' });
     } catch (error) {

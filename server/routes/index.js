@@ -21,6 +21,7 @@ import adminRoutes from './admin.js';
 import historyRoutes from './history.js';
 import config from '../config/index.js';
 import { getNowLocal } from '../database/index.js';
+import { TopicCategory } from '../database/models/index.js';
 
 const router = express.Router();
 
@@ -41,6 +42,16 @@ router.get('/config/server-state', (req, res) => {
             serverState: config.serverState || 'production'
         }
     });
+});
+
+// 公共接口：获取主题分类列表（客户端首页用，按序号排序，仅返回启用的）
+router.get('/topic-categories', (req, res) => {
+    try {
+        const list = TopicCategory.findAllEnabled();
+        res.json({ code: 200, data: list });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
 });
 
 // 认证路由

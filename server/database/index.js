@@ -291,6 +291,29 @@ async function initTables() {
         )
     `);
 
+    // 主题分类表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS topic_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            status INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 系统配置表（自定义配置项）
+    db.run(`
+        CREATE TABLE IF NOT EXISTS system_configs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            status INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
     // 验证码表（替代内存 verificationCodes Map）
     db.run(`
         CREATE TABLE IF NOT EXISTS verification_codes (
@@ -486,6 +509,13 @@ async function initTables() {
     // 为 questions 创建索引
     db.run(`CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status)`);
+
+    // 为 topic_categories 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_topic_categories_status ON topic_categories(status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_topic_categories_sort ON topic_categories(sort_order)`);
+
+    // 为 system_configs 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_system_configs_status ON system_configs(status)`);
 
     // 为 users 创建索引
     db.run(`CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)`);
@@ -756,6 +786,28 @@ async function initInitialData() {
                 }
             }
             console.log('✅ 已为超级管理员角色分配权限');
+        }
+
+        // 初始化主题分类数据（按序号添加）
+        const existingTopicCategories = queryAll('SELECT id FROM topic_categories');
+        if (existingTopicCategories.length === 0) {
+            const now = getNowLocal();
+            const topicCategories = [
+                { name: '感情匹配', sort_order: 1 },
+                { name: '合作关系', sort_order: 2 },
+                { name: '职场关系', sort_order: 3 },
+                { name: 'TA的想法和态度', sort_order: 4 },
+                { name: '职业发展', sort_order: 5 },
+                { name: '城市方向', sort_order: 6 },
+                { name: '宠物匹配', sort_order: 7 }
+            ];
+            for (const tc of topicCategories) {
+                execute(
+                    'INSERT INTO topic_categories (name, sort_order, status, created_at, updated_at) VALUES (?, ?, 1, ?, ?)',
+                    [tc.name, tc.sort_order, now, now]
+                );
+            }
+            console.log('✅ 已创建主题分类初始数据');
         }
 
     } catch (error) {

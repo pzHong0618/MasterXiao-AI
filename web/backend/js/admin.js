@@ -210,7 +210,9 @@ const pageTitles = {
     'match:list': '匹配记录',
     'coupon:list': '券码列表',
     'coupon:redeem': '兑换记录',
-    'system:question': '问题管理'
+    'system:question': '问题管理',
+    'system:topic-category': '主题分类',
+    'system:config': '系统配置'
 };
 
 function loadPage(page) {
@@ -227,6 +229,8 @@ function loadPage(page) {
         case 'coupon:list': renderCouponList(); break;
         case 'coupon:redeem': renderRedeemRecordList(); break;
         case 'system:question': renderQuestionManage(); break;
+        case 'system:topic-category': renderTopicCategoryManage(); break;
+        case 'system:config': renderSystemConfigManage(); break;
         default: renderDashboard();
     }
 }
@@ -243,13 +247,32 @@ async function renderDashboard() {
 
         content.innerHTML = `
             <div class="dashboard-stats">
-                <div class="stat-card"><div class="stat-icon users">👥</div><div class="stat-info"><h3>${stats.totalUsers}</h3><p>注册用户</p></div></div>
-                <div class="stat-card"><div class="stat-icon orders">📋</div><div class="stat-info"><h3>${stats.totalPayments}</h3><p>总订单数</p></div></div>
+                <div class="stat-card stat-card--clickable" data-goto="user:list" title="查看用户列表"><div class="stat-icon users">👥</div><div class="stat-info"><h3>${stats.totalUsers}</h3><p>注册用户</p></div></div>
+                <div class="stat-card stat-card--clickable" data-goto="order:list" title="查看订单列表"><div class="stat-icon orders">📋</div><div class="stat-info"><h3>${stats.totalPayments}</h3><p>总订单数</p></div></div>
                 <div class="stat-card"><div class="stat-icon revenue">💰</div><div class="stat-info"><h3>¥${stats.totalRevenue}</h3><p>总收入</p></div></div>
-                <div class="stat-card"><div class="stat-icon matches">✨</div><div class="stat-info"><h3>${stats.totalMatches}</h3><p>匹配次数</p></div></div>
-                <div class="stat-card"><div class="stat-icon coupons">🎫</div><div class="stat-info"><h3>${stats.totalCoupons}</h3><p>券码总数</p></div></div>
+                <div class="stat-card stat-card--clickable" data-goto="match:list" title="查看匹配记录"><div class="stat-icon matches">✨</div><div class="stat-info"><h3>${stats.totalMatches}</h3><p>匹配次数</p></div></div>
+                <div class="stat-card stat-card--clickable" data-goto="coupon:list" title="查看券码列表"><div class="stat-icon coupons">🎫</div><div class="stat-info"><h3>${stats.totalCoupons}</h3><p>券码总数</p></div></div>
             </div>
         `;
+
+        // 绑定统计卡片点击跳转
+        content.querySelectorAll('.stat-card--clickable').forEach(card => {
+            card.addEventListener('click', () => {
+                const page = card.dataset.goto;
+                if (page) {
+                    // 高亮对应菜单项
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    const targetLink = document.querySelector(`.nav-link[data-page="${page}"]`);
+                    if (targetLink) {
+                        targetLink.classList.add('active');
+                        // 展开父菜单
+                        const parentItem = targetLink.closest('.has-submenu');
+                        if (parentItem) parentItem.classList.add('open');
+                    }
+                    loadPage(page);
+                }
+            });
+        });
     } catch (error) {
         content.innerHTML = `<div class="error-text">加载仪表盘失败: ${error.message}</div>`;
     }
@@ -1009,8 +1032,17 @@ async function renderQuestionList(page = 1) {
 
 function goQuestionPage(page) { renderQuestionList(page); }
 
-function renderQuestionCreateForm() {
+async function renderQuestionCreateForm() {
     const tabContent = document.getElementById('questionTabContent');
+    tabContent.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    // 从接口获取主题分类
+    let categories = [];
+    try {
+        const catResult = await apiFetch('/topic-categories?limit=100');
+        if (catResult.code === 200) categories = catResult.data.list || [];
+    } catch (e) { /* fallback empty */ }
+
     tabContent.innerHTML = `
         <div class="form-container">
             <div class="form-group-modal">
@@ -1023,12 +1055,10 @@ function renderQuestionCreateForm() {
             </div>
             <div class="form-row">
                 <div class="form-group-modal">
-                    <label>分类</label>
+                    <label>主题分类</label>
                     <select id="qCategory">
                         <option value="general">通用</option>
-                        <option value="tarot">塔罗牌</option>
-                        <option value="birthday">生日匹配</option>
-                        <option value="divination">占卜</option>
+                        ${categories.map(c => `<option value="${c.name}">${c.name}${c.status ? '' : '（已关闭）'}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group-modal">
@@ -1086,7 +1116,7 @@ async function editQuestion(id) {
     }
 }
 
-function renderQuestionEditForm(q = null) {
+async function renderQuestionEditForm(q = null) {
     const tabContent = document.getElementById('questionTabContent');
     const editTabBtn = document.getElementById('editTabBtn');
     if (editTabBtn) editTabBtn.style.display = 'inline-flex';
@@ -1095,6 +1125,13 @@ function renderQuestionEditForm(q = null) {
         tabContent.innerHTML = '<div class="loading-text">加载中...</div>';
         return;
     }
+
+    // 从接口获取主题分类
+    let categories = [];
+    try {
+        const catResult = await apiFetch('/topic-categories?limit=100');
+        if (catResult.code === 200) categories = catResult.data.list || [];
+    } catch (e) { /* fallback empty */ }
 
     tabContent.innerHTML = `
         <div class="form-container">
@@ -1108,12 +1145,10 @@ function renderQuestionEditForm(q = null) {
             </div>
             <div class="form-row">
                 <div class="form-group-modal">
-                    <label>分类</label>
+                    <label>主题分类</label>
                     <select id="editQCategory">
                         <option value="general" ${q.category === 'general' ? 'selected' : ''}>通用</option>
-                        <option value="tarot" ${q.category === 'tarot' ? 'selected' : ''}>塔罗牌</option>
-                        <option value="birthday" ${q.category === 'birthday' ? 'selected' : ''}>生日匹配</option>
-                        <option value="divination" ${q.category === 'divination' ? 'selected' : ''}>占卜</option>
+                        ${categories.map(c => `<option value="${c.name}" ${q.category === c.name ? 'selected' : ''}>${c.name}${c.status ? '' : '（已关闭）'}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group-modal">
@@ -1166,6 +1201,253 @@ async function deleteQuestion(id) {
         const result = await apiFetch(`/questions/${id}`, { method: 'DELETE' });
         showToast(result.message || '删除成功');
         renderQuestionList();
+    } catch (error) {
+        showToast('删除失败: ' + error.message, 'error');
+    }
+}
+
+// ==================== 系统管理 - 主题分类 ====================
+
+async function renderTopicCategoryManage(page = 1) {
+    const content = document.getElementById('content');
+    content.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    try {
+        const result = await apiFetch(`/topic-categories?page=${page}&limit=15`);
+        if (result.code !== 200) throw new Error(result.message);
+        const { list, pagination } = result.data;
+
+        content.innerHTML = `
+            <div class="data-card">
+                <div class="card-header">
+                    <h2>主题分类管理</h2>
+                    <button class="btn btn-primary" onclick="showCreateTopicCategoryModal()">+ 新增分类</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>分类名称</th>
+                                <th>排序</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${list.length === 0 ? '<tr><td colspan="6" class="empty-text">暂无数据</td></tr>' : list.map((item, index) => `
+                                <tr>
+                                    <td>${(pagination.page - 1) * pagination.limit + index + 1}</td>
+                                    <td>${item.name}</td>
+                                    <td>${item.sort_order}</td>
+                                    <td><span class="status-badge ${item.status ? 'success' : 'failed'}">${item.status ? '开启' : '关闭'}</span></td>
+                                    <td>${formatDate(item.created_at)}</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn edit" onclick="showEditTopicCategoryModal(${item.id}, '${escape(item.name)}', ${item.sort_order}, ${item.status})">编辑</button>
+                                            <button class="action-btn delete" onclick="deleteTopicCategory(${item.id})">删除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ${renderPagination(pagination, 'goTopicCategoryPage')}
+            </div>
+        `;
+    } catch (error) {
+        content.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+    }
+}
+
+function goTopicCategoryPage(page) { renderTopicCategoryManage(page); }
+
+function showCreateTopicCategoryModal() {
+    showModal('新增主题分类', `
+        <div class="form-group-modal">
+            <label>分类名称 <span class="required">*</span></label>
+            <input type="text" id="newTCName" placeholder="请输入分类名称" />
+        </div>
+        <div class="form-group-modal">
+            <label>排序（数字越小越靠前）</label>
+            <input type="number" id="newTCSortOrder" value="0" min="0" />
+        </div>
+    `, async () => {
+        const name = document.getElementById('newTCName').value.trim();
+        const sort_order = parseInt(document.getElementById('newTCSortOrder').value) || 0;
+        if (!name) { showToast('分类名称不能为空', 'error'); return; }
+
+        const result = await apiFetch('/topic-categories', {
+            method: 'POST',
+            body: JSON.stringify({ name, sort_order })
+        });
+        if (result.code === 200) {
+            showToast('创建成功');
+            renderTopicCategoryManage();
+        } else {
+            showToast(result.message || '创建失败', 'error');
+        }
+    });
+}
+
+function showEditTopicCategoryModal(id, name, sortOrder, status) {
+    showModal('编辑主题分类', `
+        <div class="form-group-modal">
+            <label>分类名称 <span class="required">*</span></label>
+            <input type="text" id="editTCName" value="${unescape(name)}" />
+        </div>
+        <div class="form-group-modal">
+            <label>排序</label>
+            <input type="number" id="editTCSortOrder" value="${sortOrder}" min="0" />
+        </div>
+        <div class="form-group-modal">
+            <label>状态</label>
+            <select id="editTCStatus">
+                <option value="1" ${status ? 'selected' : ''}>开启</option>
+                <option value="0" ${!status ? 'selected' : ''}>关闭</option>
+            </select>
+        </div>
+    `, async () => {
+        const result = await apiFetch(`/topic-categories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                name: document.getElementById('editTCName').value.trim(),
+                sort_order: parseInt(document.getElementById('editTCSortOrder').value) || 0,
+                status: parseInt(document.getElementById('editTCStatus').value)
+            })
+        });
+        if (result.code === 200) {
+            showToast('更新成功');
+            renderTopicCategoryManage();
+        } else {
+            showToast(result.message || '更新失败', 'error');
+        }
+    });
+}
+
+async function deleteTopicCategory(id) {
+    if (!confirm('确定要删除该主题分类吗？')) return;
+    try {
+        const result = await apiFetch(`/topic-categories/${id}`, { method: 'DELETE' });
+        showToast(result.message || '删除成功');
+        renderTopicCategoryManage();
+    } catch (error) {
+        showToast('删除失败: ' + error.message, 'error');
+    }
+}
+
+// ==================== 系统管理 - 系统配置 ====================
+
+async function renderSystemConfigManage(page = 1) {
+    const content = document.getElementById('content');
+    content.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    try {
+        const result = await apiFetch(`/system-configs?page=${page}&limit=15`);
+        if (result.code !== 200) throw new Error(result.message);
+        const { list, pagination } = result.data;
+
+        content.innerHTML = `
+            <div class="data-card">
+                <div class="card-header">
+                    <h2>系统配置</h2>
+                    <button class="btn btn-primary" onclick="showCreateSystemConfigModal()">+ 新增配置</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>配置名称</th>
+                                <th>状态</th>
+                                <th>创建时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${list.length === 0 ? '<tr><td colspan="5" class="empty-text">暂无数据</td></tr>' : list.map((item, index) => `
+                                <tr>
+                                    <td>${(pagination.page - 1) * pagination.limit + index + 1}</td>
+                                    <td>${item.name}</td>
+                                    <td><span class="status-badge ${item.status ? 'success' : 'failed'}">${item.status ? '开启' : '关闭'}</span></td>
+                                    <td>${formatDate(item.created_at)}</td>
+                                    <td>
+                                        <div class="action-btns">
+                                            <button class="action-btn ${item.status ? 'delete' : 'view'}" onclick="toggleSystemConfigStatus(${item.id}, ${item.status ? 0 : 1})">${item.status ? '关闭' : '开启'}</button>
+                                            <button class="action-btn delete" onclick="deleteSystemConfig(${item.id})">删除</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ${renderPagination(pagination, 'goSystemConfigPage')}
+            </div>
+        `;
+    } catch (error) {
+        content.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+    }
+}
+
+function goSystemConfigPage(page) { renderSystemConfigManage(page); }
+
+function showCreateSystemConfigModal() {
+    showModal('新增系统配置', `
+        <div class="form-group-modal">
+            <label>配置名称 <span class="required">*</span></label>
+            <input type="text" id="newSCName" placeholder="请输入配置名称" />
+        </div>
+        <div class="form-group-modal">
+            <label>状态</label>
+            <select id="newSCStatus">
+                <option value="1">开启</option>
+                <option value="0">关闭</option>
+            </select>
+        </div>
+    `, async () => {
+        const name = document.getElementById('newSCName').value.trim();
+        const status = parseInt(document.getElementById('newSCStatus').value);
+        if (!name) { showToast('配置名称不能为空', 'error'); return; }
+
+        const result = await apiFetch('/system-configs', {
+            method: 'POST',
+            body: JSON.stringify({ name, status })
+        });
+        if (result.code === 200) {
+            showToast('创建成功');
+            renderSystemConfigManage();
+        } else {
+            showToast(result.message || '创建失败', 'error');
+        }
+    });
+}
+
+async function toggleSystemConfigStatus(id, newStatus) {
+    try {
+        const result = await apiFetch(`/system-configs/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (result.code === 200) {
+            showToast(newStatus ? '已开启' : '已关闭');
+            renderSystemConfigManage();
+        } else {
+            showToast(result.message || '操作失败', 'error');
+        }
+    } catch (error) {
+        showToast('操作失败: ' + error.message, 'error');
+    }
+}
+
+async function deleteSystemConfig(id) {
+    if (!confirm('确定要删除该配置吗？')) return;
+    try {
+        const result = await apiFetch(`/system-configs/${id}`, { method: 'DELETE' });
+        showToast(result.message || '删除成功');
+        renderSystemConfigManage();
     } catch (error) {
         showToast('删除失败: ' + error.message, 'error');
     }

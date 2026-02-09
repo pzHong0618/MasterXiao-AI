@@ -580,6 +580,17 @@ export const configApi = {
     }
 };
 
+// ==================== 主题分类 API ====================
+
+export const topicCategoryApi = {
+    /**
+     * 获取启用的主题分类列表（按序号排序）
+     */
+    async getList() {
+        return request('/topic-categories');
+    }
+};
+
 // 导出默认对象
 export default {
     auth: authApi,
@@ -590,6 +601,7 @@ export default {
     payment: paymentApi,
     matchRecord: matchRecordApi,
     history: historyApi,
-    config: configApi
+    config: configApi,
+    topicCategory: topicCategoryApi
 };
 

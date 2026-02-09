@@ -12,8 +12,10 @@ import { Permission } from './Permission.js';
 import { Role } from './Role.js';
 import { OperationLog } from './OperationLog.js';
 import { Question } from './Question.js';
+import { TopicCategory } from './TopicCategory.js';
+import { SystemConfig } from './SystemConfig.js';
 
-export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question };
+export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question, TopicCategory, SystemConfig };
 
 export default {
     User,
@@ -26,5 +28,7 @@ export default {
     Permission,
     Role,
     OperationLog,
-    Question
+    Question,
+    TopicCategory,
+    SystemConfig
 };

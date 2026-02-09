@@ -329,6 +329,38 @@ body {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
+.stat-card--clickable {
+    cursor: pointer;
+    position: relative;
+}
+
+.stat-card--clickable::after {
+    content: '→';
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.2s ease, right 0.2s ease;
+}
+
+.stat-card--clickable:hover::after {
+    opacity: 1;
+    right: 14px;
+}
+
+.stat-card--clickable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.15);
+    border: 1px solid var(--primary-color);
+}
+
+.stat-card--clickable:active {
+    transform: translateY(-2px);
+}
+
 .stat-icon {
     width: 56px;
     height: 56px;
