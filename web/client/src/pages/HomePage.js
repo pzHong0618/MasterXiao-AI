@@ -69,14 +69,11 @@ export class HomePage {
             });
         });
 
-        // 开始测试按钮
+        // 开始测试按钮 —— 跳转到默认匹配类型（感情匹配）
         const heroBtn = document.querySelector('[data-action="hero-start"]');
         if (heroBtn) {
             heroBtn.addEventListener('click', () => {
-                // 滚动到功能列表
-                document.querySelector('.feature-list')?.scrollIntoView({
-                    behavior: 'smooth'
-                });
+                window.router.navigate('/test/love');
             });
         }
 
