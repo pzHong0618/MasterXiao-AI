@@ -14,8 +14,9 @@ import { OperationLog } from './OperationLog.js';
 import { Question } from './Question.js';
 import { TopicCategory } from './TopicCategory.js';
 import { SystemConfig } from './SystemConfig.js';
+import { XhsTopic } from './XhsTopic.js';
 
-export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question, TopicCategory, SystemConfig };
+export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question, TopicCategory, SystemConfig, XhsTopic };
 
 export default {
     User,
@@ -30,5 +31,6 @@ export default {
     OperationLog,
     Question,
     TopicCategory,
-    SystemConfig
+    SystemConfig,
+    XhsTopic
 };

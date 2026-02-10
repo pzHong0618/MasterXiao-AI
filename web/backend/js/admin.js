@@ -212,7 +212,8 @@ const pageTitles = {
     'coupon:redeem': '兑换记录',
     'system:question': '问题管理',
     'system:topic-category': '主题分类',
-    'system:config': '系统配置'
+    'system:config': '系统配置',
+    'xhs:topic-config': '小红书主题配置'
 };
 
 function loadPage(page) {
@@ -231,6 +232,7 @@ function loadPage(page) {
         case 'system:question': renderQuestionManage(); break;
         case 'system:topic-category': renderTopicCategoryManage(); break;
         case 'system:config': renderSystemConfigManage(); break;
+        case 'xhs:topic-config': renderXhsTopicConfig(); break;
         default: renderDashboard();
     }
 }
@@ -1229,6 +1231,7 @@ async function renderTopicCategoryManage(page = 1) {
                             <tr>
                                 <th>序号</th>
                                 <th>分类名称</th>
+                                <th>描述</th>
                                 <th>排序</th>
                                 <th>状态</th>
                                 <th>创建时间</th>
@@ -1236,16 +1239,17 @@ async function renderTopicCategoryManage(page = 1) {
                             </tr>
                         </thead>
                         <tbody>
-                            ${list.length === 0 ? '<tr><td colspan="6" class="empty-text">暂无数据</td></tr>' : list.map((item, index) => `
+                            ${list.length === 0 ? '<tr><td colspan="7" class="empty-text">暂无数据</td></tr>' : list.map((item, index) => `
                                 <tr>
                                     <td>${(pagination.page - 1) * pagination.limit + index + 1}</td>
                                     <td>${item.name}</td>
+                                    <td>${item.description || '-'}</td>
                                     <td>${item.sort_order}</td>
                                     <td><span class="status-badge ${item.status ? 'success' : 'failed'}">${item.status ? '开启' : '关闭'}</span></td>
                                     <td>${formatDate(item.created_at)}</td>
                                     <td>
                                         <div class="action-btns">
-                                            <button class="action-btn edit" onclick="showEditTopicCategoryModal(${item.id}, '${escape(item.name)}', ${item.sort_order}, ${item.status})">编辑</button>
+                                            <button class="action-btn edit" onclick="showEditTopicCategoryModal(${item.id}, '${escape(item.name)}', '${escape(item.description || '')}', ${item.sort_order}, ${item.status})">编辑</button>
                                             <button class="action-btn delete" onclick="deleteTopicCategory(${item.id})">删除</button>
                                         </div>
                                     </td>
@@ -1271,17 +1275,22 @@ function showCreateTopicCategoryModal() {
             <input type="text" id="newTCName" placeholder="请输入分类名称" />
         </div>
         <div class="form-group-modal">
+            <label>描述</label>
+            <textarea id="newTCDesc" rows="3" placeholder="请输入分类描述（选填）"></textarea>
+        </div>
+        <div class="form-group-modal">
             <label>排序（数字越小越靠前）</label>
             <input type="number" id="newTCSortOrder" value="0" min="0" />
         </div>
     `, async () => {
         const name = document.getElementById('newTCName').value.trim();
+        const description = document.getElementById('newTCDesc').value.trim();
         const sort_order = parseInt(document.getElementById('newTCSortOrder').value) || 0;
         if (!name) { showToast('分类名称不能为空', 'error'); return; }
 
         const result = await apiFetch('/topic-categories', {
             method: 'POST',
-            body: JSON.stringify({ name, sort_order })
+            body: JSON.stringify({ name, description, sort_order })
         });
         if (result.code === 200) {
             showToast('创建成功');
@@ -1292,11 +1301,15 @@ function showCreateTopicCategoryModal() {
     });
 }
 
-function showEditTopicCategoryModal(id, name, sortOrder, status) {
+function showEditTopicCategoryModal(id, name, description, sortOrder, status) {
     showModal('编辑主题分类', `
         <div class="form-group-modal">
             <label>分类名称 <span class="required">*</span></label>
             <input type="text" id="editTCName" value="${unescape(name)}" />
+        </div>
+        <div class="form-group-modal">
+            <label>描述</label>
+            <textarea id="editTCDesc" rows="3">${unescape(description)}</textarea>
         </div>
         <div class="form-group-modal">
             <label>排序</label>
@@ -1314,6 +1327,7 @@ function showEditTopicCategoryModal(id, name, sortOrder, status) {
             method: 'PUT',
             body: JSON.stringify({
                 name: document.getElementById('editTCName').value.trim(),
+                description: document.getElementById('editTCDesc').value.trim(),
                 sort_order: parseInt(document.getElementById('editTCSortOrder').value) || 0,
                 status: parseInt(document.getElementById('editTCStatus').value)
             })
@@ -1452,6 +1466,179 @@ async function deleteSystemConfig(id) {
         showToast('删除失败: ' + error.message, 'error');
     }
 }
+
+// ==================== 小红书主题配置 ====================
+
+let xhsTab = 'list';
+
+async function renderXhsTopicConfig() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="data-card">
+            <div class="tab-header">
+                <button class="tab-btn ${xhsTab === 'add' ? 'active' : ''}" onclick="switchXhsTab('add')">➕ 增加主题分类</button>
+                <button class="tab-btn ${xhsTab === 'list' ? 'active' : ''}" onclick="switchXhsTab('list')">📋 小红书主题列表</button>
+            </div>
+            <div id="xhsTabContent"></div>
+        </div>
+    `;
+
+    if (xhsTab === 'add') renderXhsAddTopicTab();
+    else renderXhsTopicListTab();
+}
+
+window.switchXhsTab = function (tab) {
+    xhsTab = tab;
+    renderXhsTopicConfig();
+};
+
+async function renderXhsAddTopicTab() {
+    const tabContent = document.getElementById('xhsTabContent');
+    tabContent.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    try {
+        // 获取所有主题分类
+        const catResult = await apiFetch('/topic-categories?limit=100');
+        if (catResult.code !== 200) throw new Error(catResult.message);
+        const categories = catResult.data.list || [];
+
+        // 获取已添加的小红书主题，用于标记已存在的
+        const xhsResult = await apiFetch('/xhs-topics?limit=100');
+        const existingIds = new Set();
+        if (xhsResult.code === 200 && xhsResult.data.list) {
+            xhsResult.data.list.forEach(item => existingIds.add(item.topic_category_id));
+        }
+
+        if (categories.length === 0) {
+            tabContent.innerHTML = '<div class="empty-text" style="padding:24px;text-align:center;">暂无主题分类，请先在系统管理中添加</div>';
+            return;
+        }
+
+        tabContent.innerHTML = `
+            <div style="padding:16px 0;">
+                <p style="margin-bottom:16px;color:var(--text-secondary, #666);font-size:14px;">勾选需要添加到小红书主题列表的分类（已添加的不可重复选择）：</p>
+                <div class="xhs-checkbox-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+                    ${categories.map(c => {
+                        const isExist = existingIds.has(c.id);
+                        return `
+                            <label class="xhs-checkbox-item" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;border:1px solid ${isExist ? '#ddd' : '#e5e7eb'};background:${isExist ? '#f9f9f9' : '#fff'};cursor:${isExist ? 'not-allowed' : 'pointer'};opacity:${isExist ? '0.6' : '1'};">
+                                <input type="checkbox" name="xhsTopicCheck" value="${c.id}" ${isExist ? 'disabled checked' : ''} style="accent-color:#7c3aed;width:18px;height:18px;" />
+                                <span style="font-size:14px;">${c.name} ${isExist ? '<em style="color:#999;font-size:12px;">(已添加)</em>' : ''}</span>
+                            </label>
+                        `;
+                    }).join('')}
+                </div>
+                <div style="margin-top:20px;text-align:right;">
+                    <button class="btn btn-primary" onclick="submitXhsBatchAdd()">批量添加</button>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        tabContent.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+    }
+}
+
+window.submitXhsBatchAdd = async function () {
+    const checkboxes = document.querySelectorAll('input[name="xhsTopicCheck"]:checked:not(:disabled)');
+    const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    if (ids.length === 0) {
+        showToast('请至少选择一个未添加的主题分类', 'error');
+        return;
+    }
+
+    try {
+        const result = await apiFetch('/xhs-topics/batch', {
+            method: 'POST',
+            body: JSON.stringify({ topicCategoryIds: ids })
+        });
+        if (result.code === 200) {
+            showToast(result.message || '添加成功');
+            xhsTab = 'list';
+            renderXhsTopicConfig();
+        } else {
+            showToast(result.message || '添加失败', 'error');
+        }
+    } catch (error) {
+        showToast('添加失败: ' + error.message, 'error');
+    }
+};
+
+async function renderXhsTopicListTab(page = 1) {
+    const tabContent = document.getElementById('xhsTabContent');
+    tabContent.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    try {
+        const result = await apiFetch(`/xhs-topics?page=${page}&limit=15`);
+        if (result.code !== 200) throw new Error(result.message);
+        const { list, pagination } = result.data;
+
+        tabContent.innerHTML = `
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>主题名称</th>
+                            <th>展示状态</th>
+                            <th>添加时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${list.length === 0 ? '<tr><td colspan="5" class="empty-text">暂无数据，请先添加主题分类</td></tr>' : list.map((item, index) => `
+                            <tr>
+                                <td>${(pagination.page - 1) * pagination.limit + index + 1}</td>
+                                <td>${item.topic_name || '未知分类'}</td>
+                                <td><span class="status-badge ${item.status ? 'success' : 'failed'}">${item.status ? '显示' : '隐藏'}</span></td>
+                                <td>${formatDate(item.created_at)}</td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button class="action-btn ${item.status ? 'delete' : 'view'}" onclick="toggleXhsTopicStatus(${item.id}, ${item.status ? 0 : 1})">${item.status ? '隐藏' : '显示'}</button>
+                                        <button class="action-btn delete" onclick="deleteXhsTopic(${item.id})">删除</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ${renderPagination(pagination, 'goXhsTopicPage')}
+        `;
+    } catch (error) {
+        tabContent.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+    }
+}
+
+window.goXhsTopicPage = function (page) { renderXhsTopicListTab(page); };
+
+window.toggleXhsTopicStatus = async function (id, newStatus) {
+    try {
+        const result = await apiFetch(`/xhs-topics/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (result.code === 200) {
+            showToast(newStatus ? '已显示' : '已隐藏');
+            renderXhsTopicListTab();
+        } else {
+            showToast(result.message || '操作失败', 'error');
+        }
+    } catch (error) {
+        showToast('操作失败: ' + error.message, 'error');
+    }
+};
+
+window.deleteXhsTopic = async function (id) {
+    if (!confirm('确定要从小红书主题列表中删除吗？')) return;
+    try {
+        const result = await apiFetch(`/xhs-topics/${id}`, { method: 'DELETE' });
+        showToast(result.message || '删除成功');
+        renderXhsTopicListTab();
+    } catch (error) {
+        showToast('删除失败: ' + error.message, 'error');
+    }
+};
 
 // ==================== 通用弹窗 ====================
 

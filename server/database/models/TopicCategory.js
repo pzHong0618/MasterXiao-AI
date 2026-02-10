@@ -8,13 +8,13 @@ export const TopicCategory = {
      * 创建主题分类
      */
     create(data) {
-        const { name, sort_order = 0, status = 1 } = data;
+        const { name, description = '', sort_order = 0, status = 1 } = data;
         const now = getNowLocal();
         const result = execute(
-            `INSERT INTO topic_categories (name, sort_order, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
-            [name, sort_order, status, now, now]
+            `INSERT INTO topic_categories (name, description, sort_order, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+            [name, description, sort_order, status, now, now]
         );
-        return { id: result.lastInsertRowid, name, sort_order, status, created_at: now, updated_at: now };
+        return { id: result.lastInsertRowid, name, description, sort_order, status, created_at: now, updated_at: now };
     },
 
     /**

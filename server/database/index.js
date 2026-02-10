@@ -296,12 +296,28 @@ async function initTables() {
         CREATE TABLE IF NOT EXISTS topic_categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            description TEXT DEFAULT '',
             sort_order INTEGER DEFAULT 0,
             status INTEGER DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    // 兼容旧数据库：如果 topic_categories 表缺少 description 列则补加
+    try {
+        const cols = db.exec("PRAGMA table_info(topic_categories)");
+        const hasDescription = cols.length > 0 && cols[0].values.some(row => row[1] === 'description');
+        if (!hasDescription) {
+            db.run("ALTER TABLE topic_categories ADD COLUMN description TEXT DEFAULT ''");
+            console.log('✅ topic_categories 表已补充 description 列');
+        }
+        // 如果存在旧的 desc 列，迁移数据到 description
+        const hasDesc = cols.length > 0 && cols[0].values.some(row => row[1] === 'desc');
+        if (hasDesc && hasDescription) {
+            db.run("UPDATE topic_categories SET description = [desc] WHERE description = '' AND [desc] != ''");
+        }
+    } catch (e) { /* ignore */ }
 
     // 系统配置表（自定义配置项）
     db.run(`
@@ -311,6 +327,19 @@ async function initTables() {
             status INTEGER DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // 小红书主题记录表
+    db.run(`
+        CREATE TABLE IF NOT EXISTS xhs_topics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic_category_id INTEGER NOT NULL,
+            status INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (topic_category_id) REFERENCES topic_categories(id)
         )
     `);
 

@@ -3,7 +3,7 @@
  * 提供用户管理、管理员管理、订单管理、数据管理、券码管理、系统管理等接口
  */
 import express from 'express';
-import { User, Admin, Payment, RedeemCode, SessionMatchRecord, OperationLog, Question, TopicCategory, SystemConfig } from '../database/models/index.js';
+import { User, Admin, Payment, RedeemCode, SessionMatchRecord, OperationLog, Question, TopicCategory, SystemConfig, XhsTopic } from '../database/models/index.js';
 import { queryAll, queryOne, execute, saveDatabase, getNowLocal } from '../database/index.js';
 
 const router = express.Router();
@@ -112,6 +112,12 @@ router.get('/menu', (req, res) => {
                 { id: 71, code: 'system:question', name: '问题管理', type: 'menu', icon: '❓' },
                 { id: 72, code: 'system:topic-category', name: '主题分类', type: 'menu', icon: '📂' },
                 { id: 73, code: 'system:config', name: '系统配置', type: 'menu', icon: '🔧' }
+            ]
+        },
+        {
+            id: 8, code: 'xhs-manage', name: '小红书管理', type: 'menu', icon: '📕',
+            children: [
+                { id: 81, code: 'xhs:topic-config', name: '主题配置', type: 'menu', icon: '🏷️' }
             ]
         }
     ];
@@ -574,11 +580,11 @@ router.get('/topic-categories', (req, res) => {
 
 router.post('/topic-categories', (req, res) => {
     try {
-        const { name, sort_order } = req.body;
+        const { name, description, sort_order } = req.body;
         if (!name) return res.status(400).json({ code: 400, message: '分类名称不能为空' });
         if (TopicCategory.findByName(name)) return res.status(400).json({ code: 400, message: '分类名称已存在' });
 
-        const category = TopicCategory.create({ name, sort_order: sort_order || 0 });
+        const category = TopicCategory.create({ name, description: description || '', sort_order: sort_order || 0 });
         saveDatabase();
         res.json({ code: 200, message: '创建成功', data: category });
     } catch (error) {
@@ -589,11 +595,12 @@ router.post('/topic-categories', (req, res) => {
 router.put('/topic-categories/:id', (req, res) => {
     try {
         const { id } = req.params;
-        const { name, status, sort_order } = req.body;
+        const { name, description, status, sort_order } = req.body;
         if (!TopicCategory.findById(parseInt(id))) return res.status(404).json({ code: 404, message: '分类不存在' });
 
         const updateData = {};
         if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
         if (status !== undefined) updateData.status = parseInt(status);
         if (sort_order !== undefined) updateData.sort_order = parseInt(sort_order);
 
@@ -669,6 +676,67 @@ router.delete('/system-configs/:id', (req, res) => {
     try {
         if (!SystemConfig.findById(parseInt(req.params.id))) return res.status(404).json({ code: 404, message: '配置不存在' });
         SystemConfig.delete(parseInt(req.params.id));
+        saveDatabase();
+        res.json({ code: 200, message: '删除成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// ==================== 小红书主题管理 ====================
+
+// 获取小红书主题列表
+router.get('/xhs-topics', (req, res) => {
+    try {
+        const { page = 1, limit = 20, status } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const total = XhsTopic.count({ status });
+        const list = XhsTopic.findAll({ status, limit: parseInt(limit), offset });
+        res.json({
+            code: 200,
+            data: { list, pagination: { page: parseInt(page), limit: parseInt(limit), total } }
+        });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 批量添加小红书主题（接收主题分类ID数组）
+router.post('/xhs-topics/batch', (req, res) => {
+    try {
+        const { topicCategoryIds } = req.body;
+        if (!topicCategoryIds || !Array.isArray(topicCategoryIds) || topicCategoryIds.length === 0) {
+            return res.status(400).json({ code: 400, message: '请选择至少一个主题分类' });
+        }
+
+        const results = XhsTopic.createBatch(topicCategoryIds.map(id => parseInt(id)));
+        saveDatabase();
+        res.json({ code: 200, message: `成功添加 ${results.length} 个主题`, data: results });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 修改小红书主题状态（显示/隐藏）
+router.put('/xhs-topics/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!XhsTopic.findById(parseInt(id))) return res.status(404).json({ code: 404, message: '记录不存在' });
+
+        XhsTopic.update(parseInt(id), { status: parseInt(status) });
+        saveDatabase();
+        res.json({ code: 200, message: status ? '已显示' : '已隐藏' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 删除小红书主题
+router.delete('/xhs-topics/:id', (req, res) => {
+    try {
+        if (!XhsTopic.findById(parseInt(req.params.id))) return res.status(404).json({ code: 404, message: '记录不存在' });
+        XhsTopic.delete(parseInt(req.params.id));
         saveDatabase();
         res.json({ code: 200, message: '删除成功' });
     } catch (error) {

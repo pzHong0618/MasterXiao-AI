@@ -1,6 +1,6 @@
 /**
  * 六爻解析结果页面
- * 参考 MasterChenAI-mp 项目的 pages/result 页面
+ * 只显示通俗版解读结果
  */
 
 import { navigateTo } from '../components/Common.js';
@@ -19,8 +19,6 @@ let pageState = {
     simpleVersion: '',
     aiPrompt: '',
     isLoading: false,
-    showPrompt: false,
-    viewMode: 'simple', // 'simple' | 'professional' | 'both'
     remainingTime: 60,
     progressPercent: 0,
     loadingTip: '正在连接服务器...'
@@ -44,54 +42,31 @@ const loadingTips = [
 export function render(container, params = {}) {
     // 初始化数据
     initPageData(params);
-    
+
+    // 获取当前日期
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+
     container.innerHTML = `
         <div class="divination-result-page">
-            <!-- 问题显示 -->
-            <div class="question-card">
-                <span class="question-label">所问事项</span>
-                <span class="question-text">${pageState.question || '未知问题'}</span>
-                <span class="date-text">${pageState.lunarDate || ''}</span>
+            <!-- 顶部导航 -->
+            <div class="result-navbar">
+                <button class="result-navbar__back" id="btn-back">←</button>
+                <span class="result-navbar__title">解读结果</span>
             </div>
 
-            <!-- 卦象展示区域 -->
-            ${renderGuaSection()}
+            <!-- 问题卡片 -->
+            <div class="question-card">
+                <span class="question-label">匹配事项</span>
+                <span class="question-text">${pageState.question || '未知问题'}</span>
+                <span class="date-text">${dateStr}</span>
+            </div>
 
-            <!-- 动爻说明 -->
-            ${renderMovingInfo()}
+            <!-- 加载状态 -->
+            ${renderLoadingState()}
 
             <!-- 解读区域 -->
-            <div class="ai-section">
-                <div class="section-title">🔮 解读结果</div>
-                
-                <!-- 视图切换 -->
-                <div class="view-mode-tabs">
-                    <button class="mode-tab ${pageState.viewMode === 'simple' ? 'active' : ''}" 
-                            data-mode="simple">💡 通俗版</button>
-                    <button class="mode-tab ${pageState.viewMode === 'professional' ? 'active' : ''}" 
-                            data-mode="professional">📚 专业版</button>
-                    <button class="mode-tab ${pageState.viewMode === 'both' ? 'active' : ''}" 
-                            data-mode="both">📖 双版本</button>
-                </div>
-
-                <!-- AI提示词（可折叠） -->
-                <div class="prompt-card">
-                    <div class="prompt-header" id="toggle-prompt">
-                        <span>解读提示词</span>
-                        <span class="prompt-arrow">${pageState.showPrompt ? '▼' : '▶'}</span>
-                    </div>
-                    <div class="prompt-content ${pageState.showPrompt ? 'show' : ''}">
-                        <pre class="prompt-text">${escapeHtml(pageState.aiPrompt || '暂无提示词')}</pre>
-                        <button class="btn-copy" id="copy-prompt">复制提示词</button>
-                    </div>
-                </div>
-
-                <!-- 加载状态 -->
-                ${renderLoadingState()}
-
-                <!-- AI响应结果 -->
-                ${renderAIResponse()}
-            </div>
+            ${renderAIResponse()}
 
             <!-- 免责声明 -->
             <div class="disclaimer">
@@ -123,7 +98,7 @@ function initPageData(params) {
         pageState.simpleVersion = data.simpleVersion || '';
         pageState.aiPrompt = data.aiPrompt || '';
     }
-    
+
     // 尝试从 localStorage 获取缓存数据
     const cachedResult = localStorage.getItem('divinationResult');
     if (cachedResult && !params.data) {
@@ -139,166 +114,91 @@ function initPageData(params) {
             console.error('解析缓存数据失败:', e);
         }
     }
-    
-    // 从 aiPrompt 中提取信息
-    if (pageState.aiPrompt) {
-        extractInfoFromPrompt(pageState.aiPrompt);
+
+    // 从 appState 获取问题
+    if (!pageState.question && window.appState) {
+        pageState.question = window.appState.get?.('tarotQuestion')
+            || window.appState.get?.('selectedQuestion')
+            || '';
     }
+
+    // 始终尝试从完整响应中提取通俗版（即使 simpleVersion 有值也重新提取，确保准确）
+    if (pageState.aiResponse) {
+        const extracted = extractSimpleVersion(pageState.aiResponse);
+        if (extracted && extracted !== pageState.aiResponse) {
+            // 提取成功，使用提取的通俗版
+            pageState.simpleVersion = extracted;
+        } else if (!pageState.simpleVersion) {
+            // 提取失败且没有 simpleVersion，使用完整响应
+            pageState.simpleVersion = pageState.aiResponse;
+        }
+    }
+
+    console.log('[结果页] simpleVersion长度:', pageState.simpleVersion?.length,
+        '| aiResponse长度:', pageState.aiResponse?.length,
+        '| professionalVersion长度:', pageState.professionalVersion?.length);
 }
 
 /**
- * 从提示词中提取信息
+ * 从完整AI响应中提取通俗版内容
+ * 增强版：覆盖各种标题格式
  */
-function extractInfoFromPrompt(prompt) {
-    // 提取问题
-    const questionMatch = prompt.match(/我要问"([^"]+)"的问题/);
-    if (questionMatch) {
-        pageState.question = questionMatch[1];
-    }
-    
-    // 提取农历日期
-    const dateMatch = prompt.match(/在农历([^\s]+)问事/);
-    if (dateMatch) {
-        pageState.lunarDate = dateMatch[1];
-    }
-    
-    // 提取本卦信息
-    const benGuaMatch = prompt.match(/得到([^（]+)（([^，]+)，属([^）]+)）为本卦/);
-    if (benGuaMatch) {
-        pageState.benGuaInfo = {
-            name: benGuaMatch[1],
-            palace: benGuaMatch[2],
-            wuxing: benGuaMatch[3]
-        };
-    }
-    
-    // 提取卦辞
-    const guaCiMatch = prompt.match(/【卦辞】([^\n]+)/);
-    if (guaCiMatch && pageState.benGuaInfo) {
-        pageState.benGuaInfo.info = guaCiMatch[1];
-    }
-    
-    // 提取世应信息
-    const shiYingMatch = prompt.match(/世爻在第(\d)爻，应爻在第(\d)爻/);
-    if (shiYingMatch && pageState.benGuaInfo) {
-        pageState.benGuaInfo.shi = parseInt(shiYingMatch[1]);
-        pageState.benGuaInfo.ying = parseInt(shiYingMatch[2]);
-    }
-    
-    // 提取六爻信息
-    const yaoPattern = /(上爻|五爻|四爻|三爻|二爻|初爻)：([^\s]+)\s+(阳|阴)爻，([^，\n]+)/g;
-    const yaos = [];
-    let match;
-    while ((match = yaoPattern.exec(prompt)) !== null) {
-        yaos.push({
-            position: match[1],
-            liuShen: match[2],
-            type: match[3],
-            info: match[4]
-        });
-    }
-    if (yaos.length > 0) {
-        pageState.yaos = yaos;
-    }
-    
-    // 检查是否有动爻
-    pageState.hasMovingYao = prompt.includes('动爻') && !prompt.includes('无动爻');
-}
+function extractSimpleVersion(fullText) {
+    if (!fullText) return '';
 
-/**
- * 渲染卦象区域
- */
-function renderGuaSection() {
-    if (!pageState.benGuaInfo) {
-        return '';
+    // 第一步：尝试精确提取"通俗版"之后的内容（排除"专业版"部分）
+    const patterns = [
+        // ### 二、通俗版解读 ... (到文末)
+        /#{1,4}\s*二[、．.]\s*通俗版解读\s*([\s\S]*?)$/i,
+        // 二、通俗版解读 ... (到文末)
+        /二[、．.]\s*通俗版解读\s*([\s\S]*?)$/i,
+        // 【通俗版解读】 ... (到文末)
+        /【通俗版[^】]*】\s*([\s\S]*?)$/i,
+        // 通俗版解读 ... (到文末)  
+        /通俗版解读\s*([\s\S]*?)$/i,
+        // 通俗版 ... (到文末)
+        /通俗版\s*([\s\S]*?)$/i,
+    ];
+
+    for (const pattern of patterns) {
+        const match = fullText.match(pattern);
+        if (match && match[1] && match[1].trim().length > 50) {
+            return match[1].trim();
+        }
     }
-    
-    return `
-        <div class="gua-section">
-            <!-- 本卦 -->
-            <div class="gua-card">
-                <div class="gua-title">本卦</div>
-                <div class="gua-name">${pageState.benGuaInfo.name || ''}</div>
-                <div class="gua-palace">${pageState.benGuaInfo.palace || ''} · ${pageState.benGuaInfo.wuxing || ''}</div>
-                
-                <!-- 六爻图形 -->
-                <div class="gua-diagram">
-                    ${renderYaoLines()}
-                </div>
-                
-                <div class="gua-ci">${pageState.benGuaInfo.info || ''}</div>
-            </div>
 
-            <!-- 变卦（如果有动爻） -->
-            ${pageState.hasMovingYao && pageState.bianGuaInfo ? `
-                <div class="gua-card">
-                    <div class="gua-title">变卦</div>
-                    <div class="gua-name">${pageState.bianGuaInfo.name || ''}</div>
-                    <div class="gua-palace">${pageState.bianGuaInfo.palace || ''} · ${pageState.bianGuaInfo.wuxing || ''}</div>
-                    <div class="gua-diagram">
-                        ${renderBianYaoLines()}
-                    </div>
-                    <div class="gua-ci">${pageState.bianGuaInfo.info || ''}</div>
-                </div>
-            ` : ''}
-        </div>
-    `;
-}
+    // 第二步：如果有"专业版"标记，尝试去掉专业版部分
+    const proPatterns = [
+        // 去掉从开头到"二、通俗版"之前的内容（即专业版部分）
+        /[\s\S]*?(?=#{0,4}\s*二[、．.]\s*通俗版)/i,
+        // 去掉从 "一、专业版解读" 到 "二、通俗版解读" 之间的内容
+        /#{0,4}\s*一[、．.]\s*专业版解读[\s\S]*?(?=#{0,4}\s*二[、．.]\s*通俗版解读)/i,
+    ];
 
-/**
- * 渲染本卦六爻
- */
-function renderYaoLines() {
-    if (!pageState.yaos || pageState.yaos.length === 0) {
-        return '<div class="no-yao-info">暂无六爻详细信息</div>';
+    for (const pattern of proPatterns) {
+        const cleaned = fullText.replace(pattern, '').trim();
+        if (cleaned.length > 50 && cleaned.length < fullText.length) {
+            // 再去掉通俗版标题本身
+            return cleaned
+                .replace(/^#{1,4}\s*二[、．.]\s*通俗版解读\s*/m, '')
+                .replace(/^通俗版解读\s*/m, '')
+                .trim();
+        }
     }
-    
-    return pageState.yaos.map((yao, index) => {
-        const isShi = pageState.benGuaInfo?.shi === (6 - index);
-        const isYing = pageState.benGuaInfo?.ying === (6 - index);
-        const symbol = yao.type === '阳' ? '▬▬▬' : '▬ ▬';
-        
-        return `
-            <div class="yao-line ${isShi ? 'shi' : ''} ${isYing ? 'ying' : ''}">
-                <span class="yao-liushen">${yao.liuShen || ''}</span>
-                <span class="yao-symbol">${symbol}</span>
-                <span class="yao-info">${yao.info || ''}</span>
-                ${isShi ? '<span class="yao-tag shi-tag">世</span>' : ''}
-                ${isYing ? '<span class="yao-tag ying-tag">应</span>' : ''}
-            </div>
-        `;
-    }).join('');
-}
 
-/**
- * 渲染变卦六爻
- */
-function renderBianYaoLines() {
-    // 如果没有变卦信息，返回空
-    return '<div class="no-yao-info">变卦信息</div>';
-}
-
-/**
- * 渲染动爻说明
- */
-function renderMovingInfo() {
-    if (pageState.hasMovingYao) {
-        const movingDesc = pageState.movingPositions.length > 0 
-            ? pageState.movingPositions.map(p => `第${p}爻`).join('、')
-            : '有动爻';
-        return `
-            <div class="moving-info">
-                <span class="moving-label">动爻：</span>
-                <span class="moving-text">${movingDesc}</span>
-            </div>
-        `;
-    } else {
-        return `
-            <div class="moving-info">
-                <span class="moving-text">静卦（无动爻）</span>
-            </div>
-        `;
+    // 第三步：如果完整内容包含"专业版"字样，说明混在一起了，取后半部分
+    if (fullText.includes('专业版解读') && fullText.includes('通俗版解读')) {
+        const idx = fullText.indexOf('通俗版解读');
+        if (idx > 0) {
+            let simple = fullText.substring(idx + '通俗版解读'.length).trim();
+            if (simple.length > 50) {
+                return simple;
+            }
+        }
     }
+
+    // 无法提取，返回空（由调用者决定 fallback）
+    return '';
 }
 
 /**
@@ -308,7 +208,7 @@ function renderLoadingState() {
     if (!pageState.isLoading) {
         return '';
     }
-    
+
     return `
         <div class="loading-overlay">
             <div class="loading-content">
@@ -325,10 +225,13 @@ function renderLoadingState() {
 }
 
 /**
- * 渲染AI响应
+ * 渲染AI响应 - 只显示通俗版
  */
 function renderAIResponse() {
-    if (!pageState.aiResponse && !pageState.simpleVersion && !pageState.professionalVersion) {
+    // 只使用 simpleVersion
+    const content = pageState.simpleVersion;
+
+    if (!content) {
         return `
             <div class="no-response">
                 <p>暂无解读结果</p>
@@ -336,28 +239,14 @@ function renderAIResponse() {
             </div>
         `;
     }
-    
-    const showProfessional = pageState.viewMode === 'professional' || pageState.viewMode === 'both';
-    const showSimple = pageState.viewMode === 'simple' || pageState.viewMode === 'both';
-    
+
     return `
         <div class="ai-response">
-            <!-- 专业版解读 -->
-            ${showProfessional ? `
-                <div class="version-section professional">
-                    <div class="response-title">📚 专业版解读</div>
-                    <div class="response-content">${formatContent(pageState.professionalVersion || pageState.aiResponse)}</div>
-                </div>
-            ` : ''}
-            
-            <!-- 通俗版解读 -->
-            ${showSimple ? `
-                <div class="version-section simple">
-                    <div class="response-title">💡 通俗版解读</div>
-                    <div class="response-content">${formatContent(pageState.simpleVersion || pageState.aiResponse)}</div>
-                </div>
-            ` : ''}
-            
+            <div class="version-section simple">
+                <div class="response-title">💡 解读</div>
+                <div class="response-content">${formatContent(content)}</div>
+            </div>
+
             <!-- 咨询入口 -->
             <div class="consult-section">
                 <div class="consult-title">💬 有疑惑？欢迎咨询</div>
@@ -372,29 +261,35 @@ function renderAIResponse() {
  */
 function formatContent(content) {
     if (!content) return '';
-    
+
     let html = escapeHtml(content);
-    
+
+    // 去掉所有版本标题行
+    html = html.replace(/^[#\s]*[一二三四五六七八九十]*[、．.]\s*通俗版解读\s*/gm, '');
+    html = html.replace(/^[#\s]*通俗版解读\s*/gm, '');
+    html = html.replace(/^[#\s]*[一二三四五六七八九十]*[、．.]\s*专业版解读\s*/gm, '');
+    html = html.replace(/^[#\s]*专业版解读\s*/gm, '');
+
     // 转换标题
     html = html.replace(/### (.+)/g, '<h4>$1</h4>');
     html = html.replace(/## (.+)/g, '<h3>$1</h3>');
     html = html.replace(/# (.+)/g, '<h2>$1</h2>');
-    
+
     // 转换加粗
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    
+
     // 转换列表
     html = html.replace(/^\* (.+)/gm, '<li>$1</li>');
     html = html.replace(/^- (.+)/gm, '<li>$1</li>');
     html = html.replace(/^\d+\.\s+(.+)/gm, '<li>$1</li>');
-    
+
     // 转换分隔线
     html = html.replace(/^---$/gm, '<hr>');
-    
+
     // 转换换行
     html = html.replace(/\n\n/g, '</p><p>');
     html = html.replace(/\n/g, '<br>');
-    
+
     return `<p>${html}</p>`;
 }
 
@@ -412,36 +307,14 @@ function escapeHtml(text) {
  * 绑定事件
  */
 function bindEvents(container) {
-    // 视图模式切换
-    container.querySelectorAll('.mode-tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            const mode = e.target.dataset.mode;
-            pageState.viewMode = mode;
-            render(container, { data: pageState });
-        });
-    });
-    
-    // 提示词折叠
-    const togglePrompt = container.querySelector('#toggle-prompt');
-    if (togglePrompt) {
-        togglePrompt.addEventListener('click', () => {
-            pageState.showPrompt = !pageState.showPrompt;
-            render(container, { data: pageState });
+    // 返回按钮
+    const backBtn = container.querySelector('#btn-back');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            window.history.back();
         });
     }
-    
-    // 复制提示词
-    const copyBtn = container.querySelector('#copy-prompt');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(pageState.aiPrompt).then(() => {
-                alert('提示词已复制到剪贴板');
-            }).catch(err => {
-                console.error('复制失败:', err);
-            });
-        });
-    }
-    
+
     // 重新开始
     const restartBtn = container.querySelector('#btn-restart');
     if (restartBtn) {
@@ -452,7 +325,7 @@ function bindEvents(container) {
             }
         });
     }
-    
+
     // 分享结果
     const shareBtn = container.querySelector('#btn-share');
     if (shareBtn) {
@@ -460,7 +333,7 @@ function bindEvents(container) {
             shareResult();
         });
     }
-    
+
     // 开始解读按钮
     const askAiBtn = container.querySelector('#btn-ask-ai');
     if (askAiBtn) {
@@ -474,11 +347,12 @@ function bindEvents(container) {
  * 分享结果
  */
 function shareResult() {
-    const shareText = `🔮 六爻解读结果\n\n问：${pageState.question}\n\n${pageState.simpleVersion || pageState.aiResponse}`;
-    
+    const content = pageState.simpleVersion || pageState.aiResponse;
+    const shareText = `🔮 解读结果\n\n问：${pageState.question}\n\n${content}`;
+
     if (navigator.share) {
         navigator.share({
-            title: '六爻解读结果',
+            title: '解读结果',
             text: shareText
         }).catch(err => {
             console.log('分享取消:', err);
@@ -507,29 +381,25 @@ async function startDivination(container) {
     pageState.isLoading = true;
     pageState.progressPercent = 0;
     pageState.remainingTime = 60;
-    
-    // 更新加载状态
+
     const updateLoading = () => {
         if (!pageState.isLoading) return;
-        
+
         pageState.remainingTime = Math.max(0, pageState.remainingTime - 1);
         pageState.progressPercent = Math.min(95, pageState.progressPercent + 1.5);
         pageState.loadingTip = loadingTips[Math.floor(pageState.progressPercent / 12)] || loadingTips[0];
-        
+
         render(container, { data: pageState });
-        
+
         if (pageState.isLoading) {
             setTimeout(updateLoading, 1000);
         }
     };
-    
+
     render(container, { data: pageState });
     setTimeout(updateLoading, 1000);
-    
+
     try {
-        // TODO: 实际调用 API
-        // const response = await fetch('/api/divination', { ... });
-        
         pageState.isLoading = false;
         pageState.progressPercent = 100;
         render(container, { data: pageState });

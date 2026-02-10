@@ -1,17 +1,78 @@
 /**
  * 直觉塔罗 抽牌页
  * 圆环牌轮排列，手指上下滑动旋转牌轮
- * 每次点击一张牌 → 悬浮放大显示 → 重选/确定 → 确定后翻开放入顶部槽框
- * 抽满6张后点击下一步进入摇牌页
+ * 点击牌 → 生成爻数据 → 单数牌背面/双数牌正面 → 放入槽框
+ * 抽满6张后点击"开始解读"跳转到解读页
  */
 
 import { getMatchTypeById } from '../data/matchTypes.js';
 import { Navbar } from '../components/Common.js';
-import { drawFromFullDeck, FULL_DECK } from '../data/tarot.js';
+import { getGuaInfo, generateGuaCode, generateBianGuaCode, getMovingYaoPositions, getLunarDate } from '../utils/guaData.js';
+import { matchRecordApi } from '../services/api.js';
+import { getSessionId } from '../scripts/state.js';
 
 const TOTAL_CARDS = 72;
 const CARDS_TO_DRAW = 6;
 const SLOT_LABELS = ['目标', '动力', '障碍', '资源', '支持', '结果'];
+
+// 爻位置名称（与小程序保持一致）
+const YAO_POSITION_NAMES = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+
+/**
+ * 生成单张牌的爻数据（模拟抛掷铜钱）
+ * @param {number} step - 当前步骤 (1-6)
+ * @returns {object} yao 对象
+ */
+function generateYaoData(step) {
+    const coin1 = Math.random() > 0.5 ? '背' : '字';
+    const coin2 = Math.random() > 0.5 ? '背' : '字';
+    const coin3 = Math.random() > 0.5 ? '背' : '字';
+    const coins = [coin1, coin2, coin3];
+    const backCount = coins.filter(c => c === '背').length;
+    
+    let value, isMoving, name, symbol;
+    
+    switch (backCount) {
+        case 3:
+            value = 1;
+            isMoving = true;
+            name = '老阳（三背）';
+            symbol = '○';
+            break;
+        case 2:
+            value = 1;
+            isMoving = false;
+            name = '少阳（二背一字）';
+            symbol = '⚊';
+            break;
+        case 1:
+            value = 0;
+            isMoving = false;
+            name = '少阴（一背二字）';
+            symbol = '⚋';
+            break;
+        case 0:
+        default:
+            value = 0;
+            isMoving = true;
+            name = '老阴（三字）';
+            symbol = '×';
+            break;
+    }
+    
+    const position = YAO_POSITION_NAMES[step - 1];
+    
+    return {
+        value,
+        isMoving,
+        name,
+        symbol,
+        position,
+        step,
+        backCount,
+        coins
+    };
+}
 
 // 响应式半径
 function getWheelRadius() {
@@ -40,8 +101,16 @@ export class TarotPickPage {
 
         // 已选的牌：数组长度6，null=空槽
         this.pickedCards = new Array(CARDS_TO_DRAW).fill(null);
-        this.usedCardIds = new Set(); // 已抽过的牌ID，避免重复
+        this.usedCardIndices = new Set(); // 已抽过的牌索引
         this.isShowingPreview = false;
+
+        // 六爻记录
+        this.yaos = [];
+        this.yaoHistory = [];
+        this.currentStep = 0;
+
+        // 解读状态
+        this.isLoading = false;
     }
 
     get pickedCount() {
@@ -89,10 +158,10 @@ export class TarotPickPage {
                 ${cardsHtml}
               </div>
             </div>
-            <!-- 底部下一步 -->
+            <!-- 底部开始解读按钮 -->
             <div class="pick-bottom-bar">
               <button class="btn btn--primary btn--full btn--lg pick-next-btn" id="pickNextBtn">
-                下一步
+                开始解读
               </button>
             </div>
           </div>
@@ -105,13 +174,16 @@ export class TarotPickPage {
 
         // 卡牌点击抽牌
         document.getElementById('pickWheel')?.addEventListener('click', (e) => {
-            if (this.hasMoved || this.isShowingPreview) return;
+            if (this.hasMoved || this.isShowingPreview || this.isLoading) return;
             const card = e.target.closest('.wheel-card');
-            if (card) this.handleDrawOne();
+            if (card) {
+                const idx = parseInt(card.dataset.idx);
+                this.handleDrawOne(idx, card);
+            }
         });
 
-        // 下一步
-        document.getElementById('pickNextBtn')?.addEventListener('click', () => this.handleNext());
+        // 开始解读
+        document.getElementById('pickNextBtn')?.addEventListener('click', () => this.handleStartDivination());
 
         const vp = document.getElementById('wheelViewport');
         if (!vp) return;
@@ -186,124 +258,231 @@ export class TarotPickPage {
     }
 
     /* ---- 抽一张牌 ---- */
-    handleDrawOne() {
+    handleDrawOne(cardIdx, cardElement) {
         if (this.pickedCount >= CARDS_TO_DRAW) {
-            window.showToast && window.showToast('已抽满6张牌，请点击下一步', 'default');
+            window.showToast && window.showToast('已抽满6张牌，请点击开始解读', 'default');
             return;
         }
+
+        if (this.usedCardIndices.has(cardIdx)) {
+            window.showToast && window.showToast('这张牌已被抽过，请选其他牌', 'default');
+            return;
+        }
+
         this.stopInertia();
+        this.usedCardIndices.add(cardIdx);
 
-        // 从78张牌中随机抽一张（排除已选的）
-        const available = FULL_DECK.filter(c => !this.usedCardIds.has(c.id));
-        const card = { ...available[Math.floor(Math.random() * available.length)] };
+        if (cardElement) {
+            cardElement.classList.add('wheel-card--used');
+        }
 
-        // 显示悬浮预览
-        this.showCardPreview(card);
-    }
+        // 当前步骤 +1（1-6）
+        this.currentStep++;
+        const stepNum = this.currentStep;
 
-    /* ---- 悬浮预览 ---- */
-    showCardPreview(card) {
-        this.isShowingPreview = true;
+        // 生成爻数据
+        const yaoData = generateYaoData(stepNum);
 
-        const overlay = document.createElement('div');
-        overlay.className = 'pick-preview-overlay';
-        overlay.innerHTML = `
-          <div class="pick-preview-wrap">
-            <div class="pick-preview-card">
-              <div class="pick-preview-card__inner">
-                <div class="pick-preview-card__back">
-                  <span class="pick-preview-star">✦</span>
-                </div>
-                <div class="pick-preview-card__front">
-                  <span class="pick-preview-symbol">${card.symbol || '✦'}</span>
-                  <span class="pick-preview-name">${card.name || ''}</span>
-                </div>
-              </div>
-            </div>
-            <div class="pick-preview-btns">
-              <button class="btn btn--secondary pick-preview-btn" id="previewReselect">重选</button>
-              <button class="btn btn--primary pick-preview-btn" id="previewConfirm">确定</button>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(overlay);
+        // 记录爻
+        const newYao = {
+            value: yaoData.value,
+            isMoving: yaoData.isMoving,
+            name: yaoData.name,
+            symbol: yaoData.symbol,
+            position: yaoData.position
+        };
+        this.yaos.push(newYao);
 
-        // 重选
-        overlay.querySelector('#previewReselect').addEventListener('click', () => {
-            overlay.remove();
-            this.isShowingPreview = false;
-        });
+        // 记录历史
+        const historyItem = {
+            step: yaoData.step,
+            position: yaoData.position,
+            name: yaoData.name,
+            symbol: yaoData.symbol,
+            isMoving: yaoData.isMoving,
+            backCount: yaoData.backCount,
+            cardIdx: cardIdx
+        };
+        this.yaoHistory.push(historyItem);
 
-        // 确定 → 翻开 → 飞入槽框
-        overlay.querySelector('#previewConfirm').addEventListener('click', () => {
-            // 翻开牌
-            const cardInner = overlay.querySelector('.pick-preview-card__inner');
-            cardInner.classList.add('flipped');
+        // 找到第一个空槽
+        const slotIdx = this.pickedCards.findIndex(c => c === null);
 
-            // 找到第一个空槽
-            const slotIdx = this.pickedCards.findIndex(c => c === null);
-            this.pickedCards[slotIdx] = card;
-            this.usedCardIds.add(card.id);
+        // 单数牌(1,3,5)背面，双数牌(2,4,6)正面
+        const isReversed = (stepNum % 2 === 1);
+        const cardData = {
+            id: cardIdx,
+            step: stepNum,
+            yao: newYao,
+            isReversed: isReversed,
+            label: SLOT_LABELS[slotIdx],
+            symbol: yaoData.symbol,
+            positionName: yaoData.position
+        };
 
-            // 翻开动画完成后飞入槽
-            setTimeout(() => {
-                overlay.remove();
-                this.isShowingPreview = false;
-                this.fillSlot(slotIdx, card);
-            }, 500);
-        });
+        this.pickedCards[slotIdx] = cardData;
+        this.fillSlot(slotIdx, cardData);
+
+        console.log(`[抽牌] 第${stepNum}张 ${yaoData.position}：${yaoData.name} (${yaoData.symbol}) ${isReversed ? '【背面/逆位】' : '【正面/正位】'}`);
     }
 
     /* ---- 填充槽框 ---- */
-    fillSlot(slotIdx, card) {
+    fillSlot(slotIdx, cardData) {
         const slotEl = document.getElementById(`pickSlot${slotIdx}`);
         if (!slotEl) return;
 
+        const faceClass = cardData.isReversed ? 'pick-slot__back' : 'pick-slot__front';
+        const faceIcon = cardData.isReversed ? '✦' : cardData.symbol;
+        const rotateStyle = cardData.isReversed ? 'transform: rotate(180deg);' : '';
+
         slotEl.innerHTML = `
-          <div class="pick-slot__filled">
-            <span class="pick-slot__symbol">${card.symbol || '✦'}</span>
-            <span class="pick-slot__name">${card.name || ''}</span>
+          <div class="pick-slot__filled ${faceClass}" style="${rotateStyle}">
+            <span class="pick-slot__symbol">${faceIcon}</span>
+            <span class="pick-slot__name">${cardData.positionName}</span>
           </div>
         `;
         slotEl.classList.add('pick-slot--filled');
+        if (cardData.isReversed) {
+            slotEl.classList.add('pick-slot--reversed');
+        }
 
-        // 更新提示文字
         const remaining = CARDS_TO_DRAW - this.pickedCount;
         const hint = document.querySelector('.pick-hint-text');
         if (hint) {
             if (remaining > 0) {
                 hint.textContent = `还需抽 ${remaining} 张牌`;
             } else {
-                hint.textContent = '已抽满 6 张牌，点击下一步继续';
+                hint.textContent = '已抽满 6 张牌，点击开始解读';
             }
         }
     }
 
-    /* ---- 下一步 ---- */
-    handleNext() {
+    /* ---- 开始解读 ---- */
+    async handleStartDivination() {
         const remaining = CARDS_TO_DRAW - this.pickedCount;
         if (remaining > 0) {
             window.showToast && window.showToast(`请再抽 ${remaining} 张牌`, 'error');
             return;
         }
 
-        // 保存牌面数据
-        if (window.appState) {
-            const selected = this.pickedCards.map(c => c.id);
-            window.appState.set('selectedCards', selected);
-            window.appState.set('drawnTarotCards', this.pickedCards);
-            window.appState.selectedTarotCards = this.pickedCards.map((card, i) => ({
-                ...card, slot: i, label: SLOT_LABELS[i]
-            }));
+        if (this.isLoading) return;
+        this.isLoading = true;
+
+        const btn = document.getElementById('pickNextBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('disabled');
+            btn.textContent = '正在准备...';
         }
 
-        window.router.navigate(`/test/${this.matchType.id}/tarot/card-selection`);
+        try {
+            // 计算卦象
+            const guaCode = generateGuaCode(this.yaos);
+            const benGuaInfo = getGuaInfo(guaCode);
+            const bianGuaCode = generateBianGuaCode(this.yaos);
+            const bianGuaInfo = getGuaInfo(bianGuaCode);
+            const movingPositions = getMovingYaoPositions(this.yaos);
+            const lunarDate = getLunarDate();
+
+            // 获取问题信息
+            const question = window.appState?.get?.('tarotQuestion') || window.appState?.get?.('selectedQuestion') || '运势指引';
+            const questionCategory = window.appState?.get?.('questionCategory') || window.appState?.get?.('tarotCategory') || '综合';
+            const gender = window.appState?.get?.('tarotGender') || window.appState?.get?.('gender') || '';
+
+            // 组装 guaData（与 TarotCardSelectionPage 完全一致的结构）
+            const guaData = {
+                question,
+                benGuaInfo,
+                bianGuaInfo,
+                yaos: this.yaos,
+                movingPositions,
+                questionCategory,
+                gender
+            };
+
+            console.log('[抽牌完成] 卦象数据:', {
+                本卦: benGuaInfo.name,
+                变卦: bianGuaInfo.name,
+                动爻: movingPositions,
+                爻数据: this.yaos.map(y => `${y.position}: ${y.name} ${y.symbol}`)
+            });
+
+            // 保存到全局状态
+            if (window.appState) {
+                window.appState.set('guaData', guaData);
+                window.appState.set('yaos', this.yaos);
+                window.appState.set('yaoHistory', this.yaoHistory);
+                window.appState.set('benGuaInfo', benGuaInfo);
+                window.appState.set('bianGuaInfo', bianGuaInfo);
+                window.appState.set('movingPositions', movingPositions);
+                window.appState.set('lunarDate', lunarDate);
+                window.appState.set('drawnTarotCards', this.pickedCards);
+            }
+
+            // 创建匹配记录
+            const sessionId = getSessionId();
+            const testData = {
+                type: this.matchType.id,
+                method: 'tarot',
+                guaData: {
+                    question,
+                    questionCategory,
+                    gender,
+                    benGua: benGuaInfo.name,
+                    bianGua: bianGuaInfo.name,
+                    movingPositions,
+                    yaos: this.yaos.map(y => ({ position: y.position, name: y.name, symbol: y.symbol }))
+                },
+                pickedCards: this.pickedCards.map(c => ({
+                    step: c.step,
+                    label: c.label,
+                    isReversed: c.isReversed,
+                    positionName: c.positionName,
+                    symbol: c.symbol
+                })),
+                timestamp: Date.now()
+            };
+
+            try {
+                let userId = null;
+                try {
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        const user = JSON.parse(userStr);
+                        userId = user.id || user.userId || null;
+                    }
+                } catch (e) { /* ignore */ }
+
+                const result = await matchRecordApi.create(sessionId, testData, userId);
+                console.log('匹配记录创建成功:', result);
+                testData.recordId = result.data?.recordId;
+                testData.sessionId = sessionId;
+            } catch (error) {
+                console.error('创建匹配记录失败:', error);
+                testData.sessionId = sessionId;
+            }
+
+            window.appState?.set('currentTest', testData);
+
+            // 跳转到解读加载页（由该页面发起解读请求）
+            const q = encodeURIComponent(question);
+            window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${q}`);
+
+        } catch (error) {
+            console.error('[解读准备失败]', error);
+            window.showToast && window.showToast('卦象计算失败，请重试', 'error');
+            this.isLoading = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('disabled');
+                btn.textContent = '开始解读';
+            }
+        }
     }
 
     destroy() {
         this.stopInertia();
         this._cleanups.forEach(fn => fn());
-        document.querySelectorAll('.pick-preview-overlay').forEach(el => el.remove());
     }
 }
 

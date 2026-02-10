@@ -591,6 +591,39 @@ export const topicCategoryApi = {
     }
 };
 
+// ==================== 题目 API ====================
+
+export const questionApi = {
+    /**
+     * 获取某分类下的启用题目列表（同时返回"问题输入"配置状态）
+     */
+    async getByCategory(category) {
+        return request(`/questions?category=${encodeURIComponent(category)}`);
+    }
+};
+
+// ==================== 系统配置 API ====================
+
+export const systemConfigApi = {
+    /**
+     * 根据名称查询系统配置状态
+     */
+    async getByName(name) {
+        return request(`/system-configs/by-name/${encodeURIComponent(name)}`);
+    }
+};
+
+// ==================== 小红书主题 API ====================
+
+export const xhsTopicApi = {
+    /**
+     * 获取显示状态的小红书主题列表
+     */
+    async getList() {
+        return request('/xhs-topics');
+    }
+};
+
 // 导出默认对象
 export default {
     auth: authApi,
@@ -602,6 +635,9 @@ export default {
     matchRecord: matchRecordApi,
     history: historyApi,
     config: configApi,
-    topicCategory: topicCategoryApi
+    topicCategory: topicCategoryApi,
+    question: questionApi,
+    systemConfig: systemConfigApi,
+    xhsTopic: xhsTopicApi
 };
 
