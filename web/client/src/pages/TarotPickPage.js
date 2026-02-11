@@ -10,6 +10,7 @@ import { Navbar } from '../components/Common.js';
 import { getGuaInfo, generateGuaCode, generateBianGuaCode, getMovingYaoPositions, getLunarDate } from '../utils/guaData.js';
 import { matchRecordApi } from '../services/api.js';
 import { getSessionId } from '../scripts/state.js';
+import { FULL_DECK } from '../data/tarot.js';
 
 const TOTAL_CARDS = 72;
 const CARDS_TO_DRAW = 6;
@@ -80,6 +81,9 @@ export class TarotPickPage {
         this.pickedCards = new Array(CARDS_TO_DRAW).fill(null);
         this.isShowingPreview = false;
 
+        // 预洗牌：从78张塔罗牌中打乱，映射到牌轮上72个位置
+        this.deckCards = this._shuffleDeck();
+
         this.yaos = [];
         this.yaoHistory = [];
         this.currentStep = 0;
@@ -92,6 +96,18 @@ export class TarotPickPage {
 
     get pickedCount() {
         return this.pickedCards.filter(c => c !== null).length;
+    }
+
+    /**
+     * 洗牌：打乱78张牌，取前72张映射到牌轮位置
+     */
+    _shuffleDeck() {
+        const deck = [...FULL_DECK];
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        return deck.slice(0, TOTAL_CARDS);
     }
 
     render() {
@@ -155,6 +171,7 @@ export class TarotPickPage {
             <div class="pick-card-modal__card" id="modalCard">
               <div class="pick-card-modal__face">
                 <span class="pick-card-modal__card-icon" id="modalCardIcon">✦</span>
+                <span class="pick-card-modal__card-name" id="modalCardName"></span>
               </div>
             </div>
             <div class="pick-card-modal__info">
@@ -325,6 +342,9 @@ export class TarotPickPage {
             const slotIdx = this.pickedCards.findIndex(c => c === null);
             const isReversed = (stepNum % 2 === 1);
 
+            // 从预洗好的牌堆中取出对应位置的塔罗牌
+            const tarotCard = this.deckCards[cardIdx] || this.deckCards[0];
+
             const cardData = {
                 id: cardIdx,
                 step: stepNum,
@@ -340,7 +360,12 @@ export class TarotPickPage {
                 symbol: yaoData.symbol,
                 positionName: yaoData.position,
                 backCount: yaoData.backCount,
-                coins: yaoData.coins
+                coins: yaoData.coins,
+                // 塔罗牌信息
+                tarotName: tarotCard.name,
+                tarotSymbol: tarotCard.symbol,
+                tarotUpright: tarotCard.upright,
+                tarotReversed: tarotCard.reversed
             };
 
             this._pendingDraw = {
@@ -367,12 +392,15 @@ export class TarotPickPage {
         const modal = document.getElementById('pickCardModal');
         const modalCard = document.getElementById('modalCard');
         const modalCardIcon = document.getElementById('modalCardIcon');
+        const modalCardName = document.getElementById('modalCardName');
         const modalStep = document.getElementById('modalStep');
         const modalSlotLabel = document.getElementById('modalSlotLabel');
         const modalOrientation = document.getElementById('modalOrientation');
         if (!modal) return;
 
-        if (modalCardIcon) modalCardIcon.textContent = cardData.isReversed ? '✦' : '✧';
+        // 显示塔罗牌图标和名称
+        if (modalCardIcon) modalCardIcon.textContent = cardData.tarotSymbol || (cardData.isReversed ? '✦' : '✧');
+        if (modalCardName) modalCardName.textContent = cardData.tarotName || '';
         if (modalStep) modalStep.textContent = `第 ${cardData.step} 张`;
         if (modalSlotLabel) modalSlotLabel.textContent = `— ${cardData.label} —`;
         if (modalOrientation) {
@@ -489,13 +517,12 @@ export class TarotPickPage {
         if (!slotEl) return;
 
         const faceClass = cardData.isReversed ? 'pick-slot__back' : 'pick-slot__front';
-        const faceIcon = cardData.isReversed ? '✦' : '✧';
         const rotateStyle = cardData.isReversed ? 'transform: rotate(180deg);' : '';
 
         slotEl.innerHTML = `
           <div class="pick-slot__filled ${faceClass}" style="${rotateStyle}">
-            <span class="pick-slot__symbol">${faceIcon}</span>
-            <span class="pick-slot__name">${cardData.label}</span>
+            <span class="pick-slot__symbol">${cardData.tarotSymbol || '✦'}</span>
+            <span class="pick-slot__name">${cardData.tarotName || cardData.label}</span>
           </div>
         `;
         slotEl.classList.add('pick-slot--filled');

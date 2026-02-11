@@ -951,6 +951,11 @@ export class ResultPage {
       if (/^总结[：:.]?\s*$/.test(line.trim()) || /^\*?\*?总结\*?\*?[：:.]?\s*$/.test(line.trim())) {
         continue;
       }
+
+      // 跳过 AI 生成的免责声明（如"以上分析由DeepSeek生成..."）
+      if (/以上分析由.*生成/.test(line.trim()) || /内容仅供参考.*切勿全信/.test(line.trim()) || /人生的主动权.*始终在/.test(line.trim())) {
+        continue;
+      }
       
       // 只在主要章节标题处分割：【标题】格式
       // 不再在甲方/乙方处分割，让它们保持在同一个卡片内

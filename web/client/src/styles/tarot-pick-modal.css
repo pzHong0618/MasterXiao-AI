@@ -198,9 +198,22 @@
     text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
 }
 
+.pick-card-modal__card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+    margin-top: 6px;
+    letter-spacing: 2px;
+}
+
 .pick-card-modal__card--reversed .pick-card-modal__card-icon {
     color: #c59cff;
     text-shadow: 0 0 20px rgba(197, 156, 255, 0.6);
+}
+
+.pick-card-modal__card--reversed .pick-card-modal__card-name {
+    color: rgba(220, 200, 255, 0.9);
 }
 
 /* 去掉之前的 symbol/position/label 样式 */

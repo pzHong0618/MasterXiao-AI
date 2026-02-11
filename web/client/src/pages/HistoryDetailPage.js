@@ -245,7 +245,13 @@ export class HistoryDetailPage {
     formatMarkdown(text) {
         if (!text) return '';
 
-        let html = text;
+        // 过滤 AI 生成的免责声明
+        let html = text.split('\n').filter(line => {
+            const trimmed = line.trim();
+            return !/以上分析由.*生成/.test(trimmed) &&
+                   !/内容仅供参考.*切勿全信/.test(trimmed) &&
+                   !/人生的主动权.*始终在/.test(trimmed);
+        }).join('\n');
 
         // 处理标题 (## -> h2, ### -> h3 等)
         html = html.replace(/^### (.+)$/gm, '<h4 class="heading-4 mt-4 mb-2">$1</h4>');
