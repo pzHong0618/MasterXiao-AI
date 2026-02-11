@@ -3,6 +3,7 @@
  */
 
 export { HomePage } from './HomePage.js';
+export { TopicListPage } from './TopicListPage.js';
 export { XHSLandingPage } from './XHSLandingPage.js';
 export { AuthPage } from './AuthPage.js';
 export { TestSelectPage } from './TestSelectPage.js';

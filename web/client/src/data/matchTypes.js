@@ -119,6 +119,17 @@ export const matchTypes = [
         category: 'decision',
         popular: false,
         features: ['双选对比分析', '利弊权衡', '最优建议']
+    },
+    {
+        id: 'pet',
+        icon: '🐾',
+        title: '宠物匹配',
+        description: '找到最适合你的萌宠伙伴',
+        longDescription: '根据你的性格特征和生活习惯，分析最适合你的宠物类型，找到与你最合拍的萌宠伙伴。',
+        price: 19.9,
+        category: 'relationship',
+        popular: false,
+        features: ['性格宠物匹配', '养宠建议', '互动指导']
     }
 ];
 

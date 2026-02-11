@@ -26,6 +26,7 @@ import { configApi } from './services/api.js';
 // 导入页面
 import {
   HomePage,
+  TopicListPage,
   XHSLandingPage,
   AuthPage,
   TestSelectPage,
@@ -99,6 +100,7 @@ function initializeSession() {
 function registerRoutes() {
   router
     .register('/', HomePage)
+    .register('/topics', TopicListPage)
     .register('/xhs', XHSLandingPage)
     .register('/auth', AuthPage)
     .register('/test/:type', TestSelectPage)

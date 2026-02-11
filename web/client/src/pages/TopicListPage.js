@@ -1,49 +1,42 @@
 /**
- * 匹配游戏 首页
- * 展示匹配类型列表
+ * 主题列表页
+ * 从首页"开始匹配"进入，展示所有趣味测试主题
+ * 点击主题卡片跳转到对应的测试选择页
  */
 
 import { matchTypes } from '../data/matchTypes.js';
-import { Navbar, HeroBanner } from '../components/Common.js';
+import { Navbar } from '../components/Common.js';
 import { FeatureCard } from '../components/FeatureCard.js';
 import { topicCategoryApi } from '../services/api.js';
 
-export class HomePage {
+export class TopicListPage {
     constructor() {
         this.matchTypes = matchTypes;
-        this.topicCategories = []; // 从服务端获取的主题分类
+        this.topicCategories = [];
     }
 
     render() {
         return `
-      <div class="page home-page">
+      <div class="page topic-list-page">
         ${Navbar({
-            title: '匹配游戏',
-            showBack: false,
-            showHistory: true,
-            showProfile: true
-        })}
-        
-        <main class="page-content">
-          <div class="app-container">
-            
-            <!-- 欢迎横幅 -->
-            ${HeroBanner({
-            icon: '✨',
-            title: '发现你的性格契合度',
-            subtitle: '探索人际关系的奥秘',
-            buttonText: '开始匹配...'
+            title: '趣味测试',
+            showBack: true,
+            showHistory: false,
+            showProfile: false
         })}
 
-            <!-- 场景测试标题 -->
-            <section class="section-header mt-6 mb-4">
+        <main class="page-content">
+          <div class="app-container">
+
+            <!-- 标题区域 -->
+            <section class="section-header mt-4 mb-4">
               <h2 class="heading-2 text-center" style="color: var(--color-text-secondary);">
                 趣味测试
               </h2>
             </section>
 
-            <!-- 功能卡片列表（初始使用本地数据，init后会替换） -->
-            <section class="feature-list" id="featureListSection">
+            <!-- 功能卡片列表 -->
+            <section class="feature-list" id="topicFeatureListSection">
               ${this.matchTypes.map((type, index) => `
                 <div class="animate-fade-in-up animate-delay-${Math.min((index + 1) * 100, 500)} animate-hidden">
                   ${FeatureCard(type, { showBadge: true })}
@@ -76,7 +69,7 @@ export class HomePage {
      * 根据服务端主题分类重新渲染功能卡片
      */
     renderFeatureCards() {
-        const section = document.getElementById('featureListSection');
+        const section = document.getElementById('topicFeatureListSection');
         if (!section) return;
 
         // 将服务端分类映射到本地 matchTypes
@@ -123,12 +116,7 @@ export class HomePage {
         `).join('');
 
         // 重新绑定卡片点击事件
-        section.querySelectorAll('.feature-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const type = card.dataset.type;
-                this.handleFeatureClick(type);
-            });
-        });
+        this.bindCardEvents();
     }
 
     attachEvents() {
@@ -136,26 +124,22 @@ export class HomePage {
         this.initAnimations();
 
         // 功能卡片点击
-        document.querySelectorAll('.feature-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                const type = card.dataset.type;
-                this.handleFeatureClick(type);
-            });
-        });
+        this.bindCardEvents();
 
-        // 开始测试按钮 —— 跳转到主题列表页
-        const heroBtn = document.querySelector('[data-action="hero-start"]');
-        if (heroBtn) {
-            heroBtn.addEventListener('click', () => {
-                window.router.navigate('/topics');
+        // 返回按钮
+        const backBtn = document.querySelector('.navbar__back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                window.router.back();
             });
         }
+    }
 
-        // 导航按钮
-        document.querySelectorAll('.navbar__icon-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const action = btn.dataset.action;
-                this.handleNavAction(action);
+    bindCardEvents() {
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const type = card.dataset.type;
+                this.handleFeatureClick(type);
             });
         });
     }
@@ -185,60 +169,6 @@ export class HomePage {
         // 导航到测试选择页
         window.router.navigate(`/test/${type}`);
     }
-
-    handleNavAction(action) {
-        switch (action) {
-            case 'history':
-                this.goToHistory();
-                break;
-            case 'profile':
-                this.goToProfile();
-                break;
-        }
-    }
-
-    /**
-     * 跳转到个人中心
-     * 已登录 → 个人详情页，未登录 → 登录注册页
-     */
-    goToProfile() {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            window.router.navigate('/profile');
-        } else {
-            window.router.navigate('/auth?action=login');
-        }
-    }
-
-    /**
-     * 跳转到历史记录页面
-     * 先从本地存储获取 userId 或 sessionId
-     */
-    goToHistory() {
-        // 从本地存储获取 userId
-        const userStr = localStorage.getItem('user');
-        let userId = null;
-        if (userStr) {
-            try {
-                const user = JSON.parse(userStr);
-                userId = user.id || user.userId || null;
-            } catch (e) { /* ignore */ }
-        }
-
-        // 从本地存储获取 sessionId
-        const sessionId = localStorage.getItem('sessionId');
-
-        console.log(`[历史记录] userId: ${userId}, sessionId: ${sessionId ? sessionId.slice(0, 8) + '...' : 'null'}`);
-
-        // 至少需要一个标识才能查询
-        if (!userId && !sessionId) {
-            window.showToast('请先完成一次测试', 'error');
-            return;
-        }
-
-        // 跳转到历史记录页面
-        window.router.navigate('/history');
-    }
 }
 
-export default HomePage;
+export default TopicListPage;
