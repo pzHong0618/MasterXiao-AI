@@ -137,7 +137,7 @@ export class TestSelectPage {
             <!-- 性别选择弹框 -->
             <div id="genderModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;">
               <div id="genderModalOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);"></div>
-              <div style="position:absolute;bottom:0;left:0;width:100%;background:#fff;border-radius:20px 20px 0 0;padding:30px 20px 40px;box-sizing:border-box;animation:slideUp 0.3s ease;">
+              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:85%;max-width:360px;background:#fff;border-radius:20px;padding:30px 20px 32px;box-sizing:border-box;animation:fadeScaleIn 0.3s ease;">
                 <h3 style="text-align:center;font-size:18px;font-weight:600;color:var(--color-text-primary);margin-bottom:8px;">请选择您的性别</h3>
                 <p style="text-align:center;font-size:13px;color:var(--color-text-tertiary);margin-bottom:24px;">性别信息将帮助更准确解读结果</p>
                 <div style="display:flex;justify-content:center;gap:40px;">
@@ -209,9 +209,9 @@ export class TestSelectPage {
             const style = document.createElement('style');
             style.id = 'ts-gender-modal-style';
             style.textContent = `
-                @keyframes slideUp {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
+                @keyframes fadeScaleIn {
+                    from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+                    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
                 }
             `;
             document.head.appendChild(style);
