@@ -41,6 +41,7 @@ import {
   TarotResultPage,
   ResultPage,
   PaymentPage,
+  ProductPage,
   DivinationResultPage,
   HistoryPage,
   HistoryDetailPage,
@@ -114,6 +115,7 @@ function registerRoutes() {
     .register('/test/:type/tarot/result-loading', TarotResultLoadingPage)
     .register('/test/:type/tarot/result', TarotResultPage)
     .register('/pay/:type', PaymentPage)
+    .register('/product/:type', ProductPage)
     .register('/result/:id', ResultPage)
     .register('/divination/result', DivinationResultPage)
     .register('/history', HistoryPage)

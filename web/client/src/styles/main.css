@@ -32,3 +32,6 @@
 
 /* 10. 塔罗牌抽取模态框样式 */
 @import './tarot-pick-modal.css';
+
+/* 11. 商品页 & 支付确认页样式 */
+@import './product.css';

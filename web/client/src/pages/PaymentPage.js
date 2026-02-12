@@ -18,6 +18,8 @@ export class PaymentPage {
         this.redeemCode = null;
         this.status = 'selecting'; // selecting, paying, success
         this.pollingTimer = null;
+        this.pollingCount = 0;       // 轮询计数
+        this.maxPollingCount = 20;   // 最大轮询次数
     }
 
     render() {
@@ -54,6 +56,7 @@ export class PaymentPage {
 
     renderPaymentSelect() {
         const product = this.matchType || { title: '测试服务', price: 29.9 };
+        const discountPrice = 19.9;
 
         return `
       <section class="payment-info mt-4 mb-6 animate-fade-in-up">
@@ -66,7 +69,7 @@ export class PaymentPage {
             </div>
             <div class="product-price">
               <span class="price-symbol">¥</span>
-              <span class="price-value">${product.price || 29.9}</span>
+              <span class="price-value">${discountPrice}</span>
             </div>
           </div>
         </div>
@@ -76,50 +79,23 @@ export class PaymentPage {
         <h4 class="section-title mb-4">选择支付方式</h4>
         
         <div class="payment-methods">
-          <div class="payment-method-card ${this.paymentMethod === 'alipay' ? 'active' : ''}" 
-               data-method="alipay">
-            <div class="method-icon alipay-icon">
+          <div class="payment-method-card active" data-method="alipay" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:14px 16px;">
+            <div class="method-icon alipay-icon" style="margin:0;">
               <svg viewBox="0 0 24 24" width="32" height="32" fill="#1677FF">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
                 <text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold">支</text>
               </svg>
             </div>
-            <div class="method-name">支付宝</div>
+            <div class="method-name" style="flex:1;text-align:left;">支付宝</div>
             <div class="method-check">✓</div>
           </div>
-
-          <div class="payment-method-card ${this.paymentMethod === 'wechat' ? 'active' : ''}" 
-               data-method="wechat">
-            <div class="method-icon wechat-icon">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="#07C160">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                <text x="12" y="16" text-anchor="middle" font-size="10" font-weight="bold">微</text>
-              </svg>
-            </div>
-            <div class="method-name">微信支付</div>
-            <div class="method-check">✓</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="payment-notice mb-6 animate-fade-in-up animate-delay-200">
-        <div class="glass-card glass-card--light">
-          <div class="notice-header">
-            <span>💡</span>
-            <span class="small-text">支付说明</span>
-          </div>
-          <ul class="notice-list">
-            <li>支付成功后将获得一个8位核销码</li>
-            <li>核销码可用于解锁测试结果</li>
-            <li>请妥善保管核销码，每个码只能使用一次</li>
-          </ul>
         </div>
       </section>
 
       <div class="bottom-action-bar safe-area-bottom">
         <div class="action-bar__buttons">
           <button class="btn btn--primary btn--full" data-action="create-order">
-            立即支付 ¥${product.price || 29.9}
+            立即支付 ¥${discountPrice}
           </button>
         </div>
       </div>
@@ -145,7 +121,7 @@ export class PaymentPage {
           
           <div class="payment-amount mt-4">
             <span class="amount-label">支付金额</span>
-            <span class="amount-value">¥ ${this.matchType?.price || 29.9}</span>
+            <span class="amount-value">¥ 19.9</span>
           </div>
           
           <div class="order-info mt-4">
@@ -203,34 +179,18 @@ export class PaymentPage {
         <div class="glass-card text-center">
           <div class="success-icon animate-bounce-in">✅</div>
           <h2 class="heading-2 mb-2">支付成功</h2>
-          <p class="body-text-secondary mb-6">感谢您的购买！</p>
+          <p class="body-text-secondary mb-4">正在为您准备解读报告...</p>
           
-          <div class="redeem-code-card">
-            <p class="small-text mb-2">您的核销码</p>
-            <div class="redeem-code">${this.redeemCode}</div>
-            <button class="btn btn--secondary btn--sm mt-3" data-action="copy-code">
-              📋 复制核销码
-            </button>
-          </div>
-          
-          <div class="code-notice mt-4">
-            <p class="small-text" style="color: var(--color-text-tertiary);">
-              请妥善保管此核销码，用于解锁测试结果
-            </p>
+          <div class="status-indicator" style="margin-top:20px;">
+            <div class="loading-dots">
+              <span class="loading-dots__dot"></span>
+              <span class="loading-dots__dot"></span>
+              <span class="loading-dots__dot"></span>
+            </div>
+            <p class="small-text" style="margin-top:12px;color:var(--color-text-tertiary);">即将跳转到解读页面</p>
           </div>
         </div>
       </section>
-
-      <div class="bottom-action-bar safe-area-bottom">
-        <div class="action-bar__buttons">
-          <button class="btn btn--secondary" data-action="back-home">
-            返回首页
-          </button>
-          <button class="btn btn--primary" data-action="use-code">
-            立即使用
-          </button>
-        </div>
-      </div>
     `;
     }
 
@@ -274,38 +234,10 @@ export class PaymentPage {
         if (simulateBtn) {
             simulateBtn.addEventListener('click', () => this.simulatePay());
         }
-
-        // 复制核销码
-        const copyBtn = document.querySelector('[data-action="copy-code"]');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', () => this.copyRedeemCode());
-        }
-
-        // 返回首页
-        const homeBtn = document.querySelector('[data-action="back-home"]');
-        if (homeBtn) {
-            homeBtn.addEventListener('click', () => {
-                window.router.navigate('/');
-            });
-        }
-
-        // 使用核销码
-        const useBtn = document.querySelector('[data-action="use-code"]');
-        if (useBtn) {
-            useBtn.addEventListener('click', () => {
-                // 保存核销码到状态，跳转到结果页
-                window.appState.set('redeemCode', this.redeemCode);
-                window.router.navigate(`/result/${this.testType}?code=${this.redeemCode}`);
-            });
-        }
     }
 
     selectPaymentMethod(method) {
-        this.paymentMethod = method;
-
-        document.querySelectorAll('.payment-method-card').forEach(card => {
-            card.classList.toggle('active', card.dataset.method === method);
-        });
+        this.paymentMethod = 'alipay'; // 仅支持支付宝
     }
 
     async createOrder() {
@@ -341,8 +273,23 @@ export class PaymentPage {
     }
 
     startPolling() {
-        // 每3秒检查一次支付状态
+        this.pollingCount = 0;
+        // 每3秒检查一次支付状态，最多查询20次
         this.pollingTimer = setInterval(() => {
+            this.pollingCount++;
+            if (this.pollingCount >= this.maxPollingCount) {
+                this.stopPolling();
+                // 更新页面提示
+                const statusText = document.querySelector('.status-text');
+                if (statusText) {
+                    statusText.textContent = '查询超时，请点击"我已支付"手动查询';
+                }
+                const loadingDots = document.querySelector('.loading-dots');
+                if (loadingDots) {
+                    loadingDots.style.display = 'none';
+                }
+                return;
+            }
             this.checkPaymentStatus(true);
         }, 3000);
     }
@@ -367,6 +314,15 @@ export class PaymentPage {
                 if (!silent) {
                     window.showToast('支付成功！', 'success');
                 }
+
+                // 支付成功后自动跳转到解读页面
+                this.navigateToInterpret();
+            } else if (response.success && response.data.status === 'expired') {
+                this.stopPolling();
+                window.showToast('订单已过期，请重新下单', 'error');
+                setTimeout(() => {
+                    this.cancelOrder();
+                }, 1500);
             } else if (!silent) {
                 window.showToast('暂未收到支付，请稍候重试');
             }
@@ -387,10 +343,43 @@ export class PaymentPage {
                 this.status = 'success';
                 this.rerender();
                 window.showToast('模拟支付成功！', 'success');
+
+                // 支付成功后自动跳转到解读页面
+                this.navigateToInterpret();
             }
         } catch (error) {
             window.showToast(error.message || '模拟支付失败', 'error');
         }
+    }
+
+    /**
+     * 支付成功后自动跳转到解读页面
+     * 根据测试方法（tarot/birthday）跳转到对应的解读加载页
+     */
+    navigateToInterpret() {
+        const currentTest = window.appState?.get?.('currentTest');
+        const method = currentTest?.method;
+        const typeId = this.testType;
+
+        // 保存核销码到状态
+        if (this.redeemCode) {
+            window.appState.set('redeemCode', this.redeemCode);
+        }
+
+        // 延迟1.5秒跳转，让用户看到支付成功提示
+        setTimeout(() => {
+            if (method === 'birthday') {
+                // 生日匹配：跳转到结果页，由结果页调用分析接口
+                window.router.navigate(`/result/birthday`);
+            } else {
+                // 塔罗/六爻：跳转到解读加载页，由加载页调用解读接口
+                const question = window.appState?.get?.('tarotQuestion')
+                    || window.appState?.get?.('selectedQuestion')
+                    || currentTest?.question
+                    || '综合分析';
+                window.router.navigate(`/test/${typeId}/tarot/result-loading?question=${encodeURIComponent(question)}`);
+            }
+        }, 1500);
     }
 
     copyRedeemCode() {

@@ -18,7 +18,7 @@ export class HomePage {
         return `
       <div class="page home-page">
         ${Navbar({
-            title: '匹配游戏',
+            title: '趣测小站',
             showBack: false,
             showHistory: true,
             showProfile: true

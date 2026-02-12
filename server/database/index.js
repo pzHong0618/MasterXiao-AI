@@ -81,226 +81,226 @@ export async function initDatabase() {
  * 初始化数据库表
  */
 async function initTables() {
-    // 用户表（扩展字段，兼容前端用户体系）
+    // ==================== 用户表（扩展字段，兼容前端用户体系） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            uid TEXT UNIQUE,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            password_hash TEXT,
-            email TEXT,
-            phone TEXT UNIQUE,
-            avatar TEXT,
-            nickname TEXT,
-            gender TEXT,
-            birth_date TEXT,
-            role TEXT DEFAULT 'user',
-            status INTEGER DEFAULT 1,
-            credits INTEGER DEFAULT 0,
-            test_count INTEGER DEFAULT 0,
-            invite_code TEXT UNIQUE,
-            invited_by TEXT,
-            register_source TEXT DEFAULT 'web',
-            register_session_id TEXT,
-            last_login_time DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 用户ID，自增主键
+            uid TEXT UNIQUE,                               -- 用户唯一标识（UUID）
+            username TEXT UNIQUE NOT NULL,                  -- 用户名，唯一，不能为空
+            password TEXT NOT NULL,                         -- 用户密码（明文，兼容旧数据）
+            password_hash TEXT,                             -- 密码哈希值（加密存储）
+            email TEXT,                                    -- 邮箱地址
+            phone TEXT UNIQUE,                             -- 手机号，唯一
+            avatar TEXT,                                   -- 头像URL
+            nickname TEXT,                                 -- 用户昵称
+            gender TEXT,                                   -- 性别（male/female/other）
+            birth_date TEXT,                               -- 出生日期（格式：YYYY-MM-DD）
+            role TEXT DEFAULT 'user',                      -- 用户角色（user-普通用户）
+            status INTEGER DEFAULT 1,                      -- 账户状态（1-正常，0-禁用）
+            credits INTEGER DEFAULT 0,                     -- 用户积分余额
+            test_count INTEGER DEFAULT 0,                  -- 已使用的测试次数
+            invite_code TEXT UNIQUE,                       -- 用户专属邀请码
+            invited_by TEXT,                               -- 邀请人的邀请码
+            register_source TEXT DEFAULT 'web',            -- 注册来源（web/app/wechat）
+            register_session_id TEXT,                      -- 注册时的会话ID
+            last_login_time DATETIME,                      -- 最后登录时间
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 匹配记录表
+    // ==================== 匹配记录表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS match_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            person1_name TEXT,
-            person1_birthday TEXT,
-            person2_name TEXT,
-            person2_birthday TEXT,
-            match_type TEXT,
-            result TEXT,
-            score INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 记录ID，自增主键
+            user_id INTEGER,                               -- 关联用户ID
+            person1_name TEXT,                             -- 匹配人1姓名
+            person1_birthday TEXT,                         -- 匹配人1生日
+            person2_name TEXT,                             -- 匹配人2姓名
+            person2_birthday TEXT,                         -- 匹配人2生日
+            match_type TEXT,                               -- 匹配类型（如：love/friendship/career）
+            result TEXT,                                   -- 匹配结果（JSON格式）
+            score INTEGER,                                 -- 匹配得分（0-100）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            FOREIGN KEY (user_id) REFERENCES users(id)     -- 外键关联用户表
         )
     `);
 
-    // 支付记录表
+    // ==================== 支付记录表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS payments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            order_no TEXT UNIQUE NOT NULL,
-            amount REAL NOT NULL,
-            status TEXT DEFAULT 'pending',
-            payment_method TEXT,
-            payment_time DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 支付记录ID，自增主键
+            user_id INTEGER,                               -- 关联用户ID
+            order_no TEXT UNIQUE NOT NULL,                  -- 订单号，唯一
+            amount REAL NOT NULL,                          -- 支付金额（元）
+            status TEXT DEFAULT 'pending',                 -- 支付状态（pending-待支付，paid-已支付，failed-失败，refunded-已退款）
+            payment_method TEXT,                           -- 支付方式（alipay-支付宝）
+            payment_time DATETIME,                         -- 实际支付时间
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            FOREIGN KEY (user_id) REFERENCES users(id)     -- 外键关联用户表
         )
     `);
 
-    // 系统配置表
+    // ==================== 系统配置表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT UNIQUE NOT NULL,
-            value TEXT,
-            description TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 配置ID，自增主键
+            key TEXT UNIQUE NOT NULL,                      -- 配置键名，唯一
+            value TEXT,                                    -- 配置值
+            description TEXT,                              -- 配置项描述说明
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 兑换码表
+    // ==================== 兑换码表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS redeem_codes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT UNIQUE NOT NULL,
-            type TEXT DEFAULT 'single',
-            max_uses INTEGER DEFAULT 1,
-            used_count INTEGER DEFAULT 0,
-            expires_at DATETIME,
-            status TEXT DEFAULT 'active',
-            source TEXT DEFAULT 'admin',
-            remark TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 兑换码ID，自增主键
+            code TEXT UNIQUE NOT NULL,                     -- 兑换码内容，唯一
+            type TEXT DEFAULT 'single',                    -- 兑换码类型（single-单次使用，multi-多次使用）
+            max_uses INTEGER DEFAULT 1,                    -- 最大使用次数
+            used_count INTEGER DEFAULT 0,                  -- 已使用次数
+            expires_at DATETIME,                           -- 过期时间
+            status TEXT DEFAULT 'active',                  -- 状态（active-可用，disabled-已禁用，exhausted-已用完）
+            source TEXT DEFAULT 'admin',                   -- 来源（admin-管理员创建，system-系统生成，payment-支付生成）
+            remark TEXT,                                   -- 备注说明
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 会话匹配记录表（核销码兑换匹配流程追踪）
+    // ==================== 会话匹配记录表（核销码兑换匹配流程追踪） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS session_match_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT NOT NULL,
-            user_id TEXT DEFAULT NULL,
-            status INTEGER NOT NULL DEFAULT 0,
-            req_data TEXT,
-            result_data TEXT,
-            create_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-            update_date DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 记录ID，自增主键
+            session_id TEXT NOT NULL,                      -- 会话ID（关联前端会话）
+            user_id TEXT DEFAULT NULL,                     -- 用户ID（可为空，匿名用户）
+            status INTEGER NOT NULL DEFAULT 0,             -- 状态（0-待处理，1-处理中，2-已完成，3-失败）
+            req_data TEXT,                                 -- 请求数据（JSON格式，包含匹配输入信息）
+            result_data TEXT,                              -- 结果数据（JSON格式，包含匹配分析结果）
+            create_date DATETIME DEFAULT CURRENT_TIMESTAMP,-- 创建时间
+            update_date DATETIME DEFAULT CURRENT_TIMESTAMP -- 更新时间
         )
     `);
 
-    // 管理员表
+    // ==================== 管理员表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            email TEXT,
-            phone TEXT,
-            is_super_admin INTEGER DEFAULT 0,
-            status INTEGER DEFAULT 1,
-            failed_login_count INTEGER DEFAULT 0,
-            last_login_at DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 管理员ID，自增主键
+            username TEXT UNIQUE NOT NULL,                  -- 管理员用户名，唯一
+            password TEXT NOT NULL,                        -- 管理员密码
+            email TEXT,                                    -- 管理员邮箱
+            phone TEXT,                                    -- 管理员手机号
+            is_super_admin INTEGER DEFAULT 0,              -- 是否超级管理员（1-是，0-否）
+            status INTEGER DEFAULT 1,                      -- 账户状态（1-正常，0-禁用）
+            failed_login_count INTEGER DEFAULT 0,          -- 连续登录失败次数（用于账户锁定）
+            last_login_at DATETIME,                        -- 最后登录时间
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 权限表
+    // ==================== 权限表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS permissions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            type TEXT NOT NULL,
-            parent_id INTEGER,
-            route_path TEXT,
-            component_path TEXT,
-            icon TEXT,
-            is_visible INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (parent_id) REFERENCES permissions(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 权限ID，自增主键
+            code TEXT UNIQUE NOT NULL,                     -- 权限编码，唯一（如：system:admin）
+            name TEXT NOT NULL,                            -- 权限名称（如：管理员管理）
+            type TEXT NOT NULL,                            -- 权限类型（menu-菜单，operation-操作按钮）
+            parent_id INTEGER,                             -- 父级权限ID（用于构建权限树）
+            route_path TEXT,                               -- 前端路由路径
+            component_path TEXT,                           -- 前端组件路径
+            icon TEXT,                                     -- 菜单图标名称
+            is_visible INTEGER DEFAULT 1,                  -- 是否在菜单中显示（1-显示，0-隐藏）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 更新时间
+            FOREIGN KEY (parent_id) REFERENCES permissions(id) -- 外键关联自身（父级权限）
         )
     `);
 
-    // 角色表
+    // ==================== 角色表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS roles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            description TEXT,
-            data_scope TEXT DEFAULT 'all',
-            is_system_role INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 角色ID，自增主键
+            code TEXT UNIQUE NOT NULL,                     -- 角色编码，唯一（如：super_admin）
+            name TEXT NOT NULL,                            -- 角色名称（如：超级管理员）
+            description TEXT,                              -- 角色描述说明
+            data_scope TEXT DEFAULT 'all',                 -- 数据权限范围（all-全部，department-部门，personal-个人）
+            is_system_role INTEGER DEFAULT 0,              -- 是否系统内置角色（1-是，0-否，内置角色不可删除）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 操作记录表
+    // ==================== 操作记录表（管理员操作日志） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS operation_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_id INTEGER,
-            module TEXT,
-            action TEXT,
-            request_data TEXT,
-            response_data TEXT,
-            ip_address TEXT,
-            user_agent TEXT,
-            status TEXT DEFAULT 'success',
-            error_message TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (admin_id) REFERENCES admins(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 日志ID，自增主键
+            admin_id INTEGER,                              -- 操作管理员ID
+            module TEXT,                                   -- 操作模块（如：用户管理、系统设置）
+            action TEXT,                                   -- 操作动作（如：create、update、delete）
+            request_data TEXT,                             -- 请求数据（JSON格式）
+            response_data TEXT,                            -- 响应数据（JSON格式）
+            ip_address TEXT,                               -- 操作者IP地址
+            user_agent TEXT,                               -- 操作者浏览器User-Agent
+            status TEXT DEFAULT 'success',                 -- 操作状态（success-成功，error-失败）
+            error_message TEXT,                            -- 错误信息（操作失败时记录）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 操作时间
+            FOREIGN KEY (admin_id) REFERENCES admins(id)   -- 外键关联管理员表
         )
     `);
 
-    // 管理员角色关联表
+    // ==================== 管理员角色关联表（多对多） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS admin_roles (
-            admin_id INTEGER NOT NULL,
-            role_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (admin_id, role_id),
-            FOREIGN KEY (admin_id) REFERENCES admins(id),
-            FOREIGN KEY (role_id) REFERENCES roles(id)
+            admin_id INTEGER NOT NULL,                     -- 管理员ID
+            role_id INTEGER NOT NULL,                      -- 角色ID
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 关联创建时间
+            PRIMARY KEY (admin_id, role_id),               -- 联合主键（防止重复关联）
+            FOREIGN KEY (admin_id) REFERENCES admins(id),  -- 外键关联管理员表
+            FOREIGN KEY (role_id) REFERENCES roles(id)     -- 外键关联角色表
         )
     `);
 
-    // 角色权限关联表
+    // ==================== 角色权限关联表（多对多） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS role_permissions (
-            role_id INTEGER NOT NULL,
-            permission_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (role_id, permission_id),
-            FOREIGN KEY (role_id) REFERENCES roles(id),
-            FOREIGN KEY (permission_id) REFERENCES permissions(id)
+            role_id INTEGER NOT NULL,                      -- 角色ID
+            permission_id INTEGER NOT NULL,                -- 权限ID
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 关联创建时间
+            PRIMARY KEY (role_id, permission_id),          -- 联合主键（防止重复关联）
+            FOREIGN KEY (role_id) REFERENCES roles(id),    -- 外键关联角色表
+            FOREIGN KEY (permission_id) REFERENCES permissions(id) -- 外键关联权限表
         )
     `);
 
-    // 问题管理表
+    // ==================== 问题管理表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT,
-            category TEXT DEFAULT 'general',
-            status INTEGER DEFAULT 1,
-            sort_order INTEGER DEFAULT 0,
-            created_by INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (created_by) REFERENCES admins(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 问题ID，自增主键
+            title TEXT NOT NULL,                           -- 问题标题
+            content TEXT,                                  -- 问题内容/详细描述
+            category TEXT DEFAULT 'general',               -- 问题分类（general-通用，faq-常见问题）
+            status INTEGER DEFAULT 1,                      -- 状态（1-启用，0-禁用）
+            sort_order INTEGER DEFAULT 0,                  -- 排序顺序（越小越靠前）
+            created_by INTEGER,                            -- 创建者管理员ID
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 更新时间
+            FOREIGN KEY (created_by) REFERENCES admins(id) -- 外键关联管理员表
         )
     `);
 
-    // 主题分类表
+    // ==================== 主题分类表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS topic_categories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            sort_order INTEGER DEFAULT 0,
-            status INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 分类ID，自增主键
+            name TEXT NOT NULL,                            -- 分类名称（如：感情匹配、职场关系）
+            description TEXT DEFAULT '',                   -- 分类描述说明
+            sort_order INTEGER DEFAULT 0,                  -- 排序顺序（越小越靠前）
+            status INTEGER DEFAULT 1,                      -- 状态（1-启用，0-禁用）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
@@ -319,117 +319,117 @@ async function initTables() {
         }
     } catch (e) { /* ignore */ }
 
-    // 系统配置表（自定义配置项）
+    // ==================== 系统配置表（自定义配置项） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS system_configs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            status INTEGER DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 配置ID，自增主键
+            name TEXT NOT NULL,                            -- 配置名称
+            status INTEGER DEFAULT 1,                      -- 状态（1-启用，0-禁用）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 小红书主题记录表
+    // ==================== 小红书主题记录表 ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS xhs_topics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            topic_category_id INTEGER NOT NULL,
-            status INTEGER DEFAULT 1,
-            sort_order INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (topic_category_id) REFERENCES topic_categories(id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 主题ID，自增主键
+            topic_category_id INTEGER NOT NULL,            -- 关联主题分类ID
+            status INTEGER DEFAULT 1,                      -- 状态（1-启用，0-禁用）
+            sort_order INTEGER DEFAULT 0,                  -- 排序顺序（越小越靠前）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 更新时间
+            FOREIGN KEY (topic_category_id) REFERENCES topic_categories(id) -- 外键关联主题分类表
         )
     `);
 
-    // 验证码表（替代内存 verificationCodes Map）
+    // ==================== 验证码表（替代内存 verificationCodes Map） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS verification_codes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            phone TEXT NOT NULL,
-            code TEXT NOT NULL,
-            type TEXT DEFAULT 'login',
-            attempts INTEGER DEFAULT 0,
-            used INTEGER DEFAULT 0,
-            expires_at DATETIME NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 记录ID，自增主键
+            phone TEXT NOT NULL,                           -- 手机号
+            code TEXT NOT NULL,                            -- 验证码内容（6位数字）
+            type TEXT DEFAULT 'login',                     -- 验证码类型（login-登录，register-注册，reset-重置密码）
+            attempts INTEGER DEFAULT 0,                    -- 验证尝试次数（防暴力破解）
+            used INTEGER DEFAULT 0,                        -- 是否已使用（0-未使用，1-已使用）
+            expires_at DATETIME NOT NULL,                  -- 过期时间
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 创建时间
         )
     `);
 
-    // 短信频率限制表（替代内存 smsRateLimit Map）
+    // ==================== 短信频率限制表（替代内存 smsRateLimit Map） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS sms_rate_limits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            phone TEXT UNIQUE NOT NULL,
-            last_sent_at INTEGER DEFAULT 0,
-            daily_count INTEGER DEFAULT 0,
-            daily_reset_at INTEGER DEFAULT 0,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 记录ID，自增主键
+            phone TEXT UNIQUE NOT NULL,                    -- 手机号，唯一
+            last_sent_at INTEGER DEFAULT 0,                -- 上次发送时间戳（毫秒）
+            daily_count INTEGER DEFAULT 0,                 -- 当日已发送次数
+            daily_reset_at INTEGER DEFAULT 0,              -- 每日计数重置时间戳（毫秒）
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
         )
     `);
 
-    // 测试记录表（替代内存 tests Map）
+    // ==================== 测试记录表（替代内存 tests Map） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS tests (
-            id TEXT PRIMARY KEY,
-            user_id TEXT,
-            type TEXT,
-            method TEXT,
-            person_a TEXT,
-            person_b TEXT,
-            hexagram TEXT,
-            status TEXT DEFAULT 'pending',
-            result TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            completed_at DATETIME
+            id TEXT PRIMARY KEY,                           -- 测试ID（UUID格式）
+            user_id TEXT,                                  -- 关联用户ID
+            type TEXT,                                     -- 测试类型（如：birthday_match、tarot）
+            method TEXT,                                   -- 测试方法（如：bazi、ziwei）
+            person_a TEXT,                                 -- 测试对象A信息（JSON格式）
+            person_b TEXT,                                 -- 测试对象B信息（JSON格式）
+            hexagram TEXT,                                 -- 卦象信息（用于占卜类测试）
+            status TEXT DEFAULT 'pending',                 -- 测试状态（pending-待处理，processing-处理中，completed-已完成，failed-失败）
+            result TEXT,                                   -- 测试结果（JSON格式）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            completed_at DATETIME                          -- 完成时间
         )
     `);
 
-    // 前端订单表（替代内存 orders Map）
+    // ==================== 前端订单表（替代内存 orders Map） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS client_orders (
-            id TEXT PRIMARY KEY,
-            user_id TEXT,
-            product_id TEXT,
-            product_name TEXT,
-            amount REAL,
-            credits INTEGER DEFAULT 0,
-            payment_method TEXT,
-            test_type TEXT,
-            status TEXT DEFAULT 'pending',
-            redeem_code TEXT,
-            payment_id TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            paid_at DATETIME,
-            redeemed_at DATETIME,
-            expires_at DATETIME
+            id TEXT PRIMARY KEY,                           -- 订单ID（UUID格式）
+            user_id TEXT,                                  -- 关联用户ID
+            product_id TEXT,                               -- 商品ID
+            product_name TEXT,                             -- 商品名称
+            amount REAL,                                   -- 订单金额（元）
+            credits INTEGER DEFAULT 0,                     -- 使用的积分数量
+            payment_method TEXT,                           -- 支付方式（alipay-支付宝）
+            test_type TEXT,                                -- 关联的测试类型
+            status TEXT DEFAULT 'pending',                 -- 订单状态（pending-待支付，paying-支付中，paid-已支付，expired-已过期，refunded-已退款）
+            redeem_code TEXT,                              -- 关联的兑换码
+            payment_id TEXT,                               -- 第三方支付流水号
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            paid_at DATETIME,                              -- 支付完成时间
+            redeemed_at DATETIME,                          -- 兑换码使用时间
+            expires_at DATETIME                            -- 订单过期时间
         )
     `);
 
-    // 用户购买记录表（替代内存 userPurchases Map）
+    // ==================== 用户购买记录表（替代内存 userPurchases Map） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS user_purchases (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            test_type_id TEXT NOT NULL,
-            is_active INTEGER DEFAULT 1,
-            payment_status INTEGER DEFAULT 0,
-            order_id TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, test_type_id)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 记录ID，自增主键
+            user_id TEXT NOT NULL,                         -- 用户ID
+            test_type_id TEXT NOT NULL,                    -- 测试类型ID（标识购买的服务类型）
+            is_active INTEGER DEFAULT 1,                   -- 是否有效（1-有效，0-已失效）
+            payment_status INTEGER DEFAULT 0,              -- 支付状态（0-未支付，1-已支付）
+            order_id TEXT,                                 -- 关联订单ID
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 更新时间
+            UNIQUE(user_id, test_type_id)                  -- 联合唯一约束（同一用户同一测试类型只有一条记录）
         )
     `);
 
-    // 用户会话表（替代内存 userSessions Map）
+    // ==================== 用户会话表（替代内存 userSessions Map） ====================
     db.run(`
         CREATE TABLE IF NOT EXISTS user_sessions (
-            session_id TEXT PRIMARY KEY,
-            user_id TEXT,
-            token TEXT,
-            expires_at DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            session_id TEXT PRIMARY KEY,                   -- 会话ID（UUID格式），主键
+            user_id TEXT,                                  -- 关联用户ID
+            token TEXT,                                    -- 会话Token（JWT令牌）
+            expires_at DATETIME,                           -- 会话过期时间
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 创建时间
         )
     `);
 

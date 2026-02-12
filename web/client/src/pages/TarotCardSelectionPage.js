@@ -577,8 +577,8 @@ export class TarotCardSelectionPage {
 
                 window.appState?.set('currentTest', testData);
 
-                const q = encodeURIComponent(question);
-                window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${q}`);
+                // 跳转到商品/服务页
+                window.router.navigate(`/product/${this.matchType.id}`);
             };
 
         } catch (error) {

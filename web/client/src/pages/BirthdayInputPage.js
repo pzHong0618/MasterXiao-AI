@@ -839,10 +839,10 @@ export class BirthdayInputPage {
             this.formData.personB.birthDate = birthDate;
             this.formData.personB.lunarDate = lunarDate;
             
-            console.log('准备提交测试，跳转到结果页');
+            console.log('准备提交测试，跳转到商品页');
 
-            // 保存数据并跳转到结果页
-            this.submitTest();
+            // 先保存测试数据到状态，再跳转到商品/服务页
+            this.saveTestDataAndGoProduct();
         }
     }
 
@@ -934,6 +934,30 @@ export class BirthdayInputPage {
                 newFormSection.classList.add('fade-in');
             }
         }, 150); // 150ms 过渡时间
+    }
+
+    /**
+     * 保存测试数据到状态，然后跳转到商品/服务页
+     */
+    saveTestDataAndGoProduct() {
+        const testData = {
+            type: this.matchType.id,
+            method: 'birthday',
+            personA: {
+                name: this.formData.personA.name,
+                gender: this.formData.personA.gender === 'male' ? '男' : '女',
+                birthDate: this.formData.personA.birthDate
+            },
+            personB: {
+                name: this.formData.personB.name,
+                gender: this.formData.personB.gender === 'male' ? '男' : '女',
+                birthDate: this.formData.personB.birthDate
+            },
+            timestamp: Date.now()
+        };
+        window.appState.set('currentTest', testData);
+        // 跳转到商品/服务页
+        window.router.navigate(`/product/${this.matchType.id}`);
     }
 
     async submitTest() {

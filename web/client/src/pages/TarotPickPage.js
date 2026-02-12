@@ -607,8 +607,8 @@ export class TarotPickPage {
 
             window.appState?.set('currentTest', testData);
 
-            const q = encodeURIComponent(question);
-            window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${q}`);
+            // 跳转到商品/服务页，而非直接跳转到结果加载页
+            window.router.navigate(`/product/${this.matchType.id}`);
 
         } catch (error) {
             console.error('[解读准备失败]', error);

@@ -129,8 +129,8 @@ router.get('/menu', (req, res) => {
 router.get('/dashboard/stats', (req, res) => {
     try {
         const totalUsers = queryOne('SELECT COUNT(*) as count FROM users')?.count || 0;
-        const totalPayments = queryOne('SELECT COUNT(*) as count FROM payments')?.count || 0;
-        const totalRevenue = queryOne("SELECT SUM(amount) as total FROM payments WHERE status = 'success'")?.total || 0;
+        const totalPayments = queryOne('SELECT COUNT(*) as count FROM client_orders')?.count || 0;
+        const totalRevenue = queryOne("SELECT SUM(amount) as total FROM client_orders WHERE status = 'paid'")?.total || 0;
         const totalMatches = queryOne('SELECT COUNT(*) as count FROM session_match_records WHERE status = 1')?.count || 0;
         const totalCoupons = queryOne('SELECT COUNT(*) as count FROM redeem_codes')?.count || 0;
 
@@ -297,28 +297,27 @@ router.get('/orders', (req, res) => {
         const { page = 1, limit = 20, keyword, status } = req.query;
         const offset = (parseInt(page) - 1) * parseInt(limit);
 
-        let sql = 'SELECT p.*, u.username as user_name FROM payments p LEFT JOIN users u ON p.user_id = u.id WHERE 1=1';
-        let countSql = 'SELECT COUNT(*) as count FROM payments WHERE 1=1';
+        let sql = 'SELECT o.*, u.username as user_name FROM client_orders o LEFT JOIN users u ON o.user_id = u.id WHERE 1=1';
+        let countSql = 'SELECT COUNT(*) as count FROM client_orders WHERE 1=1';
         const params = [];
         const countParams = [];
 
         if (keyword) {
-            sql += ' AND (p.order_no LIKE ? OR u.username LIKE ?)';
-            countSql += ' AND (order_no LIKE ?)';
-
-            params.push(`%${keyword}%`, `%${keyword}%`);
-            countParams.push(`%${keyword}%`);
+            sql += ' AND (o.id LIKE ? OR o.product_name LIKE ? OR u.username LIKE ?)';
+            countSql += ' AND (id LIKE ? OR product_name LIKE ?)';
+            params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+            countParams.push(`%${keyword}%`, `%${keyword}%`);
         }
 
         if (status) {
-            sql += ' AND p.status = ?';
+            sql += ' AND o.status = ?';
             countSql += ' AND status = ?';
             params.push(status);
             countParams.push(status);
         }
 
         const total = queryOne(countSql, countParams)?.count || 0;
-        sql += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
+        sql += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
         params.push(parseInt(limit), offset);
         const list = queryAll(sql, params);
 

@@ -564,9 +564,11 @@ async function renderOrderList(page = 1, keyword = '', statusFilter = '') {
                         </div>
                         <select id="orderStatusFilter" class="filter-select" onchange="searchOrders()">
                             <option value="">全部状态</option>
-                            <option value="success" ${statusFilter === 'success' ? 'selected' : ''}>已完成</option>
-                            <option value="pending" ${statusFilter === 'pending' ? 'selected' : ''}>处理中</option>
-                            <option value="failed" ${statusFilter === 'failed' ? 'selected' : ''}>已失败</option>
+                            <option value="paid" ${statusFilter === 'paid' ? 'selected' : ''}>已支付</option>
+                            <option value="paying" ${statusFilter === 'paying' ? 'selected' : ''}>支付中</option>
+                            <option value="pending" ${statusFilter === 'pending' ? 'selected' : ''}>待支付</option>
+                            <option value="expired" ${statusFilter === 'expired' ? 'selected' : ''}>已过期</option>
+                            <option value="refunded" ${statusFilter === 'refunded' ? 'selected' : ''}>已退款</option>
                         </select>
                         <button class="btn btn-primary" onclick="searchOrders()">搜索</button>
                     </div>
@@ -577,21 +579,25 @@ async function renderOrderList(page = 1, keyword = '', statusFilter = '') {
                             <tr>
                                 <th>序号</th>
                                 <th>订单ID</th>
+                                <th>商品名称</th>
                                 <th>购买用户</th>
+                                <th>支付方式</th>
                                 <th>创建时间</th>
                                 <th>支付金额</th>
                                 <th>支付状态</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${list.length === 0 ? '<tr><td colspan="6" class="empty-text">暂无数据</td></tr>' : list.map((order, index) => `
+                            ${list.length === 0 ? '<tr><td colspan="8" class="empty-text">暂无数据</td></tr>' : list.map((order, index) => `
                                 <tr>
                                     <td>${(pagination.page - 1) * pagination.limit + index + 1}</td>
-                                    <td>${order.order_no || '-'}</td>
-                                    <td>${order.user_name || '-'}</td>
+                                    <td title="${order.id || ''}">${order.id ? order.id.substring(0, 8) + '...' : '-'}</td>
+                                    <td>${order.product_name || order.test_type || '-'}</td>
+                                    <td>${order.user_name || order.user_id || '-'}</td>
+                                    <td>${getPaymentMethodText(order.payment_method)}</td>
                                     <td>${formatDate(order.created_at)}</td>
                                     <td>¥${order.amount || 0}</td>
-                                    <td><span class="status-badge ${order.status === 'success' ? 'success' : order.status === 'pending' ? 'pending' : 'failed'}">${getPaymentStatusText(order.status)}</span></td>
+                                    <td><span class="status-badge ${getOrderStatusClass(order.status)}">${getPaymentStatusText(order.status)}</span></td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -618,8 +624,18 @@ function goOrderPage(page) {
 }
 
 function getPaymentStatusText(status) {
-    const map = { 'success': '已完成', 'pending': '处理中', 'failed': '已失败' };
+    const map = { 'paid': '已支付', 'paying': '支付中', 'pending': '待支付', 'expired': '已过期', 'refunded': '已退款' };
     return map[status] || status || '-';
+}
+
+function getOrderStatusClass(status) {
+    const map = { 'paid': 'success', 'paying': 'pending', 'pending': 'pending', 'expired': 'failed', 'refunded': 'failed' };
+    return map[status] || '';
+}
+
+function getPaymentMethodText(method) {
+    const map = { 'alipay': '支付宝', 'wechat': '微信支付', 'credits': '积分' };
+    return map[method] || method || '-';
 }
 
 // ==================== 数据管理（匹配记录） ====================
