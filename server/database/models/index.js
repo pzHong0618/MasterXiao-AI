@@ -15,8 +15,9 @@ import { Question } from './Question.js';
 import { TopicCategory } from './TopicCategory.js';
 import { SystemConfig } from './SystemConfig.js';
 import { XhsTopic } from './XhsTopic.js';
+import { XhsMenu } from './XhsMenu.js';
 
-export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question, TopicCategory, SystemConfig, XhsTopic };
+export { User, MatchRecord, Payment, Setting, RedeemCode, SessionMatchRecord, Admin, Permission, Role, OperationLog, Question, TopicCategory, SystemConfig, XhsTopic, XhsMenu };
 
 export default {
     User,
@@ -32,5 +33,6 @@ export default {
     Question,
     TopicCategory,
     SystemConfig,
-    XhsTopic
+    XhsTopic,
+    XhsMenu
 };

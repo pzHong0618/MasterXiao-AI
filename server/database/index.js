@@ -65,6 +65,9 @@ export async function initDatabase() {
         // 初始化基础数据
         await initInitialData();
 
+        // 表结构和初始数据初始化完成后，立即保存到磁盘
+        saveDatabase();
+
         // 定期保存数据库到文件
         setInterval(() => {
             saveDatabase();
@@ -342,6 +345,35 @@ async function initTables() {
             FOREIGN KEY (topic_category_id) REFERENCES topic_categories(id) -- 外键关联主题分类表
         )
     `);
+
+    // ==================== 小红书菜单表 ====================
+    db.run(`
+        CREATE TABLE IF NOT EXISTS xhs_menus (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,          -- 菜单ID，自增主键
+            name TEXT NOT NULL,                            -- 菜单名称
+            description TEXT DEFAULT '',                   -- 问题描述
+            status INTEGER DEFAULT 1,                      -- 展示状态（1-显示，0-隐藏）
+            sort_order INTEGER DEFAULT 0,                  -- 排序顺序（越小越靠前）
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- 更新时间
+        )
+    `);
+
+    // 兼容旧表：如果 xhs_menus 表已存在但缺少 description 字段，自动添加
+    try {
+        const menuCols = db.exec("PRAGMA table_info(xhs_menus)");
+        const hasDescription = menuCols.length > 0 && menuCols[0].values.some(row => row[1] === 'description');
+        if (!hasDescription) {
+            db.run(`ALTER TABLE xhs_menus ADD COLUMN description TEXT DEFAULT ''`);
+            console.log('✅ xhs_menus 表已补充 description 列');
+        }
+    } catch (e) {
+        console.error('⚠️ xhs_menus 迁移 description 字段失败:', e.message);
+    }
+
+    // 为 xhs_menus 创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_xhs_menus_status ON xhs_menus(status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_xhs_menus_sort ON xhs_menus(sort_order)`);
 
     // ==================== 验证码表（替代内存 verificationCodes Map） ====================
     db.run(`

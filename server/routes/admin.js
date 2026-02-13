@@ -3,7 +3,7 @@
  * 提供用户管理、管理员管理、订单管理、数据管理、券码管理、系统管理等接口
  */
 import express from 'express';
-import { User, Admin, Payment, RedeemCode, SessionMatchRecord, OperationLog, Question, TopicCategory, SystemConfig, XhsTopic } from '../database/models/index.js';
+import { User, Admin, Payment, RedeemCode, SessionMatchRecord, OperationLog, Question, TopicCategory, SystemConfig, XhsTopic, XhsMenu } from '../database/models/index.js';
 import { queryAll, queryOne, execute, saveDatabase, getNowLocal } from '../database/index.js';
 
 const router = express.Router();
@@ -117,7 +117,8 @@ router.get('/menu', (req, res) => {
         {
             id: 8, code: 'xhs-manage', name: '小红书管理', type: 'menu', icon: '📕',
             children: [
-                { id: 81, code: 'xhs:topic-config', name: '主题配置', type: 'menu', icon: '🏷️' }
+                { id: 81, code: 'xhs:topic-config', name: '主题配置', type: 'menu', icon: '🏷️' },
+                { id: 82, code: 'xhs:menu-manage', name: '菜单管理', type: 'menu', icon: '📑' }
             ]
         }
     ];
@@ -736,6 +737,93 @@ router.delete('/xhs-topics/:id', (req, res) => {
     try {
         if (!XhsTopic.findById(parseInt(req.params.id))) return res.status(404).json({ code: 404, message: '记录不存在' });
         XhsTopic.delete(parseInt(req.params.id));
+        saveDatabase();
+        res.json({ code: 200, message: '删除成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// ==================== 小红书菜单管理 ====================
+
+// 获取小红书菜单列表
+router.get('/xhs-menus', (req, res) => {
+    try {
+        const { page = 1, limit = 20, status, keyword } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        const total = XhsMenu.count({ status, keyword });
+        const list = XhsMenu.findAll({ status, keyword, limit: parseInt(limit), offset });
+
+        res.json({
+            code: 200,
+            data: { list, pagination: { page: parseInt(page), limit: parseInt(limit), total } }
+        });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 获取单个小红书菜单详情
+router.get('/xhs-menus/:id', (req, res) => {
+    try {
+        const menu = XhsMenu.findById(parseInt(req.params.id));
+        if (!menu) return res.status(404).json({ code: 404, message: '菜单不存在' });
+        res.json({ code: 200, data: menu });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 创建小红书菜单
+router.post('/xhs-menus', (req, res) => {
+    try {
+        const { name, description = '', status = 1 } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ code: 400, message: '菜单名称不能为空' });
+        }
+
+        const menu = XhsMenu.create({ name: name.trim(), description, status });
+        saveDatabase();
+        res.json({ code: 200, message: '创建成功', data: menu });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 更新小红书菜单
+router.put('/xhs-menus/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description, status } = req.body;
+
+        if (!XhsMenu.findById(parseInt(id))) {
+            return res.status(404).json({ code: 404, message: '菜单不存在' });
+        }
+
+        const updateData = {};
+        if (name !== undefined) updateData.name = name.trim();
+        if (description !== undefined) updateData.description = description;
+        if (status !== undefined) updateData.status = parseInt(status);
+
+        if (Object.keys(updateData).length > 0) {
+            XhsMenu.update(parseInt(id), updateData);
+        }
+
+        saveDatabase();
+        res.json({ code: 200, message: '更新成功' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 删除小红书菜单
+router.delete('/xhs-menus/:id', (req, res) => {
+    try {
+        const menuId = parseInt(req.params.id);
+        if (!XhsMenu.findById(menuId)) {
+            return res.status(404).json({ code: 404, message: '菜单不存在' });
+        }
+        XhsMenu.delete(menuId);
         saveDatabase();
         res.json({ code: 200, message: '删除成功' });
     } catch (error) {

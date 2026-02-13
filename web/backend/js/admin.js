@@ -213,7 +213,8 @@ const pageTitles = {
     'system:question': '问题管理',
     'system:topic-category': '主题分类',
     'system:config': '系统配置',
-    'xhs:topic-config': '小红书主题配置'
+    'xhs:topic-config': '小红书主题配置',
+    'xhs:menu-manage': '小红书菜单管理'
 };
 
 function loadPage(page) {
@@ -233,6 +234,7 @@ function loadPage(page) {
         case 'system:topic-category': renderTopicCategoryManage(); break;
         case 'system:config': renderSystemConfigManage(); break;
         case 'xhs:topic-config': renderXhsTopicConfig(); break;
+        case 'xhs:menu-manage': renderXhsMenuManage(); break;
         default: renderDashboard();
     }
 }
@@ -1651,6 +1653,248 @@ window.deleteXhsTopic = async function (id) {
         const result = await apiFetch(`/xhs-topics/${id}`, { method: 'DELETE' });
         showToast(result.message || '删除成功');
         renderXhsTopicListTab();
+    } catch (error) {
+        showToast('删除失败: ' + error.message, 'error');
+    }
+};
+
+// ==================== 小红书菜单管理 ====================
+
+let xhsMenuTab = 'list';
+let editingXhsMenuId = null;
+
+async function renderXhsMenuManage() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="data-card">
+            <div class="tab-header">
+                <button class="tab-btn ${xhsMenuTab === 'list' ? 'active' : ''}" onclick="switchXhsMenuTab('list')">📋 菜单列表</button>
+                <button class="tab-btn ${xhsMenuTab === 'add' ? 'active' : ''}" onclick="switchXhsMenuTab('add')">➕ 新增菜单</button>
+                <button class="tab-btn ${xhsMenuTab === 'edit' ? 'active' : ''}" id="xhsMenuEditTabBtn" style="display:${xhsMenuTab === 'edit' ? 'inline-flex' : 'none'}">✏️ 编辑菜单</button>
+            </div>
+            <div id="xhsMenuTabContent"></div>
+        </div>
+    `;
+
+    if (xhsMenuTab === 'add') renderXhsMenuAddForm();
+    else if (xhsMenuTab === 'edit') renderXhsMenuEditForm();
+    else renderXhsMenuListTab();
+}
+
+window.switchXhsMenuTab = function (tab) {
+    xhsMenuTab = tab;
+    if (tab !== 'edit') editingXhsMenuId = null;
+    renderXhsMenuManage();
+};
+
+async function renderXhsMenuListTab(page = 1) {
+    const tabContent = document.getElementById('xhsMenuTabContent');
+    tabContent.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    try {
+        const result = await apiFetch(`/xhs-menus?page=${page}&limit=15`);
+        if (result.code !== 200) throw new Error(result.message);
+        const { list, pagination } = result.data;
+
+        tabContent.innerHTML = `
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>编号</th>
+                            <th>菜单名称</th>
+                            <th>问题描述</th>
+                            <th>展示状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${list.length === 0 ? '<tr><td colspan="6" class="empty-text">暂无菜单，请点击"新增菜单"添加</td></tr>' : list.map((item, index) => `
+                            <tr>
+                                <td>${(pagination.page - 1) * pagination.limit + index + 1}</td>
+                                <td><strong>${item.name}</strong></td>
+                                <td>
+                                    <div class="xhs-menu-desc" title="${(item.description || '').replace(/"/g, '&quot;')}">${item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : '<span style="color:#999;">暂无描述</span>'}</div>
+                                </td>
+                                <td><span class="status-badge ${item.status ? 'success' : 'failed'}">${item.status ? '显示' : '隐藏'}</span></td>
+                                <td>${formatDate(item.created_at)}</td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button class="action-btn edit" onclick="editXhsMenu(${item.id})">编辑</button>
+                                        <button class="action-btn ${item.status ? 'delete' : 'view'}" onclick="toggleXhsMenuStatus(${item.id}, ${item.status ? 0 : 1})">${item.status ? '隐藏' : '显示'}</button>
+                                        <button class="action-btn delete" onclick="deleteXhsMenu(${item.id})">删除</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            ${renderPagination(pagination, 'goXhsMenuPage')}
+        `;
+    } catch (error) {
+        tabContent.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+    }
+}
+
+window.goXhsMenuPage = function (page) { renderXhsMenuListTab(page); };
+
+async function renderXhsMenuAddForm() {
+    const tabContent = document.getElementById('xhsMenuTabContent');
+
+    tabContent.innerHTML = `
+        <div class="form-container" style="max-width:700px;">
+            <div class="form-group-modal">
+                <label>菜单名称 <span class="required">*</span></label>
+                <input type="text" id="xhsMenuName" placeholder="请输入菜单名称" maxlength="50" />
+            </div>
+            <div class="form-group-modal">
+                <label>问题描述</label>
+                <textarea id="xhsMenuDesc" rows="6" placeholder="请输入问题描述内容" style="width:100%;resize:vertical;"></textarea>
+            </div>
+            <div class="form-group-modal">
+                <label>展示状态</label>
+                <select id="xhsMenuStatus">
+                    <option value="1" selected>显示</option>
+                    <option value="0">隐藏</option>
+                </select>
+            </div>
+            <div style="margin-top:20px;">
+                <button class="btn btn-primary" onclick="submitCreateXhsMenu()">确认创建</button>
+                <button class="btn btn-secondary" onclick="switchXhsMenuTab('list')" style="margin-left:12px;">取消</button>
+            </div>
+        </div>
+    `;
+}
+
+window.submitCreateXhsMenu = async function () {
+    const name = document.getElementById('xhsMenuName').value.trim();
+    const description = document.getElementById('xhsMenuDesc').value;
+    const status = parseInt(document.getElementById('xhsMenuStatus').value);
+
+    if (!name) { showToast('菜单名称不能为空', 'error'); return; }
+
+    try {
+        const result = await apiFetch('/xhs-menus', {
+            method: 'POST',
+            body: JSON.stringify({ name, description, status })
+        });
+        if (result.code === 200) {
+            showToast('创建成功');
+            xhsMenuTab = 'list';
+            renderXhsMenuManage();
+        } else {
+            showToast(result.message || '创建失败', 'error');
+        }
+    } catch (error) {
+        showToast('创建失败: ' + error.message, 'error');
+    }
+};
+
+window.editXhsMenu = async function (id) {
+    editingXhsMenuId = id;
+    xhsMenuTab = 'edit';
+    renderXhsMenuManage();
+};
+
+async function renderXhsMenuEditForm() {
+    const tabContent = document.getElementById('xhsMenuTabContent');
+    const editTabBtn = document.getElementById('xhsMenuEditTabBtn');
+    if (editTabBtn) editTabBtn.style.display = 'inline-flex';
+
+    tabContent.innerHTML = '<div class="loading-text">加载中...</div>';
+
+    if (!editingXhsMenuId) {
+        tabContent.innerHTML = '<div class="empty-text">请从列表中选择要编辑的菜单</div>';
+        return;
+    }
+
+    try {
+        const result = await apiFetch(`/xhs-menus/${editingXhsMenuId}`);
+        if (result.code !== 200) throw new Error(result.message);
+        const menu = result.data;
+        if (!menu) throw new Error('菜单不存在');
+
+        tabContent.innerHTML = `
+            <div class="form-container" style="max-width:700px;">
+                <div class="form-group-modal">
+                    <label>菜单名称 <span class="required">*</span></label>
+                    <input type="text" id="editXhsMenuName" value="${menu.name}" maxlength="50" />
+                </div>
+                <div class="form-group-modal">
+                    <label>问题描述</label>
+                    <textarea id="editXhsMenuDesc" rows="6" style="width:100%;resize:vertical;">${menu.description || ''}</textarea>
+                </div>
+                <div class="form-group-modal">
+                    <label>展示状态</label>
+                    <select id="editXhsMenuStatus">
+                        <option value="1" ${menu.status ? 'selected' : ''}>显示</option>
+                        <option value="0" ${!menu.status ? 'selected' : ''}>隐藏</option>
+                    </select>
+                </div>
+                <div style="margin-top:20px;">
+                    <button class="btn btn-primary" onclick="submitEditXhsMenu(${menu.id})">保存修改</button>
+                    <button class="btn btn-secondary" onclick="switchXhsMenuTab('list')" style="margin-left:12px;">取消</button>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        tabContent.innerHTML = `<div class="error-text">加载失败: ${error.message}</div>`;
+    }
+}
+
+window.submitEditXhsMenu = async function (id) {
+    const name = document.getElementById('editXhsMenuName').value.trim();
+    const description = document.getElementById('editXhsMenuDesc').value;
+    const status = parseInt(document.getElementById('editXhsMenuStatus').value);
+
+    if (!name) { showToast('菜单名称不能为空', 'error'); return; }
+
+    try {
+        const result = await apiFetch(`/xhs-menus/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ name, description, status })
+        });
+        if (result.code === 200) {
+            showToast('更新成功');
+            xhsMenuTab = 'list';
+            renderXhsMenuManage();
+        } else {
+            showToast(result.message || '更新失败', 'error');
+        }
+    } catch (error) {
+        showToast('更新失败: ' + error.message, 'error');
+    }
+};
+
+window.toggleXhsMenuStatus = async function (id, newStatus) {
+    try {
+        const result = await apiFetch(`/xhs-menus/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (result.code === 200) {
+            showToast(newStatus ? '已显示' : '已隐藏');
+            renderXhsMenuListTab();
+        } else {
+            showToast(result.message || '操作失败', 'error');
+        }
+    } catch (error) {
+        showToast('操作失败: ' + error.message, 'error');
+    }
+};
+
+window.deleteXhsMenu = async function (id) {
+    if (!confirm('确定要删除该菜单吗？')) return;
+    try {
+        const result = await apiFetch(`/xhs-menus/${id}`, { method: 'DELETE' });
+        if (result.code === 200) {
+            showToast('删除成功');
+            renderXhsMenuListTab();
+        } else {
+            showToast(result.message || '删除失败', 'error');
+        }
     } catch (error) {
         showToast('删除失败: ' + error.message, 'error');
     }
