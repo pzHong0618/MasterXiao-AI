@@ -28,15 +28,8 @@ export class TopicListPage {
         <main class="page-content">
           <div class="app-container">
 
-            <!-- 标题区域 -->
-            <section class="section-header mt-4 mb-4">
-              <h2 class="heading-2 text-center" style="color: var(--color-text-secondary);">
-                趣味测试
-              </h2>
-            </section>
-
             <!-- 功能卡片列表 -->
-            <section class="feature-list" id="topicFeatureListSection">
+            <section class="feature-list mt-4" id="topicFeatureListSection">
               ${this.matchTypes.map((type, index) => `
                 <div class="animate-fade-in-up animate-delay-${Math.min((index + 1) * 100, 500)} animate-hidden">
                   ${FeatureCard(type, { showBadge: true })}

@@ -83,21 +83,9 @@ export function FeatureCardDetail(matchType) {
         </div>
       </div>
       
-      <div class="divider"></div>
+      <div class="divider" style="margin: 8px 0;"></div>
       
-      <p class="body-text-secondary mb-4">${matchType.longDescription}</p>
-      
-      <div class="feature-card-detail__features">
-        <h4 class="small-text mb-2" style="color: var(--color-primary);">包含内容：</h4>
-        <ul class="feature-list">
-          ${matchType.features.map(f => `
-            <li class="feature-list__item">
-              <span class="feature-list__icon">✓</span>
-              <span>${f}</span>
-            </li>
-          `).join('')}
-        </ul>
-      </div>
+      <p class="body-text-secondary" style="margin-bottom: 0;">${matchType.longDescription}</p>
       
     </div>
   `;

@@ -62,7 +62,7 @@ export class TestSelectPage {
           <div class="app-container">
             
             <!-- 匹配类型详情 -->
-            <section class="mt-4 mb-6 animate-fade-in-up">
+            <section class="mt-2 mb-3 animate-fade-in-up">
               ${FeatureCardDetail(this.matchType)}
             </section>
 
@@ -86,33 +86,30 @@ export class TestSelectPage {
               </div>
             </section>
 
-            <!-- 测试方式选择 -->
-            <section class="test-method-section animate-fade-in-up animate-delay-200">
-              <h3 class="heading-3 mb-4 text-center">选择测试方式</h3>
+            <!-- 测试方式选择（合并为一个卡片） -->
+            <section class="test-method-section animate-fade-in-up animate-delay-200 mt-3">
+              <h3 class="heading-3 mb-3 text-center">选择测试方式</h3>
               
-              <div class="method-cards">
+              <div class="glass-card" style="padding: 0; overflow: hidden;">
                 <!-- 生日匹配 -->
-                <div class="glass-card glass-card--interactive method-card" data-method="birthday">
-                  <div class="method-card__icon">🎂</div>
+                <div class="method-card method-card--compact" data-method="birthday" style="padding: 14px 16px; cursor: pointer;">
+                  <div class="method-card__icon" style="font-size: 28px;">🎂</div>
                   <div class="method-card__content">
-                    <h4 class="method-card__title">生日匹配</h4>
-                    <p class="method-card__description">输入双方生日，通过生日特质分析性格关系</p>
-                    <div class="method-card__tag">
-                      <span class="badge badge--primary">需要双方生日</span>
-                    </div>
+                    <h4 class="method-card__title" style="font-size: 15px; margin-bottom: 2px;">生日匹配</h4>
+                    <p class="method-card__description" style="font-size: 12px; margin-bottom: 0;">输入双方生日，通过生日特质分析性格关系</p>
                   </div>
                   <span class="method-card__arrow">→</span>
                 </div>
 
+                <!-- 渐变色分隔线 -->
+                <div style="height: 1.5px; margin: 0 16px; background: linear-gradient(90deg, transparent, var(--color-primary), #f472b6, transparent);"></div>
+
                 <!-- 直觉塔罗测试 -->
-                <div class="glass-card glass-card--interactive method-card" data-method="tarot">
-                  <div class="method-card__icon">🃏</div>
+                <div class="method-card method-card--compact" data-method="tarot" style="padding: 14px 16px; cursor: pointer;">
+                  <div class="method-card__icon" style="font-size: 28px;">🃏</div>
                   <div class="method-card__content">
-                    <h4 class="method-card__title">直觉塔罗</h4>
-                    <p class="method-card__description">凭直觉翻牌，通过卡牌符号解析关系</p>
-                    <div class="method-card__tag">
-                      <span class="badge badge--secondary">无需生日</span>
-                    </div>
+                    <h4 class="method-card__title" style="font-size: 15px; margin-bottom: 2px;">直觉塔罗</h4>
+                    <p class="method-card__description" style="font-size: 12px; margin-bottom: 0;">凭直觉翻牌，通过卡牌符号解析关系</p>
                   </div>
                   <span class="method-card__arrow">→</span>
                 </div>
@@ -120,7 +117,7 @@ export class TestSelectPage {
             </section>
 
             <!-- 说明提示 -->
-            <section class="tips-section mt-6 animate-fade-in-up animate-delay-300">
+            <section class="tips-section mt-3 animate-fade-in-up animate-delay-300">
               <div class="glass-card glass-card--light">
                 <div class="tips-header">
                   <span>💡</span>

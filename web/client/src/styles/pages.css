@@ -406,6 +406,26 @@
     gap: var(--spacing-4);
 }
 
+.method-card--compact {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    transition: background 0.2s ease;
+    border-radius: 0;
+}
+
+.method-card--compact:first-child {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.method-card--compact:last-child {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.method-card--compact:active {
+    background: rgba(139, 127, 216, 0.08);
+}
+
 .method-card__icon {
     font-size: 36px;
     flex-shrink: 0;
