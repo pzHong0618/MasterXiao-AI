@@ -21,7 +21,7 @@ import adminRoutes from './admin.js';
 import historyRoutes from './history.js';
 import config from '../config/index.js';
 import { getNowLocal } from '../database/index.js';
-import { TopicCategory, Question, SystemConfig, XhsTopic } from '../database/models/index.js';
+import { TopicCategory, Question, SystemConfig, XhsTopic, XhsMenu } from '../database/models/index.js';
 
 const router = express.Router();
 
@@ -84,6 +84,16 @@ router.get('/system-configs/by-name/:name', (req, res) => {
 router.get('/xhs-topics', (req, res) => {
     try {
         const list = XhsTopic.findAllVisible();
+        res.json({ code: 200, data: list });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: error.message });
+    }
+});
+
+// 公共接口：获取小红书菜单列表（显示状态）
+router.get('/xhs-menus', (req, res) => {
+    try {
+        const list = XhsMenu.findAllVisible();
         res.json({ code: 200, data: list });
     } catch (error) {
         res.status(500).json({ code: 500, message: error.message });

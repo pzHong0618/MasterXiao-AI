@@ -5,6 +5,7 @@
 export { HomePage } from './HomePage.js';
 export { TopicListPage } from './TopicListPage.js';
 export { XHSLandingPage } from './XHSLandingPage.js';
+export { XHSTestPage } from './XHSTestPage.js';
 export { AuthPage } from './AuthPage.js';
 export { TestSelectPage } from './TestSelectPage.js';
 export { BirthdayInputPage } from './BirthdayInputPage.js';

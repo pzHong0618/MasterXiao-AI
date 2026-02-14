@@ -53,13 +53,15 @@ function generateYaoData(step) {
     };
 }
 
-// 响应式半径
+// 响应式半径：圆心在左侧边缘(left:0)，右半弧覆盖视口
 function getWheelRadius() {
     const vw = window.innerWidth;
-    const size = Math.max(vw * 1.4, 600);
-    const mobileSize = vw * 1.6;
-    const wheelSize = vw <= 500 ? mobileSize : size;
-    return wheelSize / 2 - 20;
+    const vh = window.innerHeight;
+    // 牌轮可用高度 = 视口高度 - 导航栏 - 槽位 - 提示栏 - 按钮栏（约250px）
+    const availableHeight = vh - 250;
+    // 半径 = 可用高度的50%，让弧形上下撑满牌轮区域
+    const r = availableHeight * 0.50;
+    return Math.max(r, 200);
 }
 
 export class TarotPickPage {
@@ -92,6 +94,9 @@ export class TarotPickPage {
         this._isSpinning = false;
         this._pendingDraw = null;
         this._remindTimer = null;
+
+        // 判断是否来自小红书入口（有核销码即为小红书用户）
+        this.isXHS = !!(window.appState?.get?.('redeemCode'));
     }
 
     get pickedCount() {
@@ -145,15 +150,15 @@ export class TarotPickPage {
               <span class="pick-hint-text">点击牌轮中的牌抽取，共需抽 ${CARDS_TO_DRAW} 张</span>
             </div>
             <div class="pick-wheel-viewport" id="wheelViewport">
-              <div class="pick-wheel" id="pickWheel">
+              <div class="pick-wheel" id="pickWheel" style="--wheel-radius: ${radius}px">
                 ${cardsHtml}
               </div>
             </div>
-            <div class="pick-bottom-bar">
-              <button class="btn btn--primary btn--full btn--lg pick-next-btn" id="pickNextBtn">
-                开始解读
-              </button>
-            </div>
+          </div>
+          <div class="pick-bottom-bar">
+            <button class="btn btn--primary btn--full btn--lg pick-next-btn" id="pickNextBtn">
+              开始解读
+            </button>
           </div>
         </main>
 
@@ -296,7 +301,8 @@ export class TarotPickPage {
             const randomAngle = 120 + Math.random() * 360;
             const targetRotation = this.currentRotation + randomAngle;
             const startRotation = this.currentRotation;
-            const duration = 800;
+            // 随机转动时长 500~1000ms
+            const duration = 500 + Math.random() * 500;
             const startTime = Date.now();
 
             const animate = () => {
@@ -607,8 +613,17 @@ export class TarotPickPage {
 
             window.appState?.set('currentTest', testData);
 
-            // 跳转到商品/服务页，而非直接跳转到结果加载页
-            window.router.navigate(`/product/${this.matchType.id}`);
+            // 小红书入口：直接跳转到解读加载页（已有核销码，无需商品页付费）
+            if (this.isXHS) {
+                console.log('[小红书入口] 直接跳转到解读加载页');
+                const question = encodeURIComponent(
+                    window.appState?.get?.('tarotQuestion') || window.appState?.get?.('selectedQuestion') || '运势指引'
+                );
+                window.router.navigate(`/test/${this.matchType.id}/tarot/result-loading?question=${question}`);
+            } else {
+                // 普通入口：跳转到商品/服务页
+                window.router.navigate(`/product/${this.matchType.id}`);
+            }
 
         } catch (error) {
             console.error('[解读准备失败]', error);

@@ -28,6 +28,7 @@ import {
   HomePage,
   TopicListPage,
   XHSLandingPage,
+  XHSTestPage,
   AuthPage,
   TestSelectPage,
   BirthdayInputPage,
@@ -103,6 +104,7 @@ function registerRoutes() {
     .register('/', HomePage)
     .register('/topics', TopicListPage)
     .register('/xhs', XHSLandingPage)
+    .register('/xhs/test', XHSTestPage)
     .register('/auth', AuthPage)
     .register('/test/:type', TestSelectPage)
     .register('/test/:type/birthday', BirthdayInputPage)

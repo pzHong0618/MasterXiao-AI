@@ -73,10 +73,13 @@ export class TopicListPage {
         const nameToIdMap = {
             '感情匹配': 'love',
             '合作关系': 'cooperation',
+            '合作匹配': 'cooperation',
             '职场关系': 'career',
+            '职业匹配': 'career',
             'TA的想法和态度': 'thoughts',
             '职业发展': 'job',
             '城市方向': 'city',
+            '城市匹配': 'city',
             '宠物匹配': 'pet',
             '社交魅力': 'peach',
             '人脉分析': 'benefactor',

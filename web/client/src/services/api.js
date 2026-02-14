@@ -624,6 +624,17 @@ export const xhsTopicApi = {
     }
 };
 
+// ==================== 小红书菜单 API ====================
+
+export const xhsMenuApi = {
+    /**
+     * 获取显示状态的小红书菜单列表
+     */
+    async getList() {
+        return request('/xhs-menus');
+    }
+};
+
 // 导出默认对象
 export default {
     auth: authApi,
@@ -638,6 +649,7 @@ export default {
     topicCategory: topicCategoryApi,
     question: questionApi,
     systemConfig: systemConfigApi,
-    xhsTopic: xhsTopicApi
+    xhsTopic: xhsTopicApi,
+    xhsMenu: xhsMenuApi
 };
 

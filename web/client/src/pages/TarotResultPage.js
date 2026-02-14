@@ -81,11 +81,15 @@ export class TarotResultPage {
 
     formatContent(content) {
         if (!content) return '<p>暂无解读内容</p>';
-        // 将换行符转换为段落
+        // 将换行符转换为段落，并处理 Markdown 加粗语法
         return content
             .split('\n')
             .filter(line => line.trim())
-            .map(line => `<p>${line}</p>`)
+            .map(line => {
+                // 处理 **加粗** 语法
+                const formatted = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                return `<p>${formatted}</p>`;
+            })
             .join('');
     }
 

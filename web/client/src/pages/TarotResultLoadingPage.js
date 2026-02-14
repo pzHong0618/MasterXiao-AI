@@ -14,7 +14,7 @@ const LOADING_TIPS = [
     '正在综合牌阵含义...',
     '正在梳理核心脉络...',
     '正在整合深层指引...',
-    '肖大师正在认真解读...',
+    '全方位解读中...',
     '即将完成，请稍候...'
 ];
 
@@ -57,7 +57,7 @@ export class TarotResultLoadingPage {
           <div class="app-container">
             <!-- 问题卡片 -->
             <section class="result-question-card animate-fade-in-up">
-              <div class="result-question-title">匹配事项</div>
+              <div class="result-question-label">匹配事项</div>
               <div class="result-question-main">${this.question}</div>
             </section>
             
@@ -79,7 +79,7 @@ export class TarotResultLoadingPage {
             </section>
             
             <section class="result-btns animate-fade-in-up animate-delay-200">
-              <button class="btn btn--outline btn--lg result-btn-restart" id="btnRestart">重新开始</button>
+              <button class="result-btn-restart" id="btnRestart">重新开始</button>
             </section>
             <div class="result-tip">仅供娱乐参考，不作为任何决策依据</div>
           </div>

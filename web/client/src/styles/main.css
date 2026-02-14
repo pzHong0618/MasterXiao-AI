@@ -35,3 +35,6 @@
 
 /* 11. 商品页 & 支付确认页样式 */
 @import './product.css';
+
+/* 12. 塔罗解读加载页 & 结果详情页样式 */
+@import './tarot-result.css';

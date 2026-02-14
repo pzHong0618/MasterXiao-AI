@@ -871,3 +871,20 @@
     color: var(--color-primary);
     font-weight: var(--font-weight-medium);
 }
+
+/* ==================== 功能卡片选中状态 ==================== */
+
+.feature-card--selected {
+    border: 2px solid var(--color-primary) !important;
+    background: linear-gradient(135deg, rgba(139, 127, 216, 0.08), rgba(255, 181, 216, 0.06)) !important;
+    box-shadow: 0 0 0 3px rgba(139, 127, 216, 0.15), 0 4px 12px rgba(139, 127, 216, 0.1);
+}
+
+.feature-card--selected .feature-card__title {
+    color: var(--color-primary);
+}
+
+.feature-card--selected .feature-card__arrow {
+    color: var(--color-primary);
+    transform: translateX(4px);
+}

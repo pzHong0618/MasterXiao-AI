@@ -12,7 +12,7 @@ class Router {
 
         // 监听浏览器前进后退
         window.addEventListener('popstate', (e) => {
-            this.handleRoute(window.location.pathname, false);
+            this.handleRoute(window.location.pathname + window.location.search, false);
         });
     }
 
@@ -205,8 +205,9 @@ class Router {
      * 启动路由器
      */
     start() {
-        // 处理初始路由
-        this.handleRoute(window.location.pathname, false);
+        // 处理初始路由（带上 query string，确保首次加载时 URL 参数不丢失）
+        const fullPath = window.location.pathname + window.location.search;
+        this.handleRoute(fullPath, false);
     }
 }
 
