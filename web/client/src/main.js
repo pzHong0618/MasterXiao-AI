@@ -31,6 +31,7 @@ import {
   XHSTestPage,
   AuthPage,
   TestSelectPage,
+  TestMethodPage,
   BirthdayInputPage,
   TarotPage,
   TarotTabooPage,
@@ -107,6 +108,7 @@ function registerRoutes() {
     .register('/xhs/test', XHSTestPage)
     .register('/auth', AuthPage)
     .register('/test/:type', TestSelectPage)
+    .register('/test/:type/method', TestMethodPage)
     .register('/test/:type/birthday', BirthdayInputPage)
     .register('/test/:type/tarot', TarotPage)
     .register('/test/:type/tarot/taboo', TarotTabooPage)

@@ -59,9 +59,9 @@ function getWheelRadius() {
     const vh = window.innerHeight;
     // 牌轮可用高度 = 视口高度 - 导航栏 - 槽位 - 提示栏 - 按钮栏（约250px）
     const availableHeight = vh - 250;
-    // 半径 = 可用高度的50%，让弧形上下撑满牌轮区域
-    const r = availableHeight * 0.50;
-    return Math.max(r, 200);
+    // 半径 = 可用高度的50% - 10px
+    const r = availableHeight * 0.50 - 10;
+    return Math.max(r, 190);
 }
 
 export class TarotPickPage {
@@ -126,7 +126,13 @@ export class TarotPickPage {
             cardsHtml += `
                 <div class="wheel-card" data-idx="${i}"
                      style="transform: rotate(${angle}deg) translateY(-${radius}px)">
-                  <div class="wheel-card__face"></div>
+                  <div class="wheel-card__face">
+                    <div class="wheel-card__diamond"></div>
+                    <div class="wheel-card__corner wheel-card__corner--tl"></div>
+                    <div class="wheel-card__corner wheel-card__corner--tr"></div>
+                    <div class="wheel-card__corner wheel-card__corner--bl"></div>
+                    <div class="wheel-card__corner wheel-card__corner--br"></div>
+                  </div>
                 </div>`;
         }
 
@@ -155,7 +161,7 @@ export class TarotPickPage {
               </div>
             </div>
           </div>
-          <div class="pick-bottom-bar">
+          <div class="pick-bottom-bar" id="pickBottomBar" style="display:none;">
             <button class="btn btn--primary btn--full btn--lg pick-next-btn" id="pickNextBtn">
               开始解读
             </button>
@@ -178,6 +184,25 @@ export class TarotPickPage {
                 <span class="pick-card-modal__card-icon" id="modalCardIcon">✦</span>
                 <span class="pick-card-modal__card-name" id="modalCardName"></span>
               </div>
+              <!-- 牌背面装饰层（参考图：深蓝底 + 双圆环 + 放射线 + 四方位符号 + 四角弧线） -->
+              <div class="pick-card-modal__back-decor">
+                <div class="modal-back__inner-border"></div>
+                <div class="modal-back__radial-line modal-back__radial-line--0"></div>
+                <div class="modal-back__radial-line modal-back__radial-line--45"></div>
+                <div class="modal-back__radial-line modal-back__radial-line--90"></div>
+                <div class="modal-back__radial-line modal-back__radial-line--135"></div>
+                <div class="modal-back__circle modal-back__circle--outer"></div>
+                <div class="modal-back__circle modal-back__circle--inner"></div>
+                <div class="modal-back__center-icon">Q</div>
+                <div class="modal-back__suit modal-back__suit--top">⛤</div>
+                <div class="modal-back__suit modal-back__suit--right">☤</div>
+                <div class="modal-back__suit modal-back__suit--bottom">🏆</div>
+                <div class="modal-back__suit modal-back__suit--left">⚔</div>
+                <div class="modal-back__corner modal-back__corner--tl">Q</div>
+                <div class="modal-back__corner modal-back__corner--tr">☽</div>
+                <div class="modal-back__corner modal-back__corner--bl">☽</div>
+                <div class="modal-back__corner modal-back__corner--br">☾</div>
+              </div>
             </div>
             <div class="pick-card-modal__info">
               <span class="pick-card-modal__step" id="modalStep"></span>
@@ -185,12 +210,12 @@ export class TarotPickPage {
               <span class="pick-card-modal__orientation" id="modalOrientation"></span>
             </div>
             <div class="pick-card-modal__buttons">
-              <button class="pick-card-modal__btn pick-card-modal__btn--retry" id="modalRetryBtn">
-                <span>🔄</span> 重抽
-              </button>
               <button class="pick-card-modal__btn pick-card-modal__btn--confirm" id="modalConfirmBtn">
-                <span>✓</span> 确认
+                确定
               </button>
+            </div>
+            <div class="pick-card-modal__retry-link" id="modalRetryBtn">
+              点错了，换一张
             </div>
           </div>
         </div>
@@ -540,6 +565,14 @@ export class TarotPickPage {
             hint.textContent = remaining > 0
                 ? `还需抽 ${remaining} 张牌`
                 : '已抽满 6 张牌，点击开始解读';
+        }
+
+        // 抽满后显示"开始解读"按钮
+        if (remaining <= 0) {
+            const bottomBar = document.getElementById('pickBottomBar');
+            if (bottomBar) {
+                bottomBar.style.display = '';
+            }
         }
     }
 

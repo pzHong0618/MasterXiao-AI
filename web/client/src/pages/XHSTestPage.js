@@ -83,54 +83,12 @@ export class XHSTestPage {
               <div style="text-align:center;padding:24px;color:var(--color-text-tertiary);">加载中...</div>
             </section>
 
-            <!-- 测试方式选择 -->
-            <section class="xhs-test-method-section mt-6 animate-fade-in-up animate-delay-200">
-              <h3 class="heading-3 mb-3 text-center">选择测试方式</h3>
-
-              <div class="glass-card" style="padding: 0; overflow: hidden;">
-                <!-- 生日匹配 -->
-                <div class="method-card method-card--compact" data-method="birthday" style="padding: 14px 16px; cursor: pointer;">
-                  <div class="method-card__icon" style="font-size: 28px;">🎂</div>
-                  <div class="method-card__content">
-                    <h4 class="method-card__title" style="font-size: 15px; margin-bottom: 2px;">生日匹配</h4>
-                    <p class="method-card__description" style="font-size: 12px; margin-bottom: 0;">输入双方生日，通过生日特质分析性格关系</p>
-                  </div>
-                  <span class="method-card__arrow">→</span>
-                </div>
-
-                <!-- 渐变色分隔线 -->
-                <div style="height: 1.5px; margin: 0 16px; background: linear-gradient(90deg, transparent, var(--color-primary), #f472b6, transparent);"></div>
-
-                <!-- 直觉塔罗测试 -->
-                <div class="method-card method-card--compact" data-method="tarot" style="padding: 14px 16px; cursor: pointer;">
-                  <div class="method-card__icon" style="font-size: 28px;">🔮</div>
-                  <div class="method-card__content">
-                    <h4 class="method-card__title" style="font-size: 15px; margin-bottom: 2px;">直觉塔罗</h4>
-                    <p class="method-card__description" style="font-size: 12px; margin-bottom: 0;">凭直觉翻牌，通过卡牌符号解析关系</p>
-                  </div>
-                  <span class="method-card__arrow">→</span>
-                </div>
-              </div>
+            <!-- 下一步按钮 -->
+            <section class="mt-4 animate-fade-in-up animate-delay-200">
+              <button class="btn btn--primary btn--full btn--lg" id="btnNextStep" style="border-radius:50px;letter-spacing:2px;">
+                下一步
+              </button>
             </section>
-
-            <!-- 性别选择弹框 -->
-            <div id="genderModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;">
-              <div id="genderModalOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);"></div>
-              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:85%;max-width:360px;background:#fff;border-radius:20px;padding:30px 20px 32px;box-sizing:border-box;animation:fadeScaleIn 0.3s ease;">
-                <h3 style="text-align:center;font-size:18px;font-weight:600;color:var(--color-text-primary);margin-bottom:8px;">请选择您的性别</h3>
-                <p style="text-align:center;font-size:13px;color:var(--color-text-tertiary);margin-bottom:24px;">性别信息将帮助更准确解读结果</p>
-                <div style="display:flex;justify-content:center;gap:40px;">
-                  <div class="ts-gender-option" data-gender="male" style="display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;padding:16px 24px;border-radius:16px;border:2px solid transparent;transition:all 0.2s;">
-                    <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:32px;">👨</div>
-                    <span style="font-size:15px;font-weight:500;color:var(--color-text-primary);">男</span>
-                  </div>
-                  <div class="ts-gender-option" data-gender="female" style="display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;padding:16px 24px;border-radius:16px;border:2px solid transparent;transition:all 0.2s;">
-                    <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#ec4899);display:flex;align-items:center;justify-content:center;font-size:32px;">👩</div>
-                    <span style="font-size:15px;font-weight:500;color:var(--color-text-primary);">女</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <div class="mt-8 safe-area-bottom"></div>
           </div>
@@ -260,50 +218,12 @@ export class XHSTestPage {
             });
         });
 
-        // 测试方式卡片点击
-        document.querySelectorAll('.method-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const method = card.dataset.method;
-                this.handleMethodSelect(method);
+        // 下一步按钮 → 跳转到测试方式选择页
+        const btnNext = document.getElementById('btnNextStep');
+        if (btnNext) {
+            btnNext.addEventListener('click', () => {
+                this.handleNextStep();
             });
-        });
-
-        // 性别选择事件
-        document.querySelectorAll('.ts-gender-option').forEach(option => {
-            option.addEventListener('click', () => {
-                const gender = option.dataset.gender;
-                document.querySelectorAll('.ts-gender-option').forEach(opt => {
-                    opt.style.borderColor = 'transparent';
-                    opt.style.background = '';
-                });
-                option.style.borderColor = gender === 'male' ? '#3b82f6' : '#ec4899';
-                option.style.background = gender === 'male' ? 'rgba(59,130,246,0.08)' : 'rgba(236,72,153,0.08)';
-
-                setTimeout(() => {
-                    this.submitTarotWithGender(gender);
-                }, 500);
-            });
-        });
-
-        // 点击遮罩关闭弹框
-        const overlay = document.getElementById('genderModalOverlay');
-        if (overlay) {
-            overlay.addEventListener('click', () => {
-                this.hideGenderModal();
-            });
-        }
-
-        // 添加弹框动画样式
-        if (!document.querySelector('#ts-gender-modal-style')) {
-            const style = document.createElement('style');
-            style.id = 'ts-gender-modal-style';
-            style.textContent = `
-                @keyframes fadeScaleIn {
-                    from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
-                    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                }
-            `;
-            document.head.appendChild(style);
         }
     }
 
@@ -341,74 +261,28 @@ export class XHSTestPage {
         return '';
     }
 
-    showGenderModal() {
-        const modal = document.getElementById('genderModal');
-        if (modal) modal.style.display = 'block';
-    }
-
-    hideGenderModal() {
-        const modal = document.getElementById('genderModal');
-        if (modal) modal.style.display = 'none';
-        document.querySelectorAll('.ts-gender-option').forEach(opt => {
-            opt.style.borderColor = 'transparent';
-            opt.style.background = '';
-        });
-    }
-
     /**
-     * 选择性别后保存数据并跳转
+     * 点击"下一步"：验证菜单选择，保存数据，跳转到测试方式选择页
      */
-    submitTarotWithGender(gender) {
-        const matchType = this.menuTypes.find(t => t.id === this.selectedType);
-        const question = this.getSelectedQuestionText();
-        const categoryName = matchType ? matchType.title : '综合';
-        const ruleType = CATEGORY_RULE_MAP[categoryName] || 'ganqing';
-
-        if (window.appState) {
-            window.appState.set('tarotQuestion', question);
-            window.appState.set('tarotCategory', categoryName);
-            window.appState.set('tarotGender', gender);
-            window.appState.set('selectedQuestion', question);
-            window.appState.set('questionCategory', categoryName);
-            window.appState.set('questionType', ruleType);
-            if (this.redeemCode) {
-                window.appState.set('redeemCode', this.redeemCode);
-            }
-        }
-
-        this.hideGenderModal();
-        window.router.navigate(`/test/${this.selectedType}/tarot/pick`);
-    }
-
-    /**
-     * 选择测试方式 —— 与 TestSelectPage.handleMethodSelect 同样的判断
-     */
-    async handleMethodSelect(method) {
+    async handleNextStep() {
         if (this.isVerifying) return;
 
-        // 1. 必须先选择一个菜单项
+        // 必须先选择一个菜单项
         if (!this.selectedType) {
             window.showToast('请先选择一个测试主题', 'error');
             return;
         }
 
-        // 2. 兑换码验证流程
+        // 兑换码验证流程
         if (this.redeemCode && !this.codeVerified) {
             this.isVerifying = true;
 
-            const clickedCard = document.querySelector(`.method-card[data-method="${method}"]`);
-            if (clickedCard) {
-                clickedCard.style.opacity = '0.7';
-                clickedCard.style.pointerEvents = 'none';
-            }
+            const btn = document.getElementById('btnNextStep');
+            if (btn) { btn.disabled = true; btn.textContent = '验证中...'; }
 
             const verifyResult = await this.verifyRedeemCode();
 
-            if (clickedCard) {
-                clickedCard.style.opacity = '';
-                clickedCard.style.pointerEvents = '';
-            }
-
+            if (btn) { btn.disabled = false; btn.textContent = '下一步'; }
             this.isVerifying = false;
 
             if (!verifyResult.valid && !verifyResult.success) {
@@ -422,18 +296,21 @@ export class XHSTestPage {
             this.codeVerified = true;
         }
 
-        // 3. 导航到下一页
-        const typeId = this.selectedType;
-        if (method === 'birthday') {
-            let url = `/test/${typeId}/birthday`;
-            if (this.redeemCode) {
-                url += `?s=${encodeURIComponent(this.redeemCode)}`;
-            }
-            window.router.navigate(url);
-        } else if (method === 'tarot') {
-            // 弹出性别选择弹框（与 TestSelectPage 一致）
-            this.showGenderModal();
+        // 保存选择的主题信息到全局状态
+        const matchType = this.menuTypes.find(t => t.id === this.selectedType);
+        const categoryName = matchType ? matchType.title : '综合';
+
+        if (window.appState) {
+            window.appState.set('tarotCategory', categoryName);
+            window.appState.set('questionCategory', categoryName);
         }
+
+        // 跳转到测试方式选择页
+        let url = `/test/${this.selectedType}/method`;
+        if (this.redeemCode) {
+            url += `?s=${encodeURIComponent(this.redeemCode)}`;
+        }
+        window.router.navigate(url);
     }
 
     initAnimations() {

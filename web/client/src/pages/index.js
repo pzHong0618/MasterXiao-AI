@@ -8,6 +8,7 @@ export { XHSLandingPage } from './XHSLandingPage.js';
 export { XHSTestPage } from './XHSTestPage.js';
 export { AuthPage } from './AuthPage.js';
 export { TestSelectPage } from './TestSelectPage.js';
+export { TestMethodPage } from './TestMethodPage.js';
 export { BirthdayInputPage } from './BirthdayInputPage.js';
 export { TarotPage } from './TarotPage.js';
 export { TarotTabooPage } from './TarotTabooPage.js';
